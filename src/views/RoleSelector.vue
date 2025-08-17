@@ -19,10 +19,10 @@
         <router-link to="/senior/login">
           <button class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-full shadow-md text-sm md:text-base transition-all">🧓 Senior Citizen</button>
         </router-link>
-        <router-link to="/osca/dashboard">
+        <router-link to="/osca/login">
           <button class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-full shadow-md text-sm md:text-base transition-all">🏢 OSCA Personnel</button>
         </router-link>
-        <router-link to="/barangay/dashboard">
+        <router-link to="/barangay/login">
           <button class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-full shadow-md text-sm md:text-base transition-all">🏘️ Barangay Personnel</button>
         </router-link>
       </div>

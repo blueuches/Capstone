@@ -18,6 +18,7 @@ const routes = [
   { path: '/osca/messaging', component: () => import('../views/OSCA/Messaging.vue') },
   { path: '/osca/applications', component: () => import('../views/OSCA/ApplicationReview.vue') },
   { path: '/osca/release-id', component: () => import('../views/OSCA/ReleasingID.vue') },
+  //senior profiles
 
   { path: '/barangay/login', component: () => import('../views/Barangay/Login.vue') },
   { path: '/barangay/signup', component: () => import('../views/Barangay/Signup.vue') },
