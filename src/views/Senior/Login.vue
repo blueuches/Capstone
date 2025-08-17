@@ -14,8 +14,8 @@
     </p>
 
     <!-- Form -->
-    <form class="w-full flex flex-col gap-6" onsubmit="return login(event)">
-      <!-- Username Input -->
+    <form class="w-full flex flex-col gap-6" @submit="handleLogin">
+      <!-- Phonenumber Input -->
       <div class="relative">
         <span class="absolute left-4 top-3 text-emerald-500">
           <!-- Heroicon: User -->
@@ -25,9 +25,10 @@
           </svg>
         </span>
         <input
-          id="username"
+          id="phone"
           type="text"
-          placeholder="Username"
+          placeholder="Phone"
+          v-model="phone"
           class="w-full pl-12 pr-4 py-3 text-lg border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-400 focus:outline-none text-gray-700"
         />
       </div>
@@ -45,6 +46,7 @@
           id="password"
           type="password"
           placeholder="Password"
+          v-model="password"
           class="w-full pl-12 pr-4 py-3 text-lg border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-400 focus:outline-none text-gray-700"
         />
       </div>
@@ -73,18 +75,44 @@
   </div>
 </template>
 
-  <script>
-    function login(event) {
-      event.preventDefault();
-      const username = document.getElementById("username").value;
-      const password = document.getElementById("password").value;
+<script setup>
+import { supabase } from '../../supabase/client'
+import { useRouter } from 'vue-router'
+import { ref } from 'vue'
 
-      if (!username || !password) {
-        alert("Please enter both username and password");
-        return false;
-      }
+const router = useRouter()
 
-      alert("Logging in with: " + username);
-      return false;
-    }
-  </script>
+const email = ref('')
+const password = ref('')
+
+// Handle Login
+const handleLogin = async (e) => {
+  e.preventDefault()
+
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email: email.value,
+    password: password.value,
+  })
+
+  if (error) {
+    alert('Login failed: ' + error.message)
+    return
+  }
+
+  const user = data.user
+
+  const { data: profile, error: profileError } = await supabase
+    .from('SeniorCitizens')
+    .select('*')
+    .eq('auth_id', user.id)
+    .single()
+
+  if (profileError) {
+    alert('Profile not found: ' + profileError.message)
+    return
+  }
+
+  alert('Welcome back, ' + profile.name + '!')
+  router.push('/senior/dashboard')
+}
+</script>

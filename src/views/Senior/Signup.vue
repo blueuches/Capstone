@@ -12,8 +12,8 @@
     </p>
 
     <!-- Form -->
-    <form class="w-full flex flex-col gap-6" onsubmit="return signup(event)">
-      <!-- Username -->
+    <form class="w-full flex flex-col gap-6" @submit="handleSignup">
+      <!-- Fullname -->
       <div class="relative">
         <span class="absolute left-4 top-3 text-emerald-500">
           <!-- Heroicon: User -->
@@ -23,9 +23,10 @@
           </svg>
         </span>
         <input
-          id="username"
+          id="name"
           type="text"
-          placeholder="Username"
+          placeholder="Name"
+          v-model="name"
           class="w-full pl-12 pr-4 py-3 text-lg border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-400 focus:outline-none text-gray-700"
         />
       </div>
@@ -40,9 +41,10 @@
           </svg>
         </span>
         <input
-          id="phone"
+          id="email"
           type="text"
-          placeholder="Phone Number"
+          placeholder="Email"
+          v-model="email"
           class="w-full pl-12 pr-4 py-3 text-lg border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-400 focus:outline-none text-gray-700"
         />
       </div>
@@ -60,6 +62,7 @@
           id="password"
           type="password"
           placeholder="Password"
+          v-model="password"
           class="w-full pl-12 pr-4 py-3 text-lg border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-400 focus:outline-none text-gray-700"
         />
       </div>
@@ -77,6 +80,7 @@
           id="confirmPassword"
           type="password"
           placeholder="Confirm Password"
+          v-model="confirmPassword"
           class="w-full pl-12 pr-4 py-3 text-lg border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-400 focus:outline-none text-gray-700"
         />
       </div>
@@ -101,3 +105,57 @@
   </div>
   </div>
 </template>
+
+<script setup>
+import { supabase } from '../../supabase/client'
+import { useRouter } from 'vue-router'
+import { ref } from 'vue'
+
+const router = useRouter()
+
+// Form fields
+const email = ref('')
+const password = ref('')
+const confirmPassword = ref('')
+const username = ref('')
+const phone = ref('')
+
+// Handle Signup
+const handleSignup = async (e) => {
+  e.preventDefault()
+
+  const role = 'senior' // fixed role here (or use localStorage if dynamic)
+
+  if (password.value !== confirmPassword.value) {
+    alert("Passwords don't match!")
+    return
+  }
+
+  const { data, error } = await supabase.auth.signUp({
+    email: email.value,
+    password: password.value,
+  })
+
+  if (error) {
+    alert('Signup failed: ' + error.message)
+    return
+  }
+
+  const user = data.user
+
+  // Insert to SeniorCitizens table
+  const { error: insertError } = await supabase.from('SeniorCitizens').insert({
+    auth_id: user.id,
+    name: username.value,
+    phone: phone.value,
+  })
+
+  if (insertError) {
+    alert('Signup error: ' + insertError.message)
+    return
+  }
+
+  alert('Signup successful! Redirecting...')
+  router.push('/senior/dashboard')
+}
+</script>
