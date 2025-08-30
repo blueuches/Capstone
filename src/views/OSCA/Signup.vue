@@ -1,8 +1,29 @@
 <template>
   <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-100 via-emerald-50 to-white p-6">
 
-  <div class="w-full max-w-md bg-white rounded-3xl shadow-xl p-10 flex flex-col items-center">
-    
+    <div
+      class="w-full max-w-md sm:max-w-lg md:max-w-xl lg:max-w-2xl xl:max-w-3xl bg-white rounded-3xl shadow-xl p-10 flex flex-col items-center relative"
+    >
+      <router-link
+        to="/"
+        class="absolute top-4 left-4 inline-flex items-center gap-2 text-sm text-emerald-600 hover:text-emerald-800 font-semibold"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          class="h-5 w-5"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M15 19l-7-7 7-7"
+          />
+        </svg>
+        Back to Dashboard
+      </router-link>
     <!-- Header -->
     <h1 class="text-4xl font-extrabold text-emerald-700 text-center mb-2">
       OSCA Signup
@@ -101,3 +122,59 @@
   </div>
   </div>
 </template>
+
+<script setup>
+import { supabase } from '../../supabase/client'
+import { useRouter } from 'vue-router'
+import { ref } from 'vue'
+
+const router = useRouter()
+
+// Form fields
+const email = ref('')
+const password = ref('')
+const confirmPassword = ref('')
+const name = ref('')
+const phone = ref('')
+
+// Handle Signup
+const handleSignup = async (e) => {
+  e.preventDefault()
+
+  const role = 'senior' // fixed role here (or use localStorage if dynamic)
+
+  if (password.value !== confirmPassword.value) {
+    alert("Passwords don't match!")
+    return
+  }
+
+  const { data, error } = await supabase.auth.signUp({
+    email: email.value,
+    password: password.value,
+  })
+
+  if (error) {
+    alert('Signup failed: ' + error.message)
+    return
+  }
+
+  const user = data.user
+
+  // Insert to SeniorCitizens table
+  const { error: insertError } = await supabase.from('SeniorCitizens').insert({
+    auth_id: user.id,
+    name: name.value,
+    email: email.value,
+    password: password.value,
+    barangay_id: UNKNOWN_BARANGAY_ID,
+  })
+
+  if (insertError) {
+    alert('Signup error: ' + insertError.message)
+    return
+  }
+
+  alert('Signup successful! Redirecting...')
+  router.push('/senior/dashboard')
+}
+</script>

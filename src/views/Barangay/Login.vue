@@ -1,10 +1,30 @@
 <template>
   <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-100 via-emerald-50 to-white p-6">
 
+    <div
+      class="w-full max-w-md sm:max-w-lg md:max-w-xl lg:max-w-2xl xl:max-w-3xl bg-white rounded-3xl shadow-xl p-10 flex flex-col items-center relative"
+    >
+      <router-link
+        to="/"
+        class="absolute top-4 left-4 inline-flex items-center gap-2 text-sm text-emerald-600 hover:text-emerald-800 font-semibold"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          class="h-5 w-5"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M15 19l-7-7 7-7"
+          />
+        </svg>
+        Back to Dashboard
+      </router-link>
 
-
-  <div class="w-full max-w-md bg-white rounded-3xl shadow-xl p-10 flex flex-col items-center">
-    
     <!-- Header -->
     <h1 class="text-4xl font-extrabold text-emerald-700 text-center mb-2">
       Barangay Login

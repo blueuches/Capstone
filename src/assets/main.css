@@ -4,19 +4,25 @@
 @tailwind components;
 @tailwind utilities;
 
-/* TEST STYLE - force red background on all body */
+/* General body styles */
 body {
-  background-color: #F9FDFE;
+  background-color: #F9FDFE; /* Light green-tinted background */
   font-family: sans-serif;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  line-height: 1.5;
+  color: #1f2937; /* Tailwind's gray-800 */
 }
 
+/* App wrapper styles */
 #app {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  font-weight: normal;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
+/* Links */
 a,
 .green {
   text-decoration: none;
@@ -31,15 +37,9 @@ a,
   }
 }
 
-@media (min-width: 1024px) {
-  body {
-    display: flex;
-    place-items: center;
-  }
-
-  #app {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    padding: 0 2rem;
-  }
+/* Hide Vue Devtools floating button injected by Vite */
+iframe#vue-devtools,
+div[id*="vue-devtools"],
+div[class*="vue-devtools"] {
+  display: none !important;
 }

@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import Welcome from '../views/Welcome.vue'
 import RoleSelector from '../views/RoleSelector.vue'
+import { supabase } from '../supabase/client'
 
 const routes = [
   { path: '/', component: Welcome },

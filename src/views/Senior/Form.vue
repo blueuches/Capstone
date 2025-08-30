@@ -1,20 +1,99 @@
+<!-- Dashboard.vue -->
 <template>
-  <!-- Header -->
-  <header class="sticky top-0 z-20 bg-[#087d48] text-white">
-    <div class="max-w-5xl mx-auto px-4 md:px-6 lg:px-8 h-14 flex items-center justify-between">
-      <div class="flex items-center gap-3">
-        <div class="h-8 w-8 rounded-full bg-white/20"></div>
-        <h1 class="font-semibold tracking-wide">SeniorGo</h1>
-        <span class="hidden sm:inline text-white/80">• OSCA Program Application Form</span>
-      </div>
+  <div class="bg-gray-50 min-h-screen flex flex-col">
+    <!-- Header -->
+    <header
+      class="w-full bg-white shadow-md fixed top-0 z-40 flex items-center justify-between px-6 py-3"
+    >
       <div class="flex items-center gap-2">
-        <button class="text-sm px-3 py-1 rounded-full bg-white/10 hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white">EN</button>
-        <button class="text-sm px-3 py-1 rounded-full hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white">CEB</button>
-        <button class="ml-2 h-8 w-8 grid place-items-center rounded-full bg-white/10 hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white" aria-label="Help">?</button>
+        <div
+          class="bg-emerald-600 text-white w-10 h-10 rounded-full flex items-center justify-center font-bold"
+        >
+          S
+        </div>
+        <h1 class="font-bold text-emerald-700 text-xl">SeniorGo Dashboard</h1>
       </div>
-    </div>
-  </header>
+      <div class="flex items-center gap-4">
+        <button class="text-gray-600 hover:text-emerald-600" @click="onProfile">Profile</button>
+        <button
+          class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700"
+          @click="onLogout"
+        >
+          Logout
+        </button>
+      </div>
+    </header>
 
+    <div class="flex flex-1 pt-16">
+      <!-- Sidebar -->
+      <aside class="hidden md:flex w-64 bg-white shadow-lg flex-col fixed top-16 bottom-0">
+        <nav class="flex-1 p-4 space-y-2">
+          <button
+            class="w-full text-left px-4 py-3 rounded-lg hover:bg-emerald-50 font-medium"
+            :class="{ 'menu-active': currentSection === 'programs' }"
+            @click="currentSection = 'programs'"
+          >
+            Programs
+          </button>
+          <button
+            class="w-full text-left px-4 py-3 rounded-lg hover:bg-emerald-50 font-medium"
+            :class="{ 'menu-active': currentSection === 'messages' }"
+            @click="currentSection = 'messages'"
+          >
+            Messages
+          </button>
+          <button
+            class="w-full text-left px-4 py-3 rounded-lg hover:bg-emerald-50 font-medium"
+            :class="{ 'menu-active': currentSection === 'application' }"
+            @click="currentSection = 'application'"
+          >
+            Application
+          </button>
+          <button
+            class="w-full text-left px-4 py-3 rounded-lg hover:bg-emerald-50 font-medium"
+            :class="{ 'menu-active': currentSection === 'notifications' }"
+            @click="currentSection = 'notifications'"
+          >
+            Notifications
+          </button>
+        </nav>
+      </aside>
+
+      <!-- Mobile Nav -->
+      <div
+        class="md:hidden fixed bottom-0 inset-x-0 bg-white border-t shadow flex justify-around p-2 z-50"
+      >
+        <button
+          class="flex flex-col items-center text-sm"
+          :class="{ 'menu-active rounded-lg px-2 py-1': currentSection === 'programs' }"
+          @click="currentSection = 'programs'"
+        >
+          Programs
+        </button>
+        <button
+          class="flex flex-col items-center text-sm"
+          :class="{ 'menu-active rounded-lg px-2 py-1': currentSection === 'messages' }"
+          @click="currentSection = 'messages'"
+        >
+          Messages
+        </button>
+        <button
+          class="flex flex-col items-center text-sm"
+          :class="{ 'menu-active rounded-lg px-2 py-1': currentSection === 'application' }"
+          @click="currentSection = 'application'"
+        >
+          Application
+        </button>
+        <button
+          class="flex flex-col items-center text-sm"
+          :class="{ 'menu-active rounded-lg px-2 py-1': currentSection === 'notifications' }"
+          @click="currentSection = 'notifications'"
+        >
+          Notifications
+        </button>
+      </div>
+
+      <!-- Main Content -->
   <main class="max-w-5xl mx-auto px-4 md:px-6 lg:px-8 py-6">
     <!-- Card container -->
     <div class="bg-[#F7FAFC] rounded-2xl shadow-md md:shadow-lg border border-slate-200">
@@ -394,29 +473,71 @@
     </div>
   </main>
 
-  <!-- Sticky Action Bar -->
-  <div class="fixed bottom-0 inset-x-0 bg-white/90 backdrop-blur border-t border-slate-200">
-    <div class="max-w-5xl mx-auto px-4 md:px-6 lg:px-8 py-3 flex flex-col sm:flex-row gap-2 sm:gap-3 items-stretch sm:items-center justify-end">
-      <button class="h-12 px-5 rounded-xl border border-slate-300 text-[#0B1320] bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#0F4C81]">
-        Save Draft
-      </button>
-      <!-- Disabled variant (visual only) -->
-      <button disabled class="h-12 px-6 rounded-xl bg-[#0F4C81]/40 text-white cursor-not-allowed">
-        Submit
-      </button>
     </div>
   </div>
 </template>
 
 <script setup>
-// design-only; no functionality
+import { ref, nextTick } from 'vue'
+import { supabase } from '../../supabase/client'
+import { useRouter } from 'vue-router'
+
+const currentSection = ref('programs')
+
+const chatInput = ref('')
+const messages = ref([])
+const chatBoxRef = ref(null)
+
+const selectedFile = ref(null)
+const remarks = ref('')
+
+// events
+async function sendMessage() {
+  const t = chatInput.value.trim()
+  if (!t) return
+  messages.value.push({ text: t, sender: 'me' })
+  chatInput.value = ''
+  await nextTick()
+  if (chatBoxRef.value) chatBoxRef.value.scrollTop = chatBoxRef.value.scrollHeight
+}
+
+function onFileChange(e) {
+  selectedFile.value = e.target.files?.[0] ?? null
+}
+
+function submitApplication() {
+  // plug in Supabase upload + DB insert here
+  alert('Application submitted (demo).')
+}
+
+function onApply(program) {
+  alert(`Apply: ${program}`)
+}
+
+function onProfile() {
+  alert('Profile clicked')
+}
+
+//logout
+const router = useRouter()
+
+const onLogout = async () => {
+  const { error } = await supabase.auth.signOut()
+  if (error) {
+    alert('Logout failed: ' + error.message)
+    return
+  }
+  // Clear any local storage/session if needed
+  localStorage.clear()
+
+  // Redirect to login page
+  router.push('/')
+}
 </script>
 
 <style scoped>
-.input {
-  @apply w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0F4C81];
-}
-.chip {
-  @apply inline-flex items-center gap-1 rounded-full border border-slate-300 bg-slate-50 px-3 py-1 text-xs;
+.menu-active {
+  background-color: #10b981;
+  color: white;
 }
 </style>
