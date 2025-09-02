@@ -1,29 +1,73 @@
 <!-- SeniorList.vue -->
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-green-100 via-emerald-50 to-white">
-    <!-- Header -->
-    <header class="bg-white shadow-md p-5 flex items-center justify-between">
-      <div>
-        <h1 class="text-2xl md:text-3xl font-extrabold text-emerald-700">Senior List</h1>
-        <p class="text-gray-600 text-sm md:text-base">Manage eligible seniors and submit to OSCA</p>
-      </div>
-      <div class="flex gap-2">
-        <button
-          id="openOnlineApp"
-          class="px-4 py-2 rounded-xl font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow"
-          @click="showOnlineApp = true"
-        >
-          Online Application
-        </button>
-
-        <router-link to="/barangay/dashboard">
-          <p class="text-emerald-700 font-bold underline text-lg">← Back to Dashboard</p> 
+  <div class="min-h-screen flex bg-gradient-to-br from-green-100 via-emerald-50 to-white">
+    <!-- Sidebar -->
+    <aside class="w-20 md:w-60 bg-white shadow-lg flex flex-col items-center py-6">
+      <h2 class="hidden md:block text-xl font-bold text-emerald-700 mb-8">Menu</h2>
+      <nav class="flex flex-col gap-8 w-full items-center md:items-start px-4">
+        <router-link to="/barangay/dashboard" class="flex items-center gap-3 text-emerald-700 hover:text-emerald-900 font-semibold">
+          <!-- Home icon -->
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M3 9.75L12 3l9 6.75V21a1.5 1.5 0 01-1.5 1.5H4.5A1.5 1.5 0 013 21V9.75z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M9 22V12h6v10"/>
+          </svg>
+          <span class="hidden md:inline">Home</span>
         </router-link>
-      </div>
-    </header>
 
-    <main class="p-5 max-w-7xl mx-auto space-y-6">
-      <!-- Controls -->
+        <!-- other nav links -->
+        <router-link to="/barangay/messaging" class="flex items-center gap-3 text-emerald-700 hover:text-emerald-900 font-semibold">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+          </svg>
+          <span class="hidden md:inline">Message</span>
+        </router-link>
+
+        <router-link to="/barangay/notifications" class="flex items-center gap-3 text-emerald-700 hover:text-emerald-900 font-semibold">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M15 17h5l-1.405-1.405C18.21 14.79 18 14.418 18 14V11c0-3.07-1.64-5.64-4.5-6.32V4a1.5 1.5 0 00-3 0v.68C7.64 5.36 6 7.92 6 11v3c0 .418-.21.79-.595 1.595L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+          </svg>
+          <span class="hidden md:inline">Notifications</span>
+        </router-link>
+
+        <router-link to="/barangay/senior-queue" class="flex items-center gap-3 text-emerald-700 hover:text-emerald-900 font-semibold">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M9 17h6m-6-4h6m2 9H7a2 2 0 01-2-2V5a2 2 0 012-2h2l1-2h4l1 2h2a2 2 0 012 2v14a2 2 0 01-2 2z"/>
+          </svg>
+          <span class="hidden md:inline">Applications</span>
+        </router-link>
+      </nav>
+    </aside>
+
+        <div class="flex-1 flex flex-col">
+      <!-- Header -->
+      <header class="bg-white shadow-md p-5 flex items-center justify-between">
+        <div>
+          <h1 class="text-2xl md:text-3xl font-extrabold text-emerald-700">Senior List</h1>
+          <p class="text-gray-600 text-sm md:text-base">Manage eligible seniors and submit to OSCA</p>
+        </div>
+        <div class="flex gap-2">
+          <button
+            id="openOnlineApp"
+            class="px-4 py-2 rounded-xl font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow"
+            @click="showOnlineApp = true"
+          >
+            Online Application
+          </button>
+
+          <router-link to="/barangay/dashboard">
+            <p class="text-emerald-700 font-bold underline text-lg">← Back to Dashboard</p>
+          </router-link>
+        </div>
+      </header>
+
+      <!-- Main -->
+      <main class="flex-1 p-5 max-w-7xl mx-auto space-y-6">
+              <!-- Controls -->
       <section class="bg-white rounded-2xl shadow p-4 md:p-6 space-y-6">
         <div class="flex flex-col md:flex-row md:items-end gap-4 md:gap-6">
           <!-- Search -->
@@ -259,7 +303,10 @@
           <div v-if="validatedCount === 0" class="text-sm text-gray-500">No validated seniors yet.</div>
         </div>
       </section>
-    </main>
+
+      </main>
+    </div>
+
 
     <!-- ===== Modal: Post-Submission ===== -->
     <div
