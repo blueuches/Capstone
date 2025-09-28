@@ -31,7 +31,7 @@
       <p class="text-gray-600 text-center mb-8 text-lg">Create your account to get started.</p>
 
       <!-- Form -->
-      <form class="w-full flex flex-col gap-6" onsubmit="return signup(event)">
+      <form class="w-full flex flex-col gap-6" @submit="handleSignup">
         <!-- Username -->
         <div class="relative">
           <span class="absolute left-4 top-3 text-emerald-500">
@@ -52,9 +52,10 @@
             </svg>
           </span>
           <input
-            id="username"
+            id="name"
             type="text"
-            placeholder="Username"
+            placeholder="Name"
+            v-model="name"
             class="w-full pl-12 pr-4 py-3 text-lg border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-400 focus:outline-none text-gray-700"
           />
         </div>
@@ -79,9 +80,10 @@
             </svg>
           </span>
           <input
-            id="phone"
+            id="email"
             type="text"
-            placeholder="Phone Number"
+            placeholder="Email"
+            v-model="email"
             class="w-full pl-12 pr-4 py-3 text-lg border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-400 focus:outline-none text-gray-700"
           />
         </div>
@@ -109,6 +111,7 @@
             id="password"
             type="password"
             placeholder="Password"
+            v-model="password"
             class="w-full pl-12 pr-4 py-3 text-lg border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-400 focus:outline-none text-gray-700"
           />
         </div>
@@ -136,6 +139,7 @@
             id="confirmPassword"
             type="password"
             placeholder="Confirm Password"
+            v-model="confirmPassword"
             class="w-full pl-12 pr-4 py-3 text-lg border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-400 focus:outline-none text-gray-700"
           />
         </div>
@@ -166,14 +170,12 @@ import { useRouter } from 'vue-router'
 import { ref } from 'vue'
 
 const router = useRouter()
-const UNKNOWN_BARANGAY_ID = '40c73788-5927-49e0-868a-5c38f3a40874'
 
 // Form fields
 const email = ref('')
 const password = ref('')
 const confirmPassword = ref('')
 const name = ref('')
-const phone = ref('')
 
 // Handle Signup
 const handleSignup = async (e) => {
@@ -199,12 +201,11 @@ const handleSignup = async (e) => {
   const user = data.user
 
   // Insert to SeniorCitizens table
-  const { error: insertError } = await supabase.from('SeniorCitizens').insert({
+  const { error: insertError } = await supabase.from('BarangayPersonnel').insert({
     auth_id: user.id,
     name: name.value,
     email: email.value,
     password: password.value,
-    barangay_id: UNKNOWN_BARANGAY_ID,
   })
 
   if (insertError) {
@@ -213,6 +214,6 @@ const handleSignup = async (e) => {
   }
 
   alert('Signup successful! Redirecting...')
-  router.push('/senior/dashboard')
+  router.push('/barangay/dashboard')
 }
 </script>

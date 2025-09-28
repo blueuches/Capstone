@@ -33,7 +33,7 @@
     </p>
 
     <!-- Form -->
-    <form class="w-full flex flex-col gap-6" onsubmit="return signup(event)">
+    <form class="w-full flex flex-col gap-6" @submit="handleSignup">
       <!-- Username -->
       <div class="relative">
         <span class="absolute left-4 top-3 text-emerald-500">
@@ -51,7 +51,7 @@
         />
       </div>
 
-      <!-- Phone -->
+      <!-- Email -->
       <div class="relative">
         <span class="absolute left-4 top-3 text-emerald-500">
           <!-- Heroicon: Phone -->
@@ -61,9 +61,10 @@
           </svg>
         </span>
         <input
-          id="phone"
-          type="text"
-          placeholder="Phone Number"
+            id="email"
+            type="text"
+            placeholder="Email"
+            v-model="email"
           class="w-full pl-12 pr-4 py-3 text-lg border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-400 focus:outline-none text-gray-700"
         />
       </div>
@@ -160,13 +161,12 @@ const handleSignup = async (e) => {
 
   const user = data.user
 
-  // Insert to SeniorCitizens table
-  const { error: insertError } = await supabase.from('SeniorCitizens').insert({
+  // Insert to OSCA table
+  const { error: insertError } = await supabase.from('OSCAPersonnel').insert({
     auth_id: user.id,
     name: name.value,
     email: email.value,
     password: password.value,
-    barangay_id: UNKNOWN_BARANGAY_ID,
   })
 
   if (insertError) {
@@ -175,6 +175,6 @@ const handleSignup = async (e) => {
   }
 
   alert('Signup successful! Redirecting...')
-  router.push('/senior/dashboard')
+  router.push('/osca/dashboard')
 }
 </script>
