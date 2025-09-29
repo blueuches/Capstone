@@ -1,102 +1,207 @@
 <template>
-  <div
-    class="min-h-screen flex flex-col bg-gradient-to-br from-emerald-50 via-green-100 to-white"
-  >
+  <div class="text-gray-800 gradient-bg overflow-x-hidden" id="top">
+    <!-- Navbar -->
+    <header
+      class="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur shadow-md"
+      :class="{'border-b': isScrolled}"
+    >
+      <div class="mx-auto max-w-7xl flex items-center justify-between px-4 sm:px-6 py-4">
+        <h1 class="text-2xl font-bold text-emerald-600">SeniorGo</h1>
 
-  <header class="p-5 flex items-center justify-between bg-white shadow-md">
-    <h1 class="text-2xl md:text-3xl font-extrabold text-emerald-700">🌿 SeniorGo</h1>
-    <span class="text-sm text-gray-600 hidden sm:block">Empowering Seniors & Communities</span>
-  </header>
+        <!-- Desktop Nav -->
+        <nav class="hidden md:flex items-center gap-6 text-sm font-medium">
+          <a href="#features" class="hover:text-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-500 rounded">Features</a>
+          <a href="#testimonials" class="hover:text-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-500 rounded">Testimonials</a>
+          <a href="#top" class="hover:text-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-500 rounded">Back to Top</a>
+        </nav>
 
-  <section class="flex flex-col items-center text-center px-6 py-12 md:py-16 fade-in">
-    <h2 class="text-3xl md:text-4xl font-extrabold text-emerald-800 mb-4">Welcome to SeniorGo</h2>
-    <p class="text-gray-600 max-w-2xl mb-10">
-      A one-stop system for seniors, barangay personnel, and OSCA staff.  
-      Please choose your role to access tailored tools and services.
-    </p>
-  </section>
-
-  <main class="flex-1 flex items-center justify-center px-6">
-    <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 max-w-6xl w-full">
-
-      <!-- Senior Citizen -->
-      <div class="bg-white rounded-2xl shadow hover:shadow-xl transition transform hover:-translate-y-1 p-8 flex flex-col items-center text-center">
-        <div class="w-20 h-20 rounded-full bg-emerald-100 flex items-center justify-center mb-6">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-              d="M5.121 17.804A9 9 0 1118.364 4.56M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
+        <!-- Auth actions (desktop) -->
+        <div class="hidden md:flex items-center gap-3">
+          <router-link to="/login" class="px-4 py-2 bg-emerald-600 text-white rounded-xl font-semibold shadow hover:bg-emerald-700 transition">Log In</router-link>
+          <router-link to="/signup" class="px-4 py-2 border border-emerald-600 text-emerald-700 rounded-xl font-semibold shadow hover:bg-emerald-50 transition">Sign Up</router-link>
         </div>
-        <h3 class="text-xl font-bold text-emerald-700 mb-2">Senior Citizen</h3>
-        <p class="text-sm text-gray-600 mb-6">Access your benefits, check program updates, and manage your OSCA ID.</p>
-        
-        <router-link to="/senior/login">
-          <button 
-            class="w-full bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 rounded-lg font-semibold shadow-md">
-            Login as Senior
-          </button>
-        </router-link>
-      
+
+        <!-- Mobile menu button -->
+        <button
+          class="md:hidden inline-flex items-center justify-center p-2 rounded-lg border border-gray-200 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          @click="menuOpen = !menuOpen"
+          :aria-expanded="menuOpen.toString()"
+          aria-label="Toggle navigation"
+        >
+          <svg v-if="!menuOpen" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+          </svg>
+          <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
       </div>
 
-      <!-- Barangay Personnel -->
-      <div class="bg-white rounded-2xl shadow hover:shadow-xl transition transform hover:-translate-y-1 p-8 flex flex-col items-center text-center">
-        <div class="w-20 h-20 rounded-full bg-blue-100 flex items-center justify-center mb-6">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-              d="M3 7h18M3 12h18M3 17h18M6 7v10M18 7v10M9 7v10M15 7v10" />
-          </svg>
+      <!-- Mobile Nav Panel -->
+      <div
+        class="md:hidden px-4 sm:px-6 pb-4 space-y-3"
+        v-show="menuOpen"
+      >
+        <a href="#features" @click="closeMenu" class="block py-2 rounded hover:bg-emerald-50">Features</a>
+        <a href="#testimonials" @click="closeMenu" class="block py-2 rounded hover:bg-emerald-50">Testimonials</a>
+        <a href="#top" @click="closeMenu" class="block py-2 rounded hover:bg-emerald-50">Back to Top</a>
+        <div class="pt-2 flex gap-3">
+          <router-link to="/login" class="flex-1 text-center px-4 py-2 bg-emerald-600 text-white rounded-xl font-semibold shadow hover:bg-emerald-700 transition">Log In</router-link>
+          <router-link to="/signup" class="flex-1 text-center px-4 py-2 border border-emerald-600 text-emerald-700 rounded-xl font-semibold shadow hover:bg-emerald-50 transition">Sign Up</router-link>
         </div>
-        <h3 class="text-xl font-bold text-blue-700 mb-2">Barangay Personnel</h3>
-        <p class="text-sm text-gray-600 mb-6">Manage senior records, validate applications, and submit to OSCA.</p>
-        
-        <router-link to="/barangay/login">
-          <button 
-            class="w-full bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-lg font-semibold shadow-md">
-          Login as Barangay
-          </button>
-        </router-link>
+      </div>
+    </header>
+
+    <!-- Decorative Blobs -->
+    <div class="blob top-0 left-0"></div>
+    <div class="blob bottom-0 right-0"></div>
+
+    <!-- Hero -->
+    <section class="relative min-h-[92vh] flex flex-col md:flex-row items-center justify-between px-6 sm:px-10 pt-28 pb-16">
+      <div class="md:w-1/2 space-y-6 text-center md:text-left z-10">
+        <h2 class="text-4xl md:text-6xl font-extrabold text-emerald-700 leading-tight drop-shadow">
+          Welcome to <span class="text-emerald-600">SeniorGo</span>
+        </h2>
+        <p class="text-lg md:text-xl text-gray-700 max-w-xl mx-auto md:mx-0">
+          A digital companion for Butuan’s beloved seniors. Access support programs with just your voice and a smile.
+        </p>
+        <div class="flex justify-center md:justify-start gap-4 flex-wrap pt-2">
+          <router-link to="/login" class="px-6 py-3 bg-emerald-600 text-white text-lg rounded-xl font-semibold shadow hover:bg-emerald-700 transition">Log In</router-link>
+          <router-link to="/signup" class="px-6 py-3 border border-emerald-600 text-emerald-700 text-lg rounded-xl font-semibold shadow hover:bg-emerald-100 transition">Sign Up</router-link>
+        </div>
+
       </div>
 
-      <!-- OSCA Personnel -->
-      <div class="bg-white rounded-2xl shadow hover:shadow-xl transition transform hover:-translate-y-1 p-8 flex flex-col items-center text-center">
-        <div class="w-20 h-20 rounded-full bg-purple-100 flex items-center justify-center mb-6">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-              d="M12 3v18m9-9H3" />
-          </svg>
-        </div>
-        <h3 class="text-xl font-bold text-purple-700 mb-2">OSCA Personnel</h3>
-        <p class="text-sm text-gray-600 mb-6">Oversee senior programs, approve barangay submissions, and monitor services.</p>
-        
-        <router-link to="/osca/login">
-          <button 
-            class="w-full bg-purple-600 hover:bg-purple-700 text-white px-5 py-3 rounded-lg font-semibold shadow-md">
-          Login as OSCA
-          </button>
-        </router-link>
-        
+      <div class="md:w-1/2 mt-10 md:mt-0 flex justify-center z-10">
+        <img
+          src="https://pressone.ph/wp-content/uploads/2020/04/seniors.jpg"
+          alt="Senior citizens in the Philippines"
+          class="w-full max-w-3xl h-auto rounded-2xl shadow-2xl object-cover ring-4 ring-emerald-300 transition-transform duration-500 hover:scale-105"
+          loading="lazy"
+        />
       </div>
+    </section>
 
-    </div>
-  </main>
+    <!-- Features -->
+    <section id="features" class="px-6 sm:px-10 py-20 bg-white relative" :style="scaledFontStyle">
+      <h3 class="text-3xl font-bold text-emerald-700 text-center mb-12">Why Seniors Love SeniorGo</h3>
 
-  <!-- Call to action -->
-  <div class="text-center mt-12 mb-8">
-    <p class="text-gray-600">👉 Choose your role above to get started.</p>
-  </div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-10 max-w-6xl mx-auto">
+        <div
+          v-for="card in features"
+          :key="card.title"
+          class="bg-gradient-to-br from-emerald-50 to-emerald-100 p-6 rounded-2xl shadow-xl text-center hover:scale-[1.02] transition-all duration-300"
+        >
+          <img :src="card.icon" :alt="card.alt" class="w-20 h-20 mx-auto mb-4" :class="card.anim"/>
+          <h4 class="font-semibold text-lg text-emerald-700">{{ card.title }}</h4>
+          <p class="text-sm text-gray-700 mt-2">{{ card.text }}</p>
+        </div>
+      </div>
+    </section>
 
-  <!-- Footer -->
-  <footer class="bg-white border-t p-4 text-center text-xs text-gray-500">
-    © 2025 SeniorGo • All rights reserved
-  </footer>
+    <!-- Testimonials -->
+    <section id="testimonials" class="px-6 sm:px-10 py-20 bg-emerald-50 relative" :style="scaledFontStyle">
+      <h3 class="text-3xl font-bold text-emerald-700 text-center mb-12">What Seniors Are Saying</h3>
+
+      <div class="max-w-5xl mx-auto grid md:grid-cols-2 gap-6 lg:gap-10">
+        <figure class="bg-white p-6 rounded-2xl shadow-lg text-center hover:shadow-2xl transition">
+          <blockquote class="text-gray-700 italic text-lg">"I never thought I could apply for benefits on my own, but SeniorGo made it easy with just my voice."</blockquote>
+          <figcaption class="mt-4 font-semibold text-emerald-700">Lola Cita, Brgy. Ampayon</figcaption>
+        </figure>
+
+        <figure class="bg-white p-6 rounded-2xl shadow-lg text-center hover:shadow-2xl transition">
+          <blockquote class="text-gray-700 italic text-lg">"Thanks to SeniorGo, I received my food support without needing to visit the barangay office."</blockquote>
+          <figcaption class="mt-4 font-semibold text-emerald-700">Tatay Juan, Brgy. Libertad</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-emerald-700 text-white text-center text-sm py-6">
+      &copy; 2025 SeniorGo · Made for Butuan Seniors with ❤️ | Powered by Barangay &amp; OSCA
+    </footer>
   </div>
 </template>
 
+<script setup>
+import router from '@/router'
+import { onMounted, onBeforeUnmount, ref, computed } from 'vue'
+
+const menuOpen = ref(false)
+const isScrolled = ref(false)
+const fontScale = ref(1) // simple accessibility control
+
+const closeMenu = () => { menuOpen.value = false }
+
+// scroll state for subtle border
+const onScroll = () => { isScrolled.value = window.scrollY > 4 }
+onMounted(() => window.addEventListener('scroll', onScroll, { passive: true }))
+onBeforeUnmount(() => window.removeEventListener('scroll', onScroll))
+
+// dynamic font scale (features + testimonials blocks)
+const scaledFontStyle = computed(() => ({
+  fontSize: `${fontScale.value}rem`
+}))
+
+const features = [
+  {
+    title: 'Voice Assistance',
+    text: 'Talk to your device to apply for benefits — no typing needed.',
+    icon: 'https://cdn-icons-png.flaticon.com/512/3063/3063829.png',
+    alt: 'Voice feature icon',
+    anim: 'animate-bounce motion-safe:animate-bounce motion-reduce:animate-none'
+  },
+  {
+    title: 'Face Verification',
+    text: 'Your face is your ID. Safe, secure, and fast application process.',
+    icon: 'https://cdn-icons-png.flaticon.com/512/4392/4392832.png',
+    alt: 'Face ID icon',
+    anim: 'animate-pulse motion-safe:animate-pulse motion-reduce:animate-none'
+  },
+  {
+    title: 'Simple Interface',
+    text: 'Large buttons, big text, and no clutter — made just for you.',
+    icon: 'https://cdn-icons-png.flaticon.com/512/2202/2202112.png',
+    alt: 'Accessible design icon',
+    anim: 'animate-wiggle motion-safe:animate-wiggle motion-reduce:animate-none'
+  }
+]
+</script>
+
 <style>
-    @keyframes fadeInUp {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    .fade-in { animation: fadeInUp 1s ease-in-out; }
+/* Smooth scroll app-wide */
+html { scroll-behavior: smooth; }
+
+/* Background gradient */
+.gradient-bg {
+  background: linear-gradient(to bottom right, #d1fae5, #f0fdf4);
+}
+
+/* Decorative blobs */
+.blob {
+  position: fixed;
+  width: 28rem;
+  height: 28rem;
+  background: #a7f3d0;
+  opacity: 0.22;
+  filter: blur(100px);
+  z-index: -1;
+  border-radius: 50%;
+}
+.blob.top-0.left-0 { top: -6rem; left: -6rem; }
+.blob.bottom-0.right-0 { bottom: -6rem; right: -6rem; }
+
+/* Custom wiggle animation (Tailwind doesn’t include this by default) */
+@keyframes wiggle {
+  0%, 100% { transform: rotate(-2deg) translateY(0); }
+  50% { transform: rotate(2deg) translateY(-2px); }
+}
+.animate-wiggle { animation: wiggle 1.2s ease-in-out infinite; }
+
+/* Respect prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  .animate-bounce, .animate-pulse, .animate-wiggle {
+    animation: none !important;
+  }
+}
 </style>

@@ -1,263 +1,202 @@
-<!-- Dashboard.vue -->
 <template>
-  <div class="bg-gray-50 min-h-screen flex flex-col">
+  <div class="bg-gradient-to-b from-emerald-50 to-white min-h-screen">
     <!-- Header -->
-    <header
-      class="w-full bg-white shadow-md fixed top-0 z-40 flex items-center justify-between px-6 py-3"
-    >
-      <div class="flex items-center gap-2">
-        <div
-          class="bg-emerald-600 text-white w-10 h-10 rounded-full flex items-center justify-center font-bold"
-        >
-          S
+    <header class="bg-gradient-to-r from-emerald-600 to-emerald-500 text-white shadow-lg">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 py-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <h1 class="text-xl sm:text-2xl font-bold">Senior Dashboard</h1>
+
+        <div class="flex items-center gap-3">
+          <router-link to="/senior/profile">
+          <img
+            :src="avatarUrl"
+            @error="useInlineAvatar"
+            class="w-12 h-12 rounded-full border-2 border-white shadow object-cover"
+            alt="Profile"
+          />
+          </router-link>
+          <div class="leading-tight">
+            <p class="font-semibold">
+              Welcome, <span class="text-yellow-200">Junafe Miot Marban</span>
+            </p>
+            <p class="text-xs sm:text-sm opacity-90">81 years old · P-5 Barangay 6, De Oro</p>
+          </div>
         </div>
-        <h1 class="font-bold text-emerald-700 text-xl">SeniorGo Dashboard</h1>
-      </div>
-      <div class="flex items-center gap-4">
-        <button class="text-gray-600 hover:text-emerald-600" @click="onProfile">Profile</button>
-        <button
-          class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700"
-          @click="onLogout"
-        >
-          Logout
-        </button>
       </div>
     </header>
 
-    <div class="flex flex-1 pt-16">
-      <!-- Sidebar -->
-      <aside class="hidden md:flex w-64 bg-white shadow-lg flex-col fixed top-16 bottom-0">
-        <nav class="flex-1 p-4 space-y-2">
-          <button
-            class="w-full text-left px-4 py-3 rounded-lg hover:bg-emerald-50 font-medium"
-            :class="{ 'menu-active': currentSection === 'programs' }"
-            @click="currentSection = 'programs'"
-          >
-            Programs
-          </button>
-          <button
-            class="w-full text-left px-4 py-3 rounded-lg hover:bg-emerald-50 font-medium"
-            :class="{ 'menu-active': currentSection === 'messages' }"
-            @click="currentSection = 'messages'"
-          >
-            Messages
-          </button>
-          <button
-            class="w-full text-left px-4 py-3 rounded-lg hover:bg-emerald-50 font-medium"
-            :class="{ 'menu-active': currentSection === 'application' }"
-            @click="currentSection = 'application'"
-          >
-            Application
-          </button>
-          <button
-            class="w-full text-left px-4 py-3 rounded-lg hover:bg-emerald-50 font-medium"
-            :class="{ 'menu-active': currentSection === 'notifications' }"
-            @click="currentSection = 'notifications'"
-          >
-            Notifications
-          </button>
-        </nav>
-      </aside>
-
-      <!-- Mobile Nav -->
-      <div
-        class="md:hidden fixed bottom-0 inset-x-0 bg-white border-t shadow flex justify-around p-2 z-50"
-      >
-        <button
-          class="flex flex-col items-center text-sm"
-          :class="{ 'menu-active rounded-lg px-2 py-1': currentSection === 'programs' }"
-          @click="currentSection = 'programs'"
-        >
-          Programs
-        </button>
-
-        <button
-          class="flex flex-col items-center text-sm"
-          :class="{ 'menu-active rounded-lg px-2 py-1': currentSection === 'application' }"
-          @click="currentSection = 'application'"
-        >
-          Application
-        </button>
-        <button
-          class="flex flex-col items-center text-sm"
-          :class="{ 'menu-active rounded-lg px-2 py-1': currentSection === 'notifications' }"
-          @click="currentSection = 'notifications'"
-        >
-          Notifications
-        </button>
-      </div>
-
-      <!-- Main Content -->
-      <main class="flex-1 p-6 space-y-8 md:ml-64">
-        <!-- Programs -->
-        <section id="programs" class="space-y-6" v-show="currentSection === 'programs'">
-          <h2 class="text-2xl font-bold text-emerald-700">Available Programs</h2>
-          <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            <div class="bg-white rounded-2xl shadow-md p-6 flex flex-col">
-              <h3 class="font-semibold text-emerald-600 text-lg">Food Assistance</h3>
-              <p class="text-gray-600 mt-2 flex-1">
-                Apply for monthly food packs and nutrition aid provided by OSCA and your barangay.
-              </p>
-
-              <router-link to="/senior/form">
-                <button
-                  class="mt-4 w-full px-5 py-3 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700"
-                >
-                  Apply
-                </button>
-              </router-link>
-            </div>
-            <div class="bg-white rounded-2xl shadow-md p-6 flex flex-col">
-              <h3 class="font-semibold text-emerald-600 text-lg">Medical Checkup</h3>
-              <p class="text-gray-600 mt-2 flex-1">
-                Register for free consultations and annual medical checkups arranged in your
-                barangay.
-              </p>
-              <router-link to="/senior/form">
-                <button
-                  class="mt-4 w-full px-5 py-3 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700"
-                >
-                  Apply
-                </button>
-              </router-link>
-            </div>
-            <div class="bg-white rounded-2xl shadow-md p-6 flex flex-col">
-              <h3 class="font-semibold text-emerald-600 text-lg">Livelihood Support</h3>
-              <p class="text-gray-600 mt-2 flex-1">
-                Join skills training and livelihood support activities to help seniors earn extra
-                income.
-              </p>
-              <router-link to="/senior/form">
-                <button
-                  class="mt-4 w-full px-5 py-3 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700"
-                >
-                  Apply
-                </button>
-              </router-link>
-            </div>
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-10">
+      <!-- Quick Stats -->
+      <section class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
+        <div class="bg-white shadow rounded-xl p-4 flex items-center gap-4">
+          <div class="w-12 h-12 bg-emerald-100 text-emerald-600 flex items-center justify-center rounded-full text-xl">📦</div>
+          <div>
+            <p class="text-xs sm:text-sm text-gray-500">Active Programs</p>
+            <p class="text-lg sm:text-xl font-semibold text-emerald-700">3</p>
           </div>
-        </section>
-
-        <!-- Application -->
-        <section id="application" class="space-y-6" v-show="currentSection === 'application'">
-          <h2 class="text-2xl font-bold text-emerald-700">Submit Application</h2>
-          <form
-            class="bg-white rounded-2xl shadow-md p-6 space-y-4"
-            @submit.prevent="submitApplication"
-          >
-            <div>
-              <label class="block text-sm font-semibold text-gray-700">Upload Requirements</label>
-              <input
-                type="file"
-                class="mt-2 block w-full text-sm text-gray-600 border rounded-lg px-3 py-2"
-                @change="onFileChange"
-              />
-            </div>
-            <div>
-              <label class="block text-sm font-semibold text-gray-700">Remarks</label>
-              <textarea
-                rows="3"
-                placeholder="Any notes for barangay personnel..."
-                class="mt-2 block w-full border rounded-lg px-3 py-2"
-                v-model="remarks"
-              ></textarea>
-            </div>
-            <button
-              type="submit"
-              class="px-6 py-3 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700"
-            >
-              Submit Application
-            </button>
-          </form>
-        </section>
-
-        <!-- Notifications -->
-        <section id="notifications" class="space-y-6" v-show="currentSection === 'notifications'">
-          <h2 class="text-2xl font-bold text-emerald-700">Notifications</h2>
-          <div class="space-y-3">
-            <div class="p-4 border-l-4 border-yellow-400 bg-yellow-50 rounded-lg">
-              Your Food Assistance application is
-              <span class="font-bold text-yellow-700">Pending</span> at Barangay.
-              <div class="text-sm text-gray-500">2 days ago</div>
-            </div>
-            <div class="p-4 border-l-4 border-green-500 bg-green-50 rounded-lg">
-              Your Medical Checkup request has been
-              <span class="font-bold text-green-700">Validated</span>.
-              <div class="text-sm text-gray-500">5 days ago</div>
-            </div>
-            <div class="p-4 border-l-4 border-red-500 bg-red-50 rounded-lg">
-              Your Livelihood application was <span class="font-bold text-red-700">Declined</span>.
-              Please contact your barangay.
-              <div class="text-sm text-gray-500">1 week ago</div>
-            </div>
+        </div>
+        <div class="bg-white shadow rounded-xl p-4 flex items-center gap-4">
+          <div class="w-12 h-12 bg-emerald-100 text-emerald-600 flex items-center justify-center rounded-full text-xl">🗓️</div>
+          <div>
+            <p class="text-xs sm:text-sm text-gray-500">Upcoming Events</p>
+            <p class="text-lg sm:text-xl font-semibold text-emerald-700">2</p>
           </div>
-        </section>
-      </main>
-    </div>
+        </div>
+        <div class="bg-white shadow rounded-xl p-4 flex items-center gap-4">
+          <div class="w-12 h-12 bg-emerald-100 text-emerald-600 flex items-center justify-center rounded-full text-xl">✅</div>
+          <div>
+            <p class="text-xs sm:text-sm text-gray-500">Applications Approved</p>
+            <p class="text-lg sm:text-xl font-semibold text-emerald-700">5</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Available Programs -->
+      <section>
+        <h2 class="text-lg sm:text-xl font-bold text-emerald-700 mb-4">Available Programs</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+          <div class="bg-white rounded-xl shadow p-5 hover:shadow-lg transition flex flex-col">
+            <div class="flex items-center gap-3 mb-3">
+              <div class="w-10 h-10 bg-emerald-100 text-emerald-600 flex items-center justify-center rounded-full">💰</div>
+              <h3 class="font-semibold text-emerald-700">Senior Citizen Benefits</h3>
+            </div>
+            <p class="text-sm text-gray-600 flex-1">Monthly stipend for indigent senior citizens.</p>
+              <router-link to="/senior/form" class="mt-4 w-full sm:w-auto px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 text-sm">Apply</router-link>
+          </div>
+
+          <div class="bg-white rounded-xl shadow p-5 hover:shadow-lg transition flex flex-col">
+            <div class="flex items-center gap-3 mb-3">
+              <div class="w-10 h-10 bg-emerald-100 text-emerald-600 flex items-center justify-center rounded-full">🎉</div>
+              <h3 class="font-semibold text-emerald-700">Centenarian Benefits</h3>
+            </div>
+            <p class="text-sm text-gray-600 flex-1">Recognition and cash gift for those reaching 100 years old.</p>
+            <router-link to="/senior/form2" class="mt-4 w-full sm:w-auto px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 text-sm">Apply</router-link>
+          </div>
+
+          <div class="bg-white rounded-xl shadow p-5 hover:shadow-lg transition flex flex-col">
+            <div class="flex items-center gap-3 mb-3">
+              <div class="w-10 h-10 bg-emerald-100 text-emerald-600 flex items-center justify-center rounded-full">🏥</div>
+              <h3 class="font-semibold text-emerald-700">Medical Assistance</h3>
+            </div>
+            <p class="text-sm text-gray-600 flex-1">Support for hospitalization and essential medicines.</p>
+            <button class="mt-4 w-full sm:w-auto px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 text-sm">Apply</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- OSCA Updates Timeline -->
+      <section>
+        <h2 class="text-lg sm:text-xl font-bold text-emerald-700 mb-4 sm:mb-6">OSCA Updates</h2>
+        <div class="relative ml-5 sm:ml-6 space-y-8">
+          <!-- vertical line -->
+          <div class="absolute left-0 top-1 bottom-0 w-1 bg-emerald-500/80 rounded"></div>
+
+          <div class="ml-6">
+            <div class="absolute -left-3 w-8 h-8 bg-emerald-600 rounded-full flex items-center justify-center text-white">📢</div>
+            <h3 class="font-semibold text-emerald-700">Free Health Check-up</h3>
+            <time class="block text-xs text-gray-500">Feb 15, 2025</time>
+            <p class="text-sm text-gray-600 mt-1">All senior citizens are invited for a free health check-up at the City Hall covered court.</p>
+          </div>
+
+          <div class="ml-6">
+            <div class="absolute -left-3 w-8 h-8 bg-emerald-600 rounded-full flex items-center justify-center text-white">💸</div>
+            <h3 class="font-semibold text-emerald-700">Pension Distribution</h3>
+            <time class="block text-xs text-gray-500">Mar 1, 2025</time>
+            <p class="text-sm text-gray-600 mt-1">Qualified seniors may claim their pension at the OSCA office starting 9:00 AM.</p>
+          </div>
+
+          <div class="ml-6">
+            <div class="absolute -left-3 w-8 h-8 bg-emerald-600 rounded-full flex items-center justify-center text-white">🤝</div>
+            <h3 class="font-semibold text-emerald-700">OSCA General Assembly</h3>
+            <time class="block text-xs text-gray-500">Apr 10, 2025</time>
+            <p class="text-sm text-gray-600 mt-1">Assembly for all registered seniors to discuss upcoming benefits and activities.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- My Applications -->
+      <section>
+        <h2 class="text-lg sm:text-xl font-bold text-emerald-700 mb-4">My Applications</h2>
+
+        <!-- Scrollable table on small screens -->
+        <div class="bg-white shadow rounded-xl overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="min-w-full text-sm text-left">
+              <thead class="bg-emerald-100 text-emerald-700">
+                <tr>
+                  <th class="px-4 py-2">Program</th>
+                  <th class="px-4 py-2">Date Applied</th>
+                  <th class="px-4 py-2">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="border-b last:border-0">
+                  <td class="px-4 py-2">Social Pension</td>
+                  <td class="px-4 py-2">Jan 5, 2025</td>
+                  <td class="px-4 py-2"><span class="bg-yellow-100 text-yellow-700 px-2 py-1 rounded">Pending</span></td>
+                </tr>
+                <tr class="border-b last:border-0">
+                  <td class="px-4 py-2">Medical Assistance</td>
+                  <td class="px-4 py-2">Dec 20, 2024</td>
+                  <td class="px-4 py-2"><span class="bg-green-100 text-green-700 px-2 py-1 rounded">Approved</span></td>
+                </tr>
+                <tr>
+                  <td class="px-4 py-2">Centenarian Gift</td>
+                  <td class="px-4 py-2">Nov 10, 2024</td>
+                  <td class="px-4 py-2"><span class="bg-red-100 text-red-700 px-2 py-1 rounded">Declined</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Mobile-friendly cards (shown below md for readability) -->
+        <div class="md:hidden mt-4 space-y-3">
+          <div class="bg-white rounded-xl shadow p-4">
+            <div class="flex items-center justify-between">
+              <p class="font-semibold text-emerald-700">Social Pension</p>
+              <span class="bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded text-xs">Pending</span>
+            </div>
+            <p class="text-xs text-gray-500 mt-1">Applied: Jan 5, 2025</p>
+          </div>
+          <div class="bg-white rounded-xl shadow p-4">
+            <div class="flex items-center justify-between">
+              <p class="font-semibold text-emerald-700">Medical Assistance</p>
+              <span class="bg-green-100 text-green-700 px-2 py-0.5 rounded text-xs">Approved</span>
+            </div>
+            <p class="text-xs text-gray-500 mt-1">Applied: Dec 20, 2024</p>
+          </div>
+          <div class="bg-white rounded-xl shadow p-4">
+            <div class="flex items-center justify-between">
+              <p class="font-semibold text-emerald-700">Centenarian Gift</p>
+              <span class="bg-red-100 text-red-700 px-2 py-0.5 rounded text-xs">Declined</span>
+            </div>
+            <p class="text-xs text-gray-500 mt-1">Applied: Nov 10, 2024</p>
+          </div>
+        </div>
+      </section>
+    </main>
   </div>
 </template>
 
 <script setup>
-import { ref, nextTick } from 'vue'
-import { supabase } from '../../supabase/client'
-import { useRouter } from 'vue-router'
+import { ref } from 'vue'
 
-const currentSection = ref('programs')
-
-const chatInput = ref('')
-const messages = ref([])
-const chatBoxRef = ref(null)
-
-const selectedFile = ref(null)
-const remarks = ref('')
-
-// events
-async function sendMessage() {
-  const t = chatInput.value.trim()
-  if (!t) return
-  messages.value.push({ text: t, sender: 'me' })
-  chatInput.value = ''
-  await nextTick()
-  if (chatBoxRef.value) chatBoxRef.value.scrollTop = chatBoxRef.value.scrollHeight
-}
-
-function onFileChange(e) {
-  selectedFile.value = e.target.files?.[0] ?? null
-}
-
-function submitApplication() {
-  // plug in Supabase upload + DB insert here
-  alert('Application submitted (demo).')
-}
-
-function onApply(program) {
-  alert(`Apply: ${program}`)
-}
-
-function onProfile() {
-  alert('Profile clicked')
-}
-
-//logout
-const router = useRouter()
-
-const onLogout = async () => {
-  const { error } = await supabase.auth.signOut()
-  if (error) {
-    alert('Logout failed: ' + error.message)
-    return
-  }
-  // Clear any local storage/session if needed
-  localStorage.clear()
-
-  // Redirect to login page
-  router.push('/')
+/* Simple, safe avatar with inline fallback (no network dependency) */
+const avatarUrl = ref('https://via.placeholder.com/60')
+function useInlineAvatar() {
+  avatarUrl.value =
+    'data:image/svg+xml;utf8,' +
+    encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="60" height="60">
+      <rect width="100%" height="100%" fill="#ecfdf5"/>
+      <circle cx="30" cy="22" r="12" fill="#10b981" fill-opacity="0.5"/>
+      <rect x="14" y="38" width="32" height="14" rx="7" fill="#10b981" fill-opacity="0.35"/>
+    </svg>`)
 }
 </script>
 
 <style scoped>
-.menu-active {
-  background-color: #10b981;
-  color: white;
+/* Tiny polish so timeline line stays aligned on very narrow screens */
+@media (max-width: 360px) {
+  .ml-5 { margin-left: 1rem !important; }
 }
 </style>

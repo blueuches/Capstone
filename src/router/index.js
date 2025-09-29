@@ -1,28 +1,30 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import Welcome from '../views/Welcome.vue'
-import RoleSelector from '../views/RoleSelector.vue'
 import { supabase } from '../supabase/client'
+
+import Welcome from '../views/Welcome.vue'
+import Login from '../views/Login.vue'
+import Signup from '../views/Signup.vue'
 
 const routes = [
   { path: '/', component: Welcome },
-  { path: '/roles', component: RoleSelector },
-  { path: '/senior/login', component: () => import('../views/Senior/Login.vue') },
-  { path: '/senior/signup', component: () => import('../views/Senior/Signup.vue') },
+  { path: '/login', component:  Login },
+  { path: '/signup', component:  Signup },
+
+  { path: '/admin/dashboard', component: () => import('../views/Admin/Dashboard.vue') },
+
   { path: '/senior/dashboard', component: () => import('../views/Senior/Dashboard.vue') },
   { path: '/senior/form', component: () => import('../views/Senior/Form.vue') },
+    { path: '/senior/form2', component: () => import('../views/Senior/Form2.vue') },
   { path: '/senior/notifications', component: () => import('../views/Senior/Notifications.vue') },
+  { path: '/senior/profile', component: () => import('../views/Senior/Profile.vue') },
 
-  { path: '/osca/login', component: () => import('../views/OSCA/Login.vue') },
-  { path: '/osca/signup', component: () => import('../views/OSCA/Signup.vue') },
   { path: '/osca/dashboard', component: () => import('../views/OSCA/Dashboard.vue') },
   { path: '/osca/barangays', component: () => import('../views/OSCA/BarangayList.vue') },
   { path: '/osca/messaging', component: () => import('../views/OSCA/Messaging.vue') },
   { path: '/osca/applications', component: () => import('../views/OSCA/ApplicationReview.vue') },
   { path: '/osca/release-id', component: () => import('../views/OSCA/ReleasingID.vue') },
-  //senior profiles
+  //senior profiles view
 
-  { path: '/barangay/login', component: () => import('../views/Barangay/Login.vue') },
-  { path: '/barangay/signup', component: () => import('../views/Barangay/Signup.vue') },
   { path: '/barangay/dashboard', component: () => import('../views/Barangay/Dashboard.vue') },
   { path: '/barangay/senior-queue', component: () => import('../views/Barangay/SeniorQueue.vue') },
   { path: '/barangay/messaging', component: () => import('../views/Barangay/Messaging.vue') },
@@ -35,3 +37,79 @@ export const router = createRouter({
 })
 
 export default router
+
+// ----------------- helpers (plain JS) -----------------
+const DASH = {
+  senior: '/senior/dashboard',
+  barangay_staff: '/barangay/dashboard',
+  osca_staff: '/osca/dashboard',
+  admin: '/admin/dashboard'
+}
+
+async function getUserRoles(userId) {
+  // read roles via join: user_roles -> roles(code)
+  const { data, error } = await supabase
+    .from('user_roles')
+    .select('roles:role_id ( code )')
+    .eq('user_id', userId)
+
+  if (error || !data) return []
+  return data
+    .map(row => row && row.roles && row.roles.code)
+    .filter(Boolean)
+}
+
+function chooseRoleByPriority(roles) {
+  const order = ['admin', 'osca_staff', 'barangay_staff', 'senior']
+  return order.find(r => roles.includes(r)) || null
+}
+
+// ----------------- global guard -----------------
+router.beforeEach(async (to, _from, next) => {
+  const { data: { session } } = await supabase.auth.getSession()
+
+  // Block logged-in users from guest-only pages
+  if (to.meta && to.meta.guestOnly && session) {
+    return next('/app')
+  }
+
+  // Require auth
+  if (to.meta && to.meta.requiresAuth && !session) {
+    return next({ path: '/login', query: { redirect: to.fullPath } })
+  }
+
+  if (session) {
+    let active = (session.user && session.user.user_metadata && session.user.user_metadata.active_role) || null
+
+    // /app → decide landing
+    if (to.name === 'app') {
+      if (!active) {
+        const roles = await getUserRoles(session.user.id)
+        active = chooseRoleByPriority(roles)
+        if (active) {
+          await supabase.auth.updateUser({ data: { active_role: active } })
+        }
+      }
+      if (active && DASH[active]) return next(DASH[active])
+      return next('/login') // no roles assigned
+    }
+
+    // Role-gated routes
+    const allowed = to.meta && to.meta.roles
+    if (Array.isArray(allowed) && allowed.length > 0) {
+      if (!active) {
+        const roles = await getUserRoles(session.user.id)
+        active = chooseRoleByPriority(roles)
+        if (active) {
+          await supabase.auth.updateUser({ data: { active_role: active } })
+        }
+      }
+      if (!active || allowed.indexOf(active) === -1) {
+        const go = (active && DASH[active]) ? DASH[active] : '/app'
+        return next(go)
+      }
+    }
+  }
+
+  next()
+})
