@@ -7,14 +7,15 @@ import Signup from '../views/Signup.vue'
 
 const routes = [
   { path: '/', component: Welcome },
-  { path: '/login', component:  Login },
-  { path: '/signup', component:  Signup },
+  { path: '/login', component: Login },
+  { path: '/signup', component: Signup },
 
   { path: '/admin/dashboard', component: () => import('../views/Admin/Dashboard.vue') },
+  { path: '/staff/signup', component: () => import('../views//SignupMembers.vue') },
 
   { path: '/senior/dashboard', component: () => import('../views/Senior/Dashboard.vue') },
-  { path: '/senior/form', component: () => import('../views/Senior/Form.vue') },
-    { path: '/senior/form2', component: () => import('../views/Senior/Form2.vue') },
+  { path: '/senior/form2', component: () => import('../views/Senior/Form2.vue') },
+  { path: '/senior/form4', component: () => import('../views/Senior/Form4.vue') },
   { path: '/senior/notifications', component: () => import('../views/Senior/Notifications.vue') },
   { path: '/senior/profile', component: () => import('../views/Senior/Profile.vue') },
 
@@ -28,7 +29,10 @@ const routes = [
   { path: '/barangay/dashboard', component: () => import('../views/Barangay/Dashboard.vue') },
   { path: '/barangay/senior-queue', component: () => import('../views/Barangay/SeniorQueue.vue') },
   { path: '/barangay/messaging', component: () => import('../views/Barangay/Messaging.vue') },
-  { path: '/barangay/notifications', component: () => import('../views/Barangay/Notifications.vue') }
+  {
+    path: '/barangay/notifications',
+    component: () => import('../views/Barangay/Notifications.vue'),
+  },
 ]
 
 export const router = createRouter({
@@ -43,7 +47,7 @@ const DASH = {
   senior: '/senior/dashboard',
   barangay_staff: '/barangay/dashboard',
   osca_staff: '/osca/dashboard',
-  admin: '/admin/dashboard'
+  admin: '/admin/dashboard',
 }
 
 async function getUserRoles(userId) {
@@ -54,19 +58,19 @@ async function getUserRoles(userId) {
     .eq('user_id', userId)
 
   if (error || !data) return []
-  return data
-    .map(row => row && row.roles && row.roles.code)
-    .filter(Boolean)
+  return data.map((row) => row && row.roles && row.roles.code).filter(Boolean)
 }
 
 function chooseRoleByPriority(roles) {
   const order = ['admin', 'osca_staff', 'barangay_staff', 'senior']
-  return order.find(r => roles.includes(r)) || null
+  return order.find((r) => roles.includes(r)) || null
 }
 
 // ----------------- global guard -----------------
 router.beforeEach(async (to, _from, next) => {
-  const { data: { session } } = await supabase.auth.getSession()
+  const {
+    data: { session },
+  } = await supabase.auth.getSession()
 
   // Block logged-in users from guest-only pages
   if (to.meta && to.meta.guestOnly && session) {
@@ -79,7 +83,8 @@ router.beforeEach(async (to, _from, next) => {
   }
 
   if (session) {
-    let active = (session.user && session.user.user_metadata && session.user.user_metadata.active_role) || null
+    let active =
+      (session.user && session.user.user_metadata && session.user.user_metadata.active_role) || null
 
     // /app → decide landing
     if (to.name === 'app') {
@@ -105,7 +110,7 @@ router.beforeEach(async (to, _from, next) => {
         }
       }
       if (!active || allowed.indexOf(active) === -1) {
-        const go = (active && DASH[active]) ? DASH[active] : '/app'
+        const go = active && DASH[active] ? DASH[active] : '/app'
         return next(go)
       }
     }

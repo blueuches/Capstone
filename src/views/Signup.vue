@@ -6,6 +6,7 @@
       <router-link
         to="/"
         class="absolute top-4 left-4 inline-flex items-center gap-2 text-sm text-emerald-600 hover:text-emerald-800 font-semibold"
+        aria-label="Back to Home"
       >
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
@@ -18,9 +19,10 @@
       <p class="text-gray-600 text-center mb-8 text-lg">Create your account to get started.</p>
 
       <!-- Form -->
-      <form class="w-full flex flex-col gap-6" @submit="handleSignup">
+      <form class="w-full flex flex-col gap-5" @submit.prevent="handleSignup" novalidate>
         <!-- Full name -->
         <div class="relative">
+          <label for="name" class="sr-only">Full name</label>
           <span class="absolute left-4 top-3 text-emerald-500">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A9 9 0 1112 21a9 9 0 01-6.879-3.196zM12 12a4 4 0 100-8 4 4 0 000 8z"/>
@@ -30,15 +32,16 @@
             id="name"
             type="text"
             placeholder="Full name"
-            v-model="name"
+            v-model.trim="form.name"
             class="w-full pl-12 pr-4 py-3 text-lg border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-400 focus:outline-none text-gray-700"
             autocomplete="name"
             required
           />
         </div>
 
-        <!-- Phone (optional but recommended if you’ll use phone onboarding) -->
+        <!-- Phone (optional, normalized to +63 format if provided) -->
         <div class="relative">
+          <label for="phone" class="sr-only">Phone</label>
           <span class="absolute left-4 top-3 text-emerald-500">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.95.684l1.518 4.553a1 1 0 01-.502 1.21l-2.26 1.13a11.042 11.042 0 005.516 5.516l1.13-2.26a1 1 0 011.21-.502l4.553 1.518a1 1 0 01.684.95V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
@@ -47,15 +50,18 @@
           <input
             id="phone"
             type="tel"
-            placeholder="Phone (e.g., +63…)"
-            v-model="phone"
+            placeholder="Phone (e.g., +63 912 345 6789)"
+            v-model.trim="form.phone"
             class="w-full pl-12 pr-4 py-3 text-lg border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-400 focus:outline-none text-gray-700"
             autocomplete="tel"
+            inputmode="tel"
           />
+          <p v-if="phoneHint" class="mt-1 text-xs text-gray-500">{{ phoneHint }}</p>
         </div>
 
         <!-- Email -->
         <div class="relative">
+          <label for="email" class="sr-only">Email</label>
           <span class="absolute left-4 top-3 text-emerald-500">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 12l-4-4-4 4m8 0l-4 4-4-4" />
@@ -65,7 +71,7 @@
             id="email"
             type="email"
             placeholder="Email"
-            v-model="email"
+            v-model.trim="form.email"
             class="w-full pl-12 pr-4 py-3 text-lg border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-400 focus:outline-none text-gray-700"
             autocomplete="email"
             required
@@ -74,6 +80,7 @@
 
         <!-- Password -->
         <div class="relative">
+          <label for="password" class="sr-only">Password</label>
           <span class="absolute left-4 top-3 text-emerald-500">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11c1.104 0 2 .896 2 2v1h-4v-1c0-1.104.896-2 2-2zM6 10V8a6 6 0 1112 0v2h1a1 1 0 011 1v9a1 1 0 01-1 1H5a1 1 0 01-1-1v-9a1 1 0 011-1h1z"/>
@@ -81,17 +88,23 @@
           </span>
           <input
             id="password"
-            type="password"
-            placeholder="Password"
-            v-model="password"
-            class="w-full pl-12 pr-4 py-3 text-lg border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-400 focus:outline-none text-gray-700"
+            :type="showPw ? 'text' : 'password'"
+            placeholder="Password (min 8 characters)"
+            v-model="form.password"
+            class="w-full pl-12 pr-12 py-3 text-lg border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-400 focus:outline-none text-gray-700"
             autocomplete="new-password"
             required
+            minlength="8"
           />
+          <button type="button" class="absolute right-3 top-3 text-gray-500 hover:text-gray-700" @click="showPw = !showPw" :aria-pressed="showPw.toString()">
+            <span v-if="!showPw">Show</span><span v-else>Hide</span>
+          </button>
+          <p class="mt-1 text-xs" :class="pwStrength.color">{{ pwStrength.text }}</p>
         </div>
 
         <!-- Confirm Password -->
         <div class="relative">
+          <label for="confirmPassword" class="sr-only">Confirm Password</label>
           <span class="absolute left-4 top-3 text-emerald-500">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -99,13 +112,14 @@
           </span>
           <input
             id="confirmPassword"
-            type="password"
+            :type="showPw ? 'text' : 'password'"
             placeholder="Confirm Password"
-            v-model="confirmPassword"
+            v-model="form.confirmPassword"
             class="w-full pl-12 pr-4 py-3 text-lg border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-400 focus:outline-none text-gray-700"
             autocomplete="new-password"
             required
           />
+          <p v-if="form.confirmPassword && form.password !== form.confirmPassword" class="mt-1 text-xs text-red-600">Passwords do not match.</p>
         </div>
 
         <!-- Submit -->
@@ -119,11 +133,18 @@
         </button>
 
         <p v-if="errorMsg" class="text-red-600 text-sm">{{ errorMsg }}</p>
+        <p v-if="successMsg" class="text-emerald-700 text-sm">{{ successMsg }}</p>
       </form>
 
+      <!-- Staff link -->
+      <p class="mt-6 text-sm text-gray-600">
+        Are you OSCA/Barangay staff? 
+        <router-link to="/staff/signup" class="text-emerald-700 font-semibold underline">Sign up as staff</router-link>
+      </p>
+
       <!-- Back to login -->
-      <p class="mt-8 text-lg text-gray-700 text-center">
-        Already have an account? <br />
+      <p class="mt-6 text-lg text-gray-700 text-center">
+        Already have an account?
         <router-link to="/login">
           <span class="text-emerald-700 font-bold underline">Login here</span>
         </router-link>
@@ -133,95 +154,131 @@
 </template>
 
 <script setup>
-import { supabase } from '@/supabase/client'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { ref } from 'vue'
+import { supabase } from '@/supabase/client'
 
+// ------------ state ------------
 const router = useRouter()
-const name = ref('')
-const phone = ref('')
-const email = ref('')
-const password = ref('')
-const confirmPassword = ref('')
-const errorMsg = ref(null)
 const loading = ref(false)
+const errorMsg = ref('')
+const successMsg = ref('')
+const showPw = ref(false)
 
-// Maps role to default dashboard (router guard will also handle this)
-const DASH = {
-  senior: '/senior/dashboard',
-  barangay_staff: '/barangay/dashboard',
-  osca_staff: '/osca/dashboard',
-  admin: '/admin/dashboard'
+const form = ref({
+  name: '',
+  phone: '',
+  email: '',
+  password: '',
+  confirmPassword: ''
+})
+
+// ------------ helpers ------------
+const phoneHint = computed(() => {
+  if (!form.value.phone) return ''
+  return 'We will normalize this to +63 format.'
+})
+
+function normalizePhone(ph) {
+  if (!ph) return null
+  // strip spaces & non-digits except leading +
+  let s = ph.trim().replace(/[^\d+]/g, '')
+  // Handle common PH patterns: 09xxxxxxxxx -> +639xxxxxxxxx; 9xxxxxxxxx -> +639xxxxxxxxx; 639... -> +639...
+  if (s.startsWith('+')) return s
+  if (s.startsWith('09')) return '+63' + s.slice(1)
+  if (s.startsWith('9') && s.length === 10) return '+63' + s
+  if (s.startsWith('63')) return '+' + s
+  return s // last resort
 }
 
-// helper: get role_id for a role code
-async function getRoleId(code) {
-  const { data, error } = await supabase.from('roles').select('id').eq('code', code).maybeSingle()
-  if (error || !data) return null
-  return data.id
-}
+const pwStrength = computed(() => {
+  const p = form.value.password || ''
+  let score = 0
+  if (p.length >= 8) score++
+  if (/[A-Z]/.test(p)) score++
+  if (/[a-z]/.test(p)) score++
+  if (/\d/.test(p)) score++
+  if (/[^A-Za-z0-9]/.test(p)) score++
+  const levels = [
+    { text: 'Too weak', color: 'text-red-600' },
+    { text: 'Weak', color: 'text-orange-600' },
+    { text: 'Fair', color: 'text-yellow-600' },
+    { text: 'Good', color: 'text-green-600' },
+    { text: 'Strong', color: 'text-emerald-700' }
+  ]
+  return levels[Math.min(score, levels.length - 1)]
+})
 
-const handleSignup = async (e) => {
-  e.preventDefault()
-  errorMsg.value = null
+// ------------ main action ------------
+async function handleSignup() {
+  errorMsg.value = ''
+  successMsg.value = ''
 
-  if (!email.value || !password.value || !name.value) {
+  // basic validation
+  if (!form.value.name || !form.value.email || !form.value.password) {
     errorMsg.value = 'Please fill out name, email, and password.'
     return
   }
-  if (password.value !== confirmPassword.value) {
-    errorMsg.value = "Passwords don't match."
+  if (form.value.password.length < 8) {
+    errorMsg.value = 'Password must be at least 8 characters.'
+    return
+  }
+  if (form.value.password !== form.value.confirmPassword) {
+    errorMsg.value = 'Passwords do not match.'
     return
   }
 
   loading.value = true
+  try {
+    const normalizedPhone = normalizePhone(form.value.phone)
 
-  // 1) Create auth user (email/password)
-  const { data: signUpData, error: signUpErr } = await supabase.auth.signUp({
-    email: email.value,
-    password: password.value
-    // NOTE: If you switch to phone OTP auth, you’d pass phone here instead.
-  })
+    // 1) Create auth user (email/password). You can also pass metadata here.
+    const { data: signUpData, error: signUpErr } = await supabase.auth.signUp({
+      email: form.value.email,
+      password: form.value.password,
+      options: {
+        data: {
+          full_name: form.value.name,
+          phone: normalizedPhone,
+          active_role: 'senior',        // useful for guards
+          login_pref: normalizedPhone ? 'phone' : 'email'
+        }
+      }
+    })
+    if (signUpErr) throw signUpErr
 
-  if (signUpErr) {
+    const user = signUpData?.user
+    if (!user) throw new Error('No user returned from sign up.')
+
+    // 2) Upsert into public.Users (1–1 with auth.users)
+    // NOTE: requires RLS policy or anon service role privileges.
+    const { error: upErr } = await supabase
+      .from('Users')
+      .upsert({
+        user_id: user.id,
+        full_name: form.value.name,
+        phone: normalizedPhone,
+        login_pref: normalizedPhone ? 'phone' : 'email'
+      })
+    if (upErr) throw upErr
+
+    // 3) Create SeniorCitizens row (lightweight profile). You can add more fields later.
+    const { error: scErr } = await supabase
+      .from('SeniorCitizens')
+      .insert({ user_id: user.id })
+    if (scErr) throw scErr
+
+    // 4) Ensure JWT carries active_role (optional refresh)
+    await supabase.auth.updateUser({ data: { active_role: 'senior' } })
+
+    successMsg.value = 'Account created successfully.'
+    // Small delay so users can see success state
+    setTimeout(() => router.push('/senior/dashboard'), 400)
+  } catch (err) {
+    // Common causes: RLS blocking inserts into Users/SeniorCitizens.
+    errorMsg.value = err?.message || 'Signup failed. Please try again.'
+  } finally {
     loading.value = false
-    errorMsg.value = 'Signup failed: ' + signUpErr.message
-    return
   }
-  const user = signUpData.user
-  if (!user) {
-    loading.value = false
-    errorMsg.value = 'Signup failed: no user returned.'
-    return
-  }
-
-  // 2) Create / upsert profile (1–1 with auth.users)
-  await supabase
-    .from('profiles')
-    .upsert({ user_id: user.id, full_name: name.value, phone: phone.value || null })
-    .select()
-    .maybeSingle()
-
-  // 3) Assign SENIOR role by default (user_roles)
-  const roleId = await getRoleId('senior')
-  if (roleId) {
-    await supabase
-      .from('user_roles')
-      .insert({ user_id: user.id, role_id: roleId })
-      .then(() => {})
-      .catch(() => {})
-  }
-
-  // 4) Put active_role in JWT so your RLS policies pass immediately
-  await supabase.auth.updateUser({ data: { active_role: 'senior' } })
-
-  // 5) OPTIONAL: if you want to create SeniorCitizens row at signup,
-  // you cannot insert directly (RLS blocks inserts). Use a secure RPC instead.
-  // Example (only if you add such an RPC server-side):
-  // await supabase.rpc('onboard_new_senior_email', { p_phone: phone.value || null })
-
-  loading.value = false
-  // Let the router guard fan-out to /senior/dashboard
-  router.push('/senior/dashboard')
 }
 </script>

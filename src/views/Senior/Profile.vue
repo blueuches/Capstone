@@ -1,147 +1,119 @@
-<!-- SeniorProfile.vue (fixed) -->
+<!-- SeniorProfile.vue (polished to match mock) -->
 <template>
-  <div class="bg-gradient-to-b from-emerald-50 to-white min-h-screen flex flex-col items-center">
-    <!-- Banner -->
-      <div
-        class="relative w-full h-32 sm:h-40 bg-gradient-to-r from-emerald-600 to-emerald-400 pt-[env(safe-area-inset-top)] shadow-md"
-        role="img"
-        aria-label="Senior Citizen Profile banner"
-      >
-        <!-- Dashboard (upper-left) -->
-        <router-link to="/senior/dashboard"
-          class="absolute top-3 left-4 text-white text-lg sm:text-xl font-semibold drop-shadow-md tracking-wide"
+  <div class="min-h-screen bg-gradient-to-b from-emerald-50 to-white flex flex-col">
+    <!-- Top bar -->
+    <header class="sticky top-0 z-30 bg-emerald-600 text-white shadow">
+      <div class="px-4 py-3 flex items-center justify-between">
+        <router-link
+          to="/senior/dashboard"
+          aria-label="Back"
+          class="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center"
         >
-          ← Dashboard
+            <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
         </router-link>
 
-        <!-- Main Title (center bottom) -->
-        <h1
-          class="absolute bottom-3 left-1/2 -translate-x-1/2 text-white text-xl sm:text-2xl md:text-3xl font-bold drop-shadow-lg text-center"
-        >
-          Senior Citizen Profile
-        </h1>
-      </div>
-
-    <main class="w-full max-w-4xl px-4 sm:px-6 -mt-16 sm:-mt-20 pb-8">
-      <!-- Profile Card -->
-      <section class="bg-white border border-emerald-200 rounded-2xl shadow-lg p-5 sm:p-6 mb-6 sm:mb-8">
-        <div class="flex flex-col sm:flex-row items-center gap-5 sm:gap-6">
-          <!-- Profile Image + Upload -->
-          <div class="relative w-32 h-32 sm:w-36 sm:h-36 shrink-0">
-            <div class="w-full h-full rounded-full overflow-hidden border-4 border-emerald-500 shadow-md bg-emerald-50">
-              <img
-                :src="photoUrl"
-                alt="Senior Photo"
-                class="w-full h-full object-cover"
-                @error="useInlinePlaceholder"
-              />
-            </div>
-
-            <!-- Upload button -->
-            <label
-              class="absolute -bottom-2 -right-1 sm:bottom-0 sm:right-0 bg-emerald-600 hover:bg-emerald-700 text-white rounded-full p-3 cursor-pointer shadow-md focus:outline-none focus:ring-2 focus:ring-white/60"
-            >
-              <span class="sr-only">Upload new profile photo</span>
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M15.232 5.232l3.536 3.536M9 13h.01M4 7v10a1 1 0 001 1h14a1 1 0 001-1V7a1 1 0 00-1-1h-4l-2-2H9L7 6H5a1 1 0 00-1 1z" />
-              </svg>
-              <input
-                type="file"
-                accept="image/*"
-                capture="environment"
-                class="hidden"
-                @change="onPhotoSelected"
-              />
-            </label>
-          </div>
-
-          <!-- Basic Info -->
-          <div class="text-center sm:text-left space-y-2">
-            <h2 class="text-xl sm:text-2xl font-bold text-emerald-700 leading-tight">
-              {{ profile.fullName }}
-            </h2>
-
-            <div class="flex flex-wrap gap-2 justify-center sm:justify-start">
-              <span class="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-semibold">
-                {{ profile.milestone }}
-              </span>
-              <span class="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-semibold">
-                {{ profile.age }} Years Old
-              </span>
-            </div>
-
-            <p class="text-gray-600 text-sm">
-              OSCA ID: <span class="font-medium">{{ profile.oscaId }}</span>
-            </p>
-            <p class="text-gray-600 text-sm">
-              RRN: <span class="font-medium">{{ profile.rrn }}</span>
-            </p>
-          </div>
+        <div class="px-4 py-1.5 rounded-xl bg-emerald-500 font-semibold text-sm sm:text-base">
+          My Profile
         </div>
-      </section>
 
-      <!-- Personal Information -->
-      <section class="bg-white border border-emerald-200 rounded-xl shadow p-5 sm:p-6 mb-5 sm:mb-6">
-        <h3 class="text-base sm:text-lg font-semibold text-emerald-600 mb-3 sm:mb-4">Personal Information</h3>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-sm text-gray-700">
-          <p><span class="font-medium text-emerald-700">Full Name:</span> {{ profile.fullName }}</p>
-          <p><span class="font-medium text-emerald-700">Date of Birth:</span> {{ profile.dob }}</p>
-          <p><span class="font-medium text-emerald-700">Age:</span> {{ profile.age }}</p>
-          <p><span class="font-medium text-emerald-700">Sex:</span> {{ profile.sex }}</p>
-          <p><span class="font-medium text-emerald-700">Civil Status:</span> {{ profile.civilStatus }}</p>
-          <p><span class="font-medium text-emerald-700">Citizenship:</span> {{ profile.citizenship }}</p>
-          <p class="sm:col-span-2">
-            <span class="font-medium text-emerald-700">Residential Address:</span>
-            {{ profile.address }}
+        <span class="w-8 h-8" />
+      </div>
+    </header>
+
+    <!-- Content -->
+    <main class="flex-1 px-4 pb-8">
+      <!-- Head card -->
+      <section class="max-w-md mx-auto -mt-4">
+        <div class="bg-white rounded-2xl shadow-sm ring-1 ring-emerald-100 px-6 pt-8 pb-6 text-center">
+          <div class="w-28 h-28 mx-auto rounded-full bg-emerald-100 border-4 border-white shadow-sm flex items-center justify-center">
+            <!-- photo -->
+            <img :src="photoUrl" @error="useInlinePlaceholder" alt="Profile photo"
+                 class="w-full h-full rounded-full object-cover"/>
+          </div>
+
+          <h1 class="mt-4 text-xl sm:text-2xl font-extrabold text-emerald-800 leading-tight">
+            {{ profile.fullName }}
+          </h1>
+          <p class="text-xs text-gray-500 mt-1">
+            Senior Citizen ID: <span class="font-medium text-gray-600">{{ profile.oscaId }}</span>
           </p>
+
+          <button
+            type="button"
+            @click="onEdit"
+            class="mt-3 inline-flex items-center px-4 py-1.5 rounded-full text-sm font-semibold
+                   bg-emerald-600 text-white hover:bg-emerald-700"
+          >
+            Edit Profile
+          </button>
         </div>
       </section>
 
-      <!-- Contact Information -->
-      <section class="bg-white border border-emerald-200 rounded-xl shadow p-5 sm:p-6 mb-5 sm:mb-6">
-        <h3 class="text-base sm:text-lg font-semibold text-emerald-600 mb-3 sm:mb-4">Contact Information</h3>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-sm text-gray-700">
-          <p><span class="font-medium text-emerald-700">Contact Number:</span> {{ profile.contact }}</p>
-          <p><span class="font-medium text-emerald-700">Email:</span> {{ profile.email }}</p>
-          <p><span class="font-medium text-emerald-700">Emergency Contact:</span> {{ profile.emergencyContact }}</p>
-          <p><span class="font-medium text-emerald-700">Emergency Number:</span> {{ profile.emergencyNumber }}</p>
+      <!-- PERSONAL INFO -->
+      <section class="max-w-md mx-auto mt-6">
+        <h2 class="section-title">PERSONAL INFORMATION</h2>
+        <div class="kv-card">
+          <div class="kv-row">
+            <span>Date Of Birth:</span>
+            <span>{{ profile.dob }}</span>
+          </div>
+          <div class="kv-row">
+            <span>Age:</span>
+            <span>{{ profile.age }} years old</span>
+          </div>
+          <div class="kv-row">
+            <span>Gender:</span>
+            <span>{{ profile.sex }}</span>
+          </div>
+          <div class="kv-row">
+            <span>Civil Status:</span>
+            <span>{{ profile.civilStatus }}</span>
+          </div>
         </div>
       </section>
 
-      <!-- Benefits -->
-      <section class="bg-white border border-emerald-200 rounded-xl shadow p-5 sm:p-6 mb-5 sm:mb-6">
-        <h3 class="text-base sm:text-lg font-semibold text-emerald-600 mb-3 sm:mb-4">Program &amp; Benefits</h3>
-        <ul class="list-disc list-inside text-sm text-gray-700 space-y-1">
-          <li v-for="(benefit, idx) in profile.benefits" :key="idx">
-            {{ benefit }}
-          </li>
-        </ul>
+      <!-- CONTACT INFO -->
+      <section class="max-w-md mx-auto mt-6">
+        <h2 class="section-title">CONTACT INFORMATION</h2>
+        <div class="kv-card">
+          <div class="kv-row">
+            <span>Address:</span>
+            <span class="text-right">{{ profile.address }}</span>
+          </div>
+          <div class="kv-row">
+            <span>City:</span>
+            <span>Butuan</span>
+          </div>
+          <div class="kv-row">
+            <span>Phone:</span>
+            <span>{{ profile.contact }}</span>
+          </div>
+          <div class="kv-row">
+            <span>Email:</span>
+            <span class="truncate max-w-[60%] text-emerald-700">{{ profile.email }}</span>
+          </div>
+        </div>
       </section>
 
-      <!-- Actions -->
-      <div class="flex flex-col sm:flex-row justify-end gap-3 mt-6">
+      <!-- Logout -->
+      <section class="max-w-md mx-auto mt-7">
         <button
           type="button"
-          @click="goBack"
-          class="inline-flex items-center justify-center px-4 py-3 bg-gray-100 border rounded-md hover:bg-gray-200 text-sm transition w-full sm:w-auto"
+          class="w-full sm:w-56 mx-auto block px-5 py-3 rounded-full bg-emerald-700 text-white font-semibold
+                 shadow hover:bg-gray-800"
+          @click="$router.push('/logout')"
         >
-          Back to List
+          Log Out
         </button>
-        <button
-          type="button"
-          @click="onEdit"
-          class="inline-flex items-center justify-center px-4 py-3 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 text-sm transition w-full sm:w-auto"
-        >
-          Edit Profile
-        </button>
-      </div>
+      </section>
     </main>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onUnmounted } from 'vue'
+import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 interface ProfileData {
@@ -163,105 +135,70 @@ interface ProfileData {
   photoUrl?: string
 }
 
-const props = defineProps<{
-  profileData?: Partial<ProfileData>
-  /** Optional: string path or route location object (must exist). Defaults to router.back() -> '/' */
-  backTo?: string | Record<string, any>
-}>()
+const props = defineProps<{ profileData?: Partial<ProfileData> }>()
 
 const router = useRouter()
 
-// Inline SVG data URI (always available, no network needed)
 const INLINE_PLACEHOLDER =
   'data:image/svg+xml;utf8,' +
-  encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300">
+  encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200">
     <rect width="100%" height="100%" fill="#ecfdf5"/>
-    <circle cx="150" cy="110" r="60" fill="#10b981" fill-opacity="0.2"/>
-    <rect x="90" y="190" width="120" height="60" rx="12" fill="#10b981" fill-opacity="0.15"/>
-    <text x="150" y="285" font-size="16" text-anchor="middle" fill="#047857" font-family="Arial, sans-serif">Senior Photo</text>
+    <circle cx="100" cy="80" r="40" fill="#10b981" fill-opacity="0.25"/>
+    <rect x="60" y="135" width="80" height="40" rx="12" fill="#10b981" fill-opacity="0.18"/>
   </svg>`)
 
-// Default data (fallback). Replace via props.profileData from Supabase.
 const profile = reactive<ProfileData>({
-  fullName: 'Junafe Miot Marban',
-  milestone: 'Octogenarian',
-  age: 81,
-  oscaId: '2025-67890',
-  rrn: 'NC-123456789',
-  dob: 'Jun 21, 1944',
-  sex: 'Female',
-  civilStatus: 'Widowed',
+  fullName: 'Juan C. Dela Cruz',
+  milestone: '—',
+  age: 70,
+  oscaId: 'SC-12345678',
+  rrn: '—',
+  dob: 'January 15, 1955',
+  sex: 'Male',
+  civilStatus: 'Married',
   citizenship: 'Filipino',
-  address: 'P-5, Barangay 6, De Oro',
-  contact: '0912 345 6789',
-  email: 'junafe.marban@example.com',
-  emergencyContact: 'Maria Marban (Daughter)',
-  emergencyNumber: '0998 765 4321',
-  benefits: [
-    'Eligible for R.A. 11982 milestone age benefit (80+ years old)',
-    'Utilization of Cash Gifts: Food, Medicine, Medical Checkups',
-    'Primary Beneficiary: Maria Marban (Daughter)',
-  ],
+  address: 'P-7 DeOro',
+  contact: '0946-123-9867',
+  email: 'juan.cruz@gmail.com',
+  emergencyContact: '',
+  emergencyNumber: '',
+  benefits: [],
   photoUrl: INLINE_PLACEHOLDER,
   ...props.profileData,
 })
 
-const objectUrl = ref<string | null>(null)
 const photoUrl = ref<string>(profile.photoUrl || INLINE_PLACEHOLDER)
-
-function onPhotoSelected(e: Event) {
-  const input = e.target as HTMLInputElement
-  const file = input.files?.[0]
-  if (!file) return
-
-  if (objectUrl.value) URL.revokeObjectURL(objectUrl.value)
-  objectUrl.value = URL.createObjectURL(file)
-  photoUrl.value = objectUrl.value
-
-  // TODO: Upload to Supabase Storage and persist URL
-}
-
-function useInlinePlaceholder() {
-  photoUrl.value = INLINE_PLACEHOLDER
-}
-
-onUnmounted(() => {
-  if (objectUrl.value) URL.revokeObjectURL(objectUrl.value)
-})
-
-function goBack() {
-  // If a valid backTo prop is provided, try that first
-  if (props.backTo) {
-    try {
-      // If it's a string path, push it; if object, push it as-is
-      if (typeof props.backTo === 'string') {
-        router.push(props.backTo)
-        return
-      } else {
-        const r = router.resolve(props.backTo as any)
-        if (r.matched.length) {
-          router.push(props.backTo as any)
-          return
-        }
-      }
-    } catch {
-      // fall through to safe back
-    }
-  }
-  // Safe fallback: go back, else go home
-  if (window.history.length > 1) router.back()
-  else router.push('/')
-}
+function useInlinePlaceholder() { photoUrl.value = INLINE_PLACEHOLDER }
 
 function onEdit() {
-  // Navigate to your edit route; ensure this route exists in router
-  // Change 'SeniorEdit' to your real route name or path
+  // go to your edit page
   try {
-    const r = router.resolve({ name: 'SeniorEdit', query: { oscaId: profile.oscaId } })
-    if (r.matched.length) router.push(r)
-    else router.push(`/seniors/edit?oscaId=${encodeURIComponent(profile.oscaId)}`)
+    router.push({ name: 'SeniorEdit', query: { oscaId: profile.oscaId } })
   } catch {
-    router.push(`/seniors/edit?oscaId=${encodeURIComponent(profile.oscaId)}`)
+    router.push('/senior/profile/edit')
   }
 }
 </script>
+
+<style scoped>
+.section-title{
+  @apply text-xs font-semibold tracking-widest text-emerald-800/90 mb-2;
+}
+
+/* card wrapper to mimic the lined table look */
+.kv-card{
+  @apply bg-white rounded-xl shadow-sm ring-1 ring-emerald-100 overflow-hidden;
+}
+.kv-row{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:.60rem .90rem;
+  border-bottom:1px solid rgba(15,23,42,.15);
+  font-size: .95rem; /* ~15px */
+  line-height: 1.25rem;
+}
+.kv-row:last-child{ border-bottom:0; }
+
+/* keep labels slightly darker, values aligned right on narrow screens */
+.kv-row > span:first-child{ @apply font-medium text-emerald-900; }
+.kv-row > span:last-child{ @apply text-gray-700; }
+</style>

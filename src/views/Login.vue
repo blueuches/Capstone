@@ -11,7 +11,7 @@
         Back to Home
       </router-link>
 
-      <h1 class="text-4xl font-extrabold text-emerald-700 text-center mb-2">Sign In</h1>
+      <h1 class="text-4xl font-extrabold text-emerald-700 text-center mb-2">Login</h1>
       <p class="text-gray-600 text-center mb-8 text-lg">Welcome! Please sign in to continue.</p>
 
       <form class="w-full flex flex-col gap-6" @submit="handleLogin">
@@ -73,6 +73,7 @@
 import { supabase } from '@/supabase/client'
 import { useRouter, useRoute } from 'vue-router'
 import { ref } from 'vue'
+import { resolveRoleAndRoute } from '@/composables/useSessionRole'
 
 const router = useRouter()
 const route = useRoute()
@@ -81,25 +82,37 @@ const password = ref('')
 const loading = ref(false)
 const errorMsg = ref<string | null>(null)
 
-const DASH: Record<string, string> = {
+// 1) Standardize role keys
+const DASH = {
   senior: '/senior/dashboard',
-  barangay_staff: '/barangay/dashboard',
+  brgy_staff: '/barangay/dashboard',
   osca_staff: '/osca/dashboard',
-  admin: '/admin/dashboard'
+  admin: '/admin/dashboard',
+} as const
+
+type Role = keyof typeof DASH
+
+// 2) Type guard: is string a Role?
+function isRole(x: string | null | undefined): x is Role {
+  return !!x && x in DASH
 }
 
+// Optional: fallback fetch from view if metadata is missing
 async function getUserRoles(userId: string): Promise<string[]> {
   const { data, error } = await supabase
     .from('v_user_roles')
     .select('role_code')
     .eq('user_id', userId)
-  if (error) return []
-  return (data ?? []).map(r => r.role_code)
+
+  if (error || !data) return []
+  // ensure strings
+  return data.map((r: { role_code: string }) => r.role_code).filter(Boolean)
 }
 
-function chooseRoleByPriority(roles: string[]): string | null {
-  const order = ['admin', 'osca_staff', 'barangay_staff', 'senior']
-  return order.find(r => roles.includes(r)) ?? null
+function chooseRoleByPriority(roles: string[]): Role | null {
+  const order: Role[] = ['admin', 'osca_staff', 'brgy_staff', 'senior']
+  for (const r of order) if (roles.includes(r)) return r
+  return null
 }
 
 const handleLogin = async (e: Event) => {
@@ -118,7 +131,7 @@ const handleLogin = async (e: Event) => {
   loading.value = true
   const { data, error } = await supabase.auth.signInWithPassword({
     email: email.value,
-    password: password.value
+    password: password.value,
   })
   loading.value = false
 
@@ -133,29 +146,34 @@ const handleLogin = async (e: Event) => {
     return
   }
 
-  // read roles and set active_role (required by your RLS)
-  const roles = await getUserRoles(user.id)
-  const active = chooseRoleByPriority(roles)
+  // 3) Preferred: resolve role (sets metadata if possible)
+  let role: Role | null = null
+  const resolved = await resolveRoleAndRoute() // returns string | null
+  if (isRole(resolved)) {
+    role = resolved
+  } else {
+    // 4) Fallback: query roles then pick by priority
+    const roles = await getUserRoles(user.id)
+    const picked = chooseRoleByPriority(roles)
+    if (picked) {
+      // persist to JWT metadata for next time
+      await supabase.auth.updateUser({ data: { active_role: picked } })
+      role = picked
+    }
+  }
 
-  if (!active) {
+  if (!role) {
     errorMsg.value = 'Your account has no assigned role yet.'
     return
   }
 
-  // put active_role into the JWT (so auth.jwt()->>'active_role' works in RLS)
-  const { error: updErr } = await supabase.auth.updateUser({ data: { active_role: active } })
-  if (updErr) {
-    errorMsg.value = 'Could not set active role: ' + updErr.message
-    return
-  }
-
-  // honor ?redirect= if present
+  // 5) Optional redirect override: ?redirect=/path
   const redirect = (route.query.redirect as string | undefined) || null
   if (redirect) {
     router.push(redirect)
     return
   }
 
-  router.push(DASH[active])
+  router.push(DASH[role]) // role is guaranteed to be a key now
 }
 </script>

@@ -1,178 +1,45 @@
-<!-- Dashboard.vue -->
 <template>
-  <div class="bg-gray-50 min-h-screen flex flex-col">
-    <!-- Header -->
+  <div class="bg-gradient-to-b from-emerald-50 to-white min-h-screen flex flex-col">
+    <!-- Sticky Top Bar -->
     <header
-      class="w-full bg-white shadow-md fixed top-0 z-40 flex items-center justify-between px-6 py-3"
+      class="sticky top-0 z-40 bg-emerald-600 text-white shadow-md"
+      role="banner"
     >
-      <div class="flex items-center gap-2">
-        <div
-          class="bg-emerald-600 text-white w-10 h-10 rounded-full flex items-center justify-center font-bold"
-        >
-          S
-        </div>
-        <h1 class="font-bold text-emerald-700 text-xl">SeniorGo Dashboard</h1>
-      </div>
-      <div class="flex items-center gap-4">
-        <button class="text-gray-600 hover:text-emerald-600" @click="onProfile">Profile</button>
-        <button
-          class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700"
-          @click="onLogout"
-        >
-          Logout
+      <div class="px-4 py-3 flex items-center gap-3">
+        <button aria-label="Menu" class="p-2 rounded-full hover:bg-emerald-700/40">
+          <!-- hamburger -->
+          <svg viewBox="0 0 24 24" class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M4 6h16M4 12h16M4 18h16"/>
+          </svg>
         </button>
+
+        <!-- App title -->
+        <h1 class="flex-1 text-lg font-bold text-center -ml-8">SeniorGo</h1>
+
+        <router-link to="/senior/profile" aria-label="Profile" class="shrink-0">
+          <img :src="avatarUrl" @error="useInlineAvatar"
+               class="w-8 h-8 rounded-full border border-white/70 object-cover" alt="Profile"/>
+        </router-link>
+      </div>
+
+      <!-- Search row -->
+      <div class="px-4 pb-3">
+        <label class="relative block">
+          <span class="sr-only">Search</span>
+          <svg class="pointer-events-none absolute left-3 top-2.5 h-5 w-5 text-emerald-900/70" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle><path d="m21 21-3.5-3.5"></path>
+          </svg>
+          <input
+            type="search"
+            placeholder="Search"
+            class="w-full rounded-xl pl-10 pr-3 py-2 text-[15px] placeholder:opacity-70
+                   bg-white/95 text-emerald-950 ring-1 ring-emerald-200 focus:ring-2 focus:ring-yellow-300 outline-none"
+          />
+        </label>
       </div>
     </header>
 
-    <div class="flex flex-1 pt-16">
-      <!-- Sidebar -->
-      <aside class="hidden md:flex w-64 bg-white shadow-lg flex-col fixed top-16 bottom-0">
-        <nav class="flex-1 p-4 space-y-2">
-          <button
-            class="w-full text-left px-4 py-3 rounded-lg hover:bg-emerald-50 font-medium"
-            :class="{ 'menu-active': currentSection === 'programs' }"
-            @click="currentSection = 'programs'"
-          >
-            Programs
-          </button>
-          <button
-            class="w-full text-left px-4 py-3 rounded-lg hover:bg-emerald-50 font-medium"
-            :class="{ 'menu-active': currentSection === 'messages' }"
-            @click="currentSection = 'messages'"
-          >
-            Messages
-          </button>
-          <button
-            class="w-full text-left px-4 py-3 rounded-lg hover:bg-emerald-50 font-medium"
-            :class="{ 'menu-active': currentSection === 'application' }"
-            @click="currentSection = 'application'"
-          >
-            Application
-          </button>
-          <button
-            class="w-full text-left px-4 py-3 rounded-lg hover:bg-emerald-50 font-medium"
-            :class="{ 'menu-active': currentSection === 'notifications' }"
-            @click="currentSection = 'notifications'"
-          >
-            Notifications
-          </button>
-        </nav>
-      </aside>
-
-      <!-- Mobile Nav -->
-      <div
-        class="md:hidden fixed bottom-0 inset-x-0 bg-white border-t shadow flex justify-around p-2 z-50"
-      >
-        <button
-          class="flex flex-col items-center text-sm"
-          :class="{ 'menu-active rounded-lg px-2 py-1': currentSection === 'programs' }"
-          @click="currentSection = 'programs'"
-        >
-          Programs
-        </button>
-
-        <button
-          class="flex flex-col items-center text-sm"
-          :class="{ 'menu-active rounded-lg px-2 py-1': currentSection === 'application' }"
-          @click="currentSection = 'application'"
-        >
-          Application
-        </button>
-        <button
-          class="flex flex-col items-center text-sm"
-          :class="{ 'menu-active rounded-lg px-2 py-1': currentSection === 'notifications' }"
-          @click="currentSection = 'notifications'"
-        >
-          Notifications
-        </button>
-      </div>
-
-      <!-- Main Content -->
-      <main class="flex-1 p-6 space-y-8 md:ml-64">
-        <!-- Programs -->
-        <section id="programs" class="space-y-6" v-show="currentSection === 'programs'">
-          <h2 class="text-2xl font-bold text-emerald-700">Available Programs</h2>
-          <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            <div class="bg-white rounded-2xl shadow-md p-6 flex flex-col">
-              <h3 class="font-semibold text-emerald-600 text-lg">Food Assistance</h3>
-              <p class="text-gray-600 mt-2 flex-1">
-                Apply for monthly food packs and nutrition aid provided by OSCA and your barangay.
-              </p>
-
-              <router-link to="/senior/form">
-                <button
-                  class="mt-4 w-full px-5 py-3 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700"
-                >
-                  Apply
-                </button>
-              </router-link>
-            </div>
-            <div class="bg-white rounded-2xl shadow-md p-6 flex flex-col">
-              <h3 class="font-semibold text-emerald-600 text-lg">Medical Checkup</h3>
-              <p class="text-gray-600 mt-2 flex-1">
-                Register for free consultations and annual medical checkups arranged in your
-                barangay.
-              </p>
-              <router-link to="/senior/form">
-                <button
-                  class="mt-4 w-full px-5 py-3 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700"
-                >
-                  Apply
-                </button>
-              </router-link>
-            </div>
-            <div class="bg-white rounded-2xl shadow-md p-6 flex flex-col">
-              <h3 class="font-semibold text-emerald-600 text-lg">Livelihood Support</h3>
-              <p class="text-gray-600 mt-2 flex-1">
-                Join skills training and livelihood support activities to help seniors earn extra
-                income.
-              </p>
-              <router-link to="/senior/form">
-                <button
-                  class="mt-4 w-full px-5 py-3 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700"
-                >
-                  Apply
-                </button>
-              </router-link>
-            </div>
-          </div>
-        </section>
-
-        <!-- Application -->
-        <section id="application" class="space-y-6" v-show="currentSection === 'application'">
-          <h2 class="text-2xl font-bold text-emerald-700">Submit Application</h2>
-          <form
-            class="bg-white rounded-2xl shadow-md p-6 space-y-4"
-            @submit.prevent="submitApplication"
-          >
-            <div>
-              <label class="block text-sm font-semibold text-gray-700">Upload Requirements</label>
-              <input
-                type="file"
-                class="mt-2 block w-full text-sm text-gray-600 border rounded-lg px-3 py-2"
-                @change="onFileChange"
-              />
-            </div>
-            <div>
-              <label class="block text-sm font-semibold text-gray-700">Remarks</label>
-              <textarea
-                rows="3"
-                placeholder="Any notes for barangay personnel..."
-                class="mt-2 block w-full border rounded-lg px-3 py-2"
-                v-model="remarks"
-              ></textarea>
-            </div>
-            <button
-              type="submit"
-              class="px-6 py-3 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700"
-            >
-              Submit Application
-            </button>
-          </form>
-        </section>
-
-        <!-- Notifications -->
-        <section id="notifications" class="space-y-6" v-show="currentSection === 'notifications'">
+    <main class="flex-1 overflow-y-auto px-4 pb-[88px] pt-3">
           <h2 class="text-2xl font-bold text-emerald-700">Notifications</h2>
           <div class="space-y-3">
             <div class="p-4 border-l-4 border-yellow-400 bg-yellow-50 rounded-lg">
@@ -191,73 +58,114 @@
               <div class="text-sm text-gray-500">1 week ago</div>
             </div>
           </div>
-        </section>
-      </main>
-    </div>
+    </main>
+
+    <!-- Sticky Bottom Tabbar (safe-area aware) -->
+    <nav
+      class="fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/70
+             border-t border-emerald-100 pt-2 pb-[calc(env(safe-area-inset-bottom)+10px)]"
+      role="navigation"
+    >
+      <ul class="flex items-center justify-around px-6">
+                <li>
+          <router-link
+            to="/senior/notifications"
+            class="relative w-12 h-12 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center"
+            aria-label="Notifications"
+          >
+            <!-- bell -->
+            <svg viewBox="0 0 24 24" class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M6 8a6 6 0 1 1 12 0c0 7 3 5 3 9H3c0-4 3-2 3-9"/><path d="M10 21a2 2 0 0 0 4 0"/>
+            </svg>
+            <span
+              v-if="notifCount"
+              class="absolute -top-0.5 -right-0.5 text-[10px] leading-none bg-red-500 text-white px-1.5 py-0.5 rounded-full"
+            >{{ notifCount }}</span>
+          </router-link>
+        </li>
+
+        <li>
+          <button
+            class="w-12 h-12 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-lg"
+            aria-label="Voice"
+          >
+            <!-- mic -->
+            <svg viewBox="0 0 24 24" class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 14a3 3 0 0 0 3-3V7a3 3 0 1 0-6 0v4a3 3 0 0 0 3 3Z"/>
+              <path d="M19 11a7 7 0 0 1-14 0"/><path d="M12 18v4"/>
+            </svg>
+          </button>
+        </li>
+
+        <li>
+          <router-link
+            to="/senior/dashboard"
+            class="w-12 h-12 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center"
+            aria-label="Home"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
+
+          </router-link>
+        </li>
+
+      </ul>
+    </nav>
   </div>
 </template>
 
 <script setup>
-import { ref, nextTick } from 'vue'
-import { supabase } from '../../supabase/client'
-import { useRouter } from 'vue-router'
+import { ref } from 'vue'
 
-const currentSection = ref('programs')
-
-const chatInput = ref('')
-const messages = ref([])
-const chatBoxRef = ref(null)
-
-const selectedFile = ref(null)
-const remarks = ref('')
-
-// events
-async function sendMessage() {
-  const t = chatInput.value.trim()
-  if (!t) return
-  messages.value.push({ text: t, sender: 'me' })
-  chatInput.value = ''
-  await nextTick()
-  if (chatBoxRef.value) chatBoxRef.value.scrollTop = chatBoxRef.value.scrollHeight
+/* avatar with safe inline fallback */
+const avatarUrl = ref('https://via.placeholder.com/60')
+function useInlineAvatar() {
+  avatarUrl.value =
+    'data:image/svg+xml;utf8,' +
+    encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="60" height="60">
+      <rect width="100%" height="100%" fill="#ecfdf5"/>
+      <circle cx="30" cy="22" r="12" fill="#10b981" fill-opacity="0.5"/>
+      <rect x="14" y="38" width="32" height="14" rx="7" fill="#10b981" fill-opacity="0.35"/>
+    </svg>`)
 }
 
-function onFileChange(e) {
-  selectedFile.value = e.target.files?.[0] ?? null
-}
+/* Quick actions (3 per row) */
+const actions = [
+  { icon: '📊', label: 'My Application', to: '/senior/id' },
+  { icon: '📅', label: 'Programs', to: '/senior/benefits' },
+  { icon: '📄', label: 'Requirements', to: '/senior/health' },
+  { icon: '📝', label: 'Apply', to: '/senior/form' },
+  { icon: '🏠︎', label: 'OSCA Location', to: '/senior/events' },
+  { icon: '❓', label: 'Help', to: '/senior/help' },
+]
 
-function submitApplication() {
-  // plug in Supabase upload + DB insert here
-  alert('Application submitted (demo).')
-}
-
-function onApply(program) {
-  alert(`Apply: ${program}`)
-}
-
-function onProfile() {
-  alert('Profile clicked')
-}
-
-//logout
-const router = useRouter()
-
-const onLogout = async () => {
-  const { error } = await supabase.auth.signOut()
-  if (error) {
-    alert('Logout failed: ' + error.message)
-    return
+/* Announcements list */
+const announcements = [
+  {
+    title: 'Vaccination Drive',
+    subtitle: 'Free flu shots at City Hall tomorrow',
+    meta: 'April 10, 2025 • 9AM–3PM',
+    to: '/senior/announcements/1'
+  },
+  {
+    title: 'Pension Distribution',
+    subtitle: 'Schedule for this month’s pension',
+    meta: 'April 15, 2025 • Local treasury',
+    to: '/senior/announcements/2'
   }
-  // Clear any local storage/session if needed
-  localStorage.clear()
+]
 
-  // Redirect to login page
-  router.push('/')
-}
+const notifCount = ref(2)
 </script>
 
 <style scoped>
-.menu-active {
-  background-color: #10b981;
-  color: white;
+/* Make long text nicely clipped without extra height */
+.line-clamp-1 { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+.line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* iOS safe-area (older Safari fallbacks are handled by env()) */
+@supports (padding: max(0px)) {
+  nav { padding-bottom: max(env(safe-area-inset-bottom), 10px); }
 }
 </style>
