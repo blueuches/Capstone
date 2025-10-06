@@ -351,7 +351,7 @@ function chooseProgram(p){ selected.value = p; step.value = 'reqs' }
 function goToForm(){
   if (!selected.value) return
   // use router if you prefer
-  window.location.assign(`/senior/form?programId=${encodeURIComponent(selected.value.id)}`)
+  window.location.assign(`/senior/form${encodeURIComponent(selected.value.id)}`)
 }
 
 /* Announcements list */

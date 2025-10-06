@@ -197,9 +197,20 @@ const form = ref({
 const inviteStatus = ref(null)  // { ok: boolean, msg: string }
 const lockedFromInvite = computed(() => !!(inviteStatus.value && inviteStatus.value.ok))
 
+const singleOscaId = computed(() =>
+  oscaOptions.value.length === 1 ? oscaOptions.value[0].id : null
+)
+
+
 function setOrgKind(kind) {
   form.value.orgKind = kind
   form.value.organizationId = 0
+
+  if (kind === 'osca' && singleOscaId.value) {
+    form.value.organizationId = singleOscaId.value
+  } else if (kind === 'barangay' && barangayOptions.value.length === 1) {
+    form.value.organizationId = barangayOptions.value[0].id
+  }
 }
 
 // Load org options
@@ -213,13 +224,14 @@ async function loadOsca() {
     .select('id, name')
     .eq('kind', 'osca')
     .order('name', { ascending: true })
+
   if (!error && data) {
     oscaOptions.value = data
-    // If there is only 1 OSCA, preselect it & orgKind
-    if (data.length === 1 && !form.value.orgKind) {
-      form.value.orgKind = 'osca'
-      form.value.organizationId = data[0].id
+    if (form.value.orgKind === 'osca' && singleOscaId.value) {
+      form.value.organizationId = singleOscaId.value
     }
+  } else {
+    oscaOptions.value = []
   }
 }
 
@@ -307,16 +319,28 @@ async function handleSignup() {
   }
 
   // org validation (unless locked by valid invite)
-  if (!lockedFromInvite.value) {
-    if (!form.value.orgKind) {
-      errorMsg.value = 'Select organization type (OSCA or Barangay).'
-      return
-    }
-    if (!form.value.organizationId || form.value.organizationId === 0) {
-      errorMsg.value = form.value.orgKind === 'osca' ? 'Select an OSCA.' : 'Select a Barangay.'
-      return
-    }
+// org validation (unless locked by valid invite)
+if (!lockedFromInvite.value) {
+  if (!form.value.orgKind) {
+    errorMsg.value = 'Select organization type (OSCA or Barangay).'
+    return
   }
+
+  // If OSCA and there’s only one, auto-pick it if still empty
+  if (form.value.orgKind === 'osca' && !form.value.organizationId && singleOscaId.value) {
+    form.value.organizationId = singleOscaId.value
+  }
+
+  // Only block when there are multiple choices
+  if (form.value.orgKind === 'osca' && oscaOptions.value.length > 1 && !form.value.organizationId) {
+    errorMsg.value = 'Select an OSCA.'
+    return
+  }
+  if (form.value.orgKind === 'barangay' && barangayOptions.value.length > 0 && !form.value.organizationId) {
+    errorMsg.value = 'Select a Barangay.'
+    return
+  }
+}
 
   loading.value = true
   try {
@@ -333,7 +357,7 @@ async function handleSignup() {
     // 2) Upsert into public.Users
     const { error: upErr } = await supabase
       .from('Users')
-      .upsert({ user_id: user.id, full_name: form.value.name, login_pref: 'email' })
+      .upsert({ user_id: user.id, full_name: form.value.name, login_pref: 'email',phone: null, })
     if (upErr) throw upErr
 
     // 3) Resolve organization & role

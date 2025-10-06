@@ -23,7 +23,7 @@ const routes = [
   { path: '/osca/barangays', component: () => import('../views/OSCA/BarangayList.vue') },
   { path: '/osca/messaging', component: () => import('../views/OSCA/Messaging.vue') },
   { path: '/osca/applications', component: () => import('../views/OSCA/ApplicationReview.vue') },
-  { path: '/osca/release-id', component: () => import('../views/OSCA/ReleasingID.vue') },
+  { path: '/osca/review', component: () => import('../views/OSCA/Review.vue') },
   //senior profiles view
 
   { path: '/barangay/dashboard', component: () => import('../views/Barangay/Dashboard.vue') },
