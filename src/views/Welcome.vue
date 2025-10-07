@@ -118,7 +118,7 @@
 
     <!-- Footer -->
     <footer class="bg-emerald-700 text-white text-center text-sm py-6">
-      &copy; 2025 SeniorGo · Made for Butuan Seniors with ❤️ | Powered by Barangay &amp; OSCA
+      &copy; 2025 SeniorGo · Made for Butuan Seniors | Powered by Barangay &amp; OSCA
     </footer>
   </div>
 </template>

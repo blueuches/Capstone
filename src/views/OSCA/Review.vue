@@ -34,7 +34,7 @@
 
         <!-- Review Seniors and their information -->
         <router-link
-          to="/osca/release-id"
+          to="/osca/review"
           class="flex items-center gap-3 text-emerald-700 hover:text-emerald-900 font-semibold"
         >
           <!-- Identification card -->

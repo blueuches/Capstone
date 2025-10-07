@@ -1,15 +1,15 @@
 <!-- SeniorList.vue -->
 <template>
  <div class="min-h-screen flex bg-gradient-to-br from-green-100 via-emerald-50 to-white">
-    <!-- Sidebar -->
-    <aside
-      :class="[ 
-        'fixed inset-y-0 left-0 bg-white shadow-lg flex flex-col py-6 z-50 transform transition-transform duration-300',
-        sidebarOpen ? 'translate-x-0 w-60' : '-translate-x-full w-60',
-        'md:relative md:translate-x-0 md:w-60'
-      ]"
-    >
-      <h4 class="font-bold text-emerald-700 mb-8 px-4">SeniorGo</h4>
+  <aside 
+  :class="[
+    'fixed inset-y-0 left-0 bg-white shadow-lg flex flex-col justify-between py-6 z-50 transform transition-transform duration-300',
+    sidebarOpen ? 'translate-x-0 w-60' : '-translate-x-full w-60',
+    'md:relative md:translate-x-0 md:w-60'
+  ]"
+  >
+    <div>
+    <h4 class="font-bold text-emerald-700 mb-8 px-4">SeniorGo</h4>
 
       <nav class="flex flex-col gap-6 w-full items-start px-4">
         <!-- Home -->
@@ -17,27 +17,30 @@
           to="/barangay/dashboard"
           class="flex items-center gap-3 text-emerald-700 hover:text-emerald-900 font-semibold"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M3 9.75L12 3l9 6.75V21a1.5 1.5 0 01-1.5 1.5H4.5A1.5 1.5 0 013 21V9.75z" />
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 22V12h6v10" />
-          </svg>
-          <span class="font-bold text-lg">Home</span>
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6.625 2.75a3.875 3.875 0 1 0 0 7.75a3.875 3.875 0 0 0 0-7.75m10.75 0a3.875 3.875 0 1 0 0 7.75a3.875 3.875 0 0 0 0-7.75M6.625 13.5a3.875 3.875 0 1 0 0 7.75a3.875 3.875 0 0 0 0-7.75m10.75 0a3.875 3.875 0 1 0 0 7.75a3.875 3.875 0 0 0 0-7.75"/></svg>
+          <span class="font-bold text-lg">Dashboard</span>
         </router-link>
 
-        <!-- Messaging -->
         <router-link
-          to="/barangay/messaging"
+          to="/barangay/senior-queue"
           class="flex items-center gap-3 text-emerald-700 hover:text-emerald-900 font-semibold"
         >
           <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M8 10h.01M12 10h.01M16 10h.01M21 12c0 4.418-4.03 8-9 8a9.77 9.77 0 01-4-.83L3 20l1.29-2.58A7.79 7.79 0 013 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              d="M9 17h6m-6-4h6m-6-4h6m-7 9h8a2 2 0 002-2V5a2 2 0 00-2-2h-8a2 2 0 00-2 2v14z" />
           </svg>
+          <span class="font-bold text-lg">View</span>
+        </router-link>
+
+        <router-link
+          to="/barangay/messaging"
+          class="flex items-center gap-3 text-emerald-700 hover:text-emerald-900 font-semibold"
+        >
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path fill="currentColor" fill-rule="evenodd" d="M7.933.767a.75.75 0 0 0-1.5 0v.754a.75.75 0 0 0 1.5 0zM6.595 2.928a.75.75 0 0 1 1.024.275l3.858 6.681a.75.75 0 0 1-1.299.75l-.055-.096l-3.092.718a2.171 2.171 0 0 1-3.97 1.664l-.002-.003l-.376-.651l-1.454.337a.5.5 0 0 1-.546-.237l-.609-1.055a.5.5 0 0 1 .068-.591l6.235-6.67l-.057-.097a.75.75 0 0 1 .275-1.025M4.21 11.911l1.357-.315a.671.671 0 0 1-1.21.57zm9.78-5.088a.75.75 0 0 1-.75.75h-.754a.75.75 0 0 1 0-1.5h.753a.75.75 0 0 1 .75.75Zm-12.108.75a.75.75 0 1 0 0-1.5h-.754a.75.75 0 1 0 0 1.5zm2.182-3.868a.75.75 0 0 1-1.06 0l-.634-.634a.75.75 0 1 1 1.06-1.06l.635.633a.75.75 0 0 1 0 1.061Zm7.932-.634a.75.75 0 0 0-1.06-1.06l-.642.64a.75.75 0 1 0 1.061 1.061z" clip-rule="evenodd"/></svg>
+
           <span class="font-bold text-lg">Post</span>
         </router-link>
 
-        <!-- Notifications -->
         <router-link
           to="/barangay/notifications"
           class="flex items-center gap-3 text-emerald-700 hover:text-emerald-900 font-semibold"
@@ -47,18 +50,6 @@
               d="M15 17h5l-1.405-1.405C18.21 14.79 18 14.418 18 14V11a6 6 0 00-12 0v3c0 .418-.21.79-.595 1.595L4 17h5m6 0v1a3 3 0 11-6 0v-1" />
           </svg>
           <span class="font-bold text-lg">Notifications</span>
-        </router-link>
-
-        <!-- Applications -->
-        <router-link
-          to="/barangay/senior-queue"
-          class="flex items-center gap-3 text-emerald-700 hover:text-emerald-900 font-semibold"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M9 17h6m-6-4h6m-6-4h6m-7 9h8a2 2 0 002-2V5a2 2 0 00-2-2h-8a2 2 0 00-2 2v14z" />
-          </svg>
-          <span class="font-bold text-lg">Applications</span>
         </router-link>
 
         <!-- Logout -->
@@ -73,6 +64,13 @@
           <span class="font-bold text-lg">Logout</span>
         </router-link>
       </nav>
+
+    </div>
+        <div class="px-4 text-xs text-gray-500 text-center leading-snug">
+          © 2025 <span class="font-semibold text-emerald-700">SeniorGo</span><br/>
+          Made for Butuan Seniors<br/>
+          Powered by Barangay &amp; OSCA
+        </div>
     </aside>
 
     <div class="flex-1 flex flex-col md:ml-60">

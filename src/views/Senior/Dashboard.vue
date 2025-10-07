@@ -1,12 +1,11 @@
 <template>
-  <div class="bg-gradient-to-b from-emerald-50 to-white min-h-screen flex flex-col">
-    <!-- Sticky Top Bar -->
+<div class="bg-gradient-to-b from-emerald-50 to-white h-dvh flex flex-col overflow-hidden">    <!-- Sticky Top Bar -->
     <header
       class="sticky top-0 z-40 bg-emerald-600 text-white shadow-md"
       role="banner"
     >
       <div class="px-4 py-3 flex items-center gap-3">
-        <button aria-label="Menu" class="p-2 rounded-full hover:bg-emerald-700/40">
+        <button aria-label="Menu" @click="sidebarOpen = !sidebarOpen" class="p-2 rounded-full hover:bg-emerald-700/40">
           <!-- hamburger -->
           <svg viewBox="0 0 24 24" class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M4 6h16M4 12h16M4 18h16"/>
@@ -38,6 +37,23 @@
         </label>
       </div>
     </header>
+
+<transition name="fade">
+  <div v-if="sidebarOpen"
+       class="absolute top-0 left-0 w-56 h-screen bg-white text-emerald-800 z-50 shadow-xl">
+    <div class="p-4 border-b border-emerald-100 flex justify-between items-center">
+      <h2 class="font-semibold text-emerald-700">More</h2>
+      <button @click="sidebarOpen = false" class="text-emerald-700">✕</button>
+    </div>
+    <nav class="p-4 flex flex-col space-y-3">
+      <router-link to="#" class="text-emerald-700">Settings</router-link>
+      <router-link to="#" class="text-emerald-700">About</router-link>
+      <router-link to="#" class="text-emerald-700">Complain</router-link>
+      <button @click="sidebarOpen=false" class="text-left text-red-600 font-medium">Log out</button>
+    </nav>
+  </div>
+</transition>
+
 
 <!-- APPLY SHEET (bottom modal) -->
 <transition name="fade">
@@ -144,8 +160,7 @@
 
 
     <!-- Scrollable content (bottom padding so it won't hide behind tabbar) -->
-    <main class="flex-1 overflow-y-auto px-4 pb-[88px] pt-3">
-      <!-- Welcome card -->
+<main class="flex-1 px-4 pb-[88px] pt-3 flex flex-col overflow-hidden space-y-4">      <!-- Welcome card -->
       <section class="mb-4">
         <div class="rounded-xl bg-emerald-100/70 border border-emerald-200 px-4 py-3">
           <p class="text-sm text-emerald-900">
@@ -157,7 +172,6 @@
       </section>
 
       <!-- Quick Actions -->
-<!-- Quick Actions -->
 <section class="mb-5">
   <h2 class="text-sm font-semibold text-emerald-800 mb-2">Quick Actions</h2>
   <div class="grid grid-cols-3 gap-3">
@@ -192,23 +206,37 @@
 
 
       <!-- Announcements -->
-      <section>
-        <h2 class="text-sm font-semibold text-emerald-800 mb-2">OSCA Announcements</h2>
+<!-- Announcements -->
+<section class="flex-1 flex flex-col min-h-0">
+  <h2 class="text-sm font-semibold text-emerald-800 mb-2 flex-none">
+    OSCA Announcements
+  </h2>
 
-        <article
-          v-for="(a, i) in announcements" :key="i"
-          class="bg-white rounded-xl ring-1 ring-emerald-100 shadow-[0_1px_6px_rgba(0,0,0,.05)]
-                 p-3 mb-2.5"
-        >
-          <router-link :to="a.to" class="text-emerald-700 font-semibold text-[15px] leading-tight hover:underline line-clamp-1">
-            {{ a.title }}
-          </router-link>
-          <p class="text-[13px] text-gray-600 mt-0.5 line-clamp-2">
-            {{ a.subtitle }}
-          </p>
-          <p class="text-[12px] text-gray-500 mt-1">{{ a.meta }}</p>
-        </article>
-      </section>
+  <!-- Scrollable list -->
+  <div class="flex-1 overflow-y-auto pr-1 sm:pr-2 relative rounded-lg">
+    <article
+      v-for="(a, i) in announcements"
+      :key="i"
+      class="bg-white rounded-xl ring-1 ring-emerald-100 shadow-sm p-3 mb-2.5"
+    >
+      <router-link
+        :to="a.to"
+        class="text-emerald-700 font-semibold text-[15px] leading-tight hover:underline line-clamp-1"
+      >
+        {{ a.title }}
+      </router-link>
+      <p class="text-[13px] text-gray-600 mt-0.5 line-clamp-2">
+        {{ a.subtitle }}
+      </p>
+      <p class="text-[12px] text-gray-500 mt-1">{{ a.meta }}</p>
+    </article>
+
+    <!-- subtle fade at bottom -->
+    <div class="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-white to-transparent pointer-events-none"></div>
+  </div>
+</section>
+
+
     </main>
 
     <!-- Sticky Bottom Tabbar (safe-area aware) -->
@@ -235,18 +263,35 @@
           </router-link>
         </li>
 
-        <li>
-          <button
-            class="w-12 h-12 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-lg"
-            aria-label="Voice"
-          >
-            <!-- mic -->
-            <svg viewBox="0 0 24 24" class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M12 14a3 3 0 0 0 3-3V7a3 3 0 1 0-6 0v4a3 3 0 0 0 3 3Z"/>
-              <path d="M19 11a7 7 0 0 1-14 0"/><path d="M12 18v4"/>
-            </svg>
-          </button>
-        </li>
+<li>
+  <button
+    @click="toggleMic"
+    :class="[
+      'relative w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 shadow-lg',
+      micActive ? 'bg-emerald-500 text-white ring-4 ring-emerald-300 animate-pulse-glow' : 'bg-emerald-600 text-white'
+    ]"
+    aria-label="Voice"
+  >
+    <!-- glowing ring -->
+    <span
+      v-if="micActive"
+      class="absolute inset-0 rounded-full bg-emerald-400 opacity-30 animate-ping"
+    ></span>
+
+    <!-- mic icon -->
+    <svg
+      viewBox="0 0 24 24"
+      class="w-6 h-6 relative z-10"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+    >
+      <path d="M12 14a3 3 0 0 0 3-3V7a3 3 0 1 0-6 0v4a3 3 0 0 0 3 3Z" />
+      <path d="M19 11a7 7 0 0 1-14 0" />
+      <path d="M12 18v4" />
+    </svg>
+  </button>
+</li>
 
         <li>
           <router-link
@@ -269,7 +314,10 @@
 <script setup>
 import { ref } from 'vue'
 import { supabase } from '@/supabase/client' 
-import { computed, onMounted } from 'vue';
+import { computed, onMounted } from 'vue'
+import { useAuth } from '@/composables/useAuth';
+
+const { user } = useAuth()
 
 
 /* avatar with safe inline fallback */
@@ -284,15 +332,29 @@ function useInlineAvatar() {
     </svg>`)
 }
 
+/*hamburger*/
+const sidebarOpen = ref(false)
+
 /* Quick actions (3 per row) */
 const actions = [
-  { icon: '📊', label: 'My Application', to: '/senior/id' },
-  { icon: '📅', label: 'Programs', to: '/senior/benefits' },
-  { icon: '📄', label: 'Requirements', to: '/senior/health' },
+  { icon: '📊', label: 'My Application', to: '/senior/application' },
+  { icon: '📄', label: 'My Requirements', to: '/senior/requirements' },
   { icon: '📝', label: 'Apply', kind: 'apply' },
-  { icon: '🏠︎', label: 'OSCA Location', to: '/senior/events' },
+  { icon: '📅', label: 'Programs', to: '/senior/programs' },
+  { icon: '🏠︎', label: 'OSCA Location', to: '/senior/location' },
   { icon: '❓', label: 'Help', to: '/senior/help' },
 ]
+
+/*voice */
+const micActive = ref(false)
+
+function toggleMic() {
+  micActive.value = true
+  setTimeout(() => {
+    micActive.value = false
+  }, 3000)
+}
+
 
 /* ===== Apply flow state ===== */
 const applyOpen = ref(false)
@@ -385,5 +447,46 @@ const notifCount = ref(2)
 
 .fade-enter-active,.fade-leave-active{ transition: opacity .18s ease }
 .fade-enter-from,.fade-leave-to{ opacity:0 }
+
+.fade-enter-active, .fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+.fade-enter-from, .fade-leave-to {
+  opacity: 0;
+}
+
+/* smooth scroll area within announcements */
+section .overflow-y-auto {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+/* nice scrollbar */
+section .overflow-y-auto::-webkit-scrollbar {
+  width: 6px;
+}
+section .overflow-y-auto::-webkit-scrollbar-thumb {
+  background-color: rgba(16,185,129,0.4);
+  border-radius: 6px;
+}
+section .overflow-y-auto::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(16,185,129,0.7);
+}
+
+/*voice */
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6);
+  }
+  50% {
+    box-shadow: 0 0 15px 5px rgba(16, 185, 129, 0.6);
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 1.5s infinite ease-in-out;
+}
+
+
 
 </style>

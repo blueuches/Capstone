@@ -19,6 +19,12 @@ const routes = [
   { path: '/senior/notifications', component: () => import('../views/Senior/Notifications.vue') },
   { path: '/senior/profile', component: () => import('../views/Senior/Profile.vue') },
 
+  { path: '/senior/application', component: () => import('../views/Senior/Features/Application.vue') },
+  { path: '/senior/programs', component: () => import('../views/Senior/Features/Programs.vue') },
+  { path: '/senior/requirements', component: () => import('../views/Senior/Features/Requirements.vue') },
+  { path: '/senior/location', component: () => import('../views/Senior/Features/Location.vue') },
+  { path: '/senior/help', component: () => import('../views/Senior/Features/Help.vue') },
+
   { path: '/osca/dashboard', component: () => import('../views/OSCA/Dashboard.vue') },
   { path: '/osca/barangays', component: () => import('../views/OSCA/BarangayList.vue') },
   { path: '/osca/messaging', component: () => import('../views/OSCA/Messaging.vue') },
