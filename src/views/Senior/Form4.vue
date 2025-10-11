@@ -255,6 +255,11 @@ function prevStep() {
 function onSubmit() {
   alert("Form submitted successfully!");
 }
+
+function saveAsDraft() {
+  // In real use, connect to Supabase or localStorage here.
+  alert("Your progress has been saved as draft!");
+}
 </script>
 
 <style scoped>
