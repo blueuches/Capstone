@@ -146,13 +146,13 @@
           Back
         </button>
         <span v-else />
-        <button
-          :disabled="step !== 'reqs'"
-          @click="goToForm()"
+        <router-link
+          v-if="selected"
+          :to="`/senior/form/${selected.id}`"
           class="ml-auto px-4 py-2 rounded-lg bg-emerald-600 text-white font-semibold
-                 disabled:opacity-50 disabled:cursor-not-allowed">
+                disabled:opacity-50 disabled:cursor-not-allowed">
           Fill up form
-        </button>
+        </router-link>
       </div>
     </div>
   </div>
@@ -312,7 +312,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref} from 'vue'
 import { supabase } from '@/supabase/client' 
 import { computed, onMounted } from 'vue'
 import { useAuth } from '@/composables/useAuth';
@@ -410,11 +410,6 @@ async function fetchPrograms () {
   }
 }
 function chooseProgram(p){ selected.value = p; step.value = 'reqs' }
-function goToForm(){
-  if (!selected.value) return
-  // use router if you prefer
-  window.location.assign(`/senior/form${encodeURIComponent(selected.value.id)}`)
-}
 
 /* Announcements list */
 const announcements = [

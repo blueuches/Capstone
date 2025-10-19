@@ -148,98 +148,134 @@
   </div>
 </template>
 
-<script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
+<script setup>
+import { ref, onMounted, computed, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { supabase } from '@/supabase/client'
-import { useRouter } from 'vue-router'
 import DynamicField from '@/components/DynamicField.vue'
 
-const router = useRouter()
-const formId = 1
-const formTitle = ref('')
-const fields = ref<any[]>([])
-const formValues = reactive<Record<string, any>>({})
+// ROUTER PARAMS
+const route = useRoute()
+const programId = route.params.programId || route.params.formId // fallback compatibility
+
+// MAIN REACTIVE STATE
+const formId = ref(null)
+const formFields = ref([])
 const loading = ref(true)
-const showModal = ref(false)
+const errorMessage = ref('')
+const answers = ref({})
+const formValues = ref({})
 
-// step logic
+
+// FORM DISPLAY STATE
+const formTitle = ref('Application Form')
 const currentStep = ref(1)
-const totalSteps = ref(5)
-const stepLabels = ['Personal', 'Family', 'Contact', 'Beneficiary', 'Certification']
-const stepGroups = ref<any[][]>([])
+const totalSteps = ref(1)
+const stepLabels = ref([])
+const stepGroups = ref([])
 
-onMounted(async () => {
-  const { data: formData } = await supabase.from('Forms').select('*').eq('id', formId).single()
-  formTitle.value = formData?.name || 'Form'
-
-  const { data, error } = await supabase
-    .from('FormFields')
-    .select('*')
-    .eq('form_id', formId)
-    .order('order_index')
-
-  if (error) {
-    console.error('Supabase error:', error)
-  } else if (data && data.length) {
-    // 🔹 Filter out OSCA fields for seniors
-    const seniorFields = data.filter((f) => f.section !== 'osca')
-    console.log('✅ Loaded Senior Fields:', seniorFields.length)
-
-    fields.value = seniorFields
-    seniorFields.forEach((f) => (formValues[f.label] = f.type === 'checkbox' ? [] : ''))
-
-    // evenly group into steps
-    const perStep = Math.ceil(seniorFields.length / totalSteps.value)
-    const groups: any[][] = []
-    for (let i = 0; i < totalSteps.value; i++) {
-      groups.push(seniorFields.slice(i * perStep, (i + 1) * perStep))
-    }
-    stepGroups.value = groups
-  }
-
-  loading.value = false
+// PROGRESS BAR WIDTH
+const progressWidth = computed(() => {
+  if (!totalSteps.value) return '0%'
+  return `${(currentStep.value / totalSteps.value) * 100}%`
 })
 
-const progressWidth = computed(() => `${(currentStep.value / totalSteps.value) * 100}%`)
+// FETCH FORM FIELDS FROM SUPABASE
+const loadFormFields = async () => {
+  loading.value = true
+  errorMessage.value = ''
 
-function nextStep() {
-  // 👇 Show modal when OSCA section starts
-  if (currentStep.value === totalSteps.value) {
-    showModal.value = true
-  } else if (currentStep.value < totalSteps.value) {
-    currentStep.value++
+  try {
+    // 1️⃣ Get the form linked to this program
+    const { data: form, error: formError } = await supabase
+      .from('Forms')
+      .select('id, name, description')
+      .eq('program_id', programId)
+      .single()
+
+    if (formError || !form) {
+      errorMessage.value = 'No form found for this program.'
+      console.error(formError)
+      return
+    }
+
+    formId.value = form.id
+    formTitle.value = form.name || 'Application Form'
+
+    // 2️⃣ Fetch fields for this form_id
+    const { data: fields, error: fieldError } = await supabase
+      .from('FormFields')
+      .select('*')
+      .eq('form_id', form.id)
+      .order('order_index', { ascending: true })
+
+    if (fieldError) {
+      errorMessage.value = 'Error fetching form fields.'
+      console.error(fieldError)
+      return
+    }
+
+    // Normalize options JSON → array
+    formFields.value = fields.map(f => ({
+      ...f,
+      options: Array.isArray(f.options)
+        ? f.options
+        : f.options
+        ? Object.values(f.options)
+        : []
+    }))
+  } catch (err) {
+    console.error('Unexpected error:', err)
+    errorMessage.value = 'Failed to load form data.'
+  } finally {
+    loading.value = false
   }
 }
-function prevStep() {
+
+// 👀 WATCH FOR FIELDS TO POPULATE STEP DATA
+watch(formFields, fields => {
+  if (!fields || !fields.length) return
+
+  // Group by `section` (or fallback to chunks)
+  const grouped = fields.reduce((acc, field) => {
+    const section = field.section || 'General'
+    if (!acc[section]) acc[section] = []
+    acc[section].push(field)
+    return acc
+  }, {})
+
+  stepGroups.value = Object.values(grouped)
+  stepLabels.value = Object.keys(grouped)
+  totalSteps.value = stepGroups.value.length
+})
+
+// 🧭 NAVIGATION LOGIC
+const nextStep = () => {
+  if (currentStep.value < totalSteps.value) currentStep.value++
+}
+const prevStep = () => {
   if (currentStep.value > 1) currentStep.value--
 }
 
-function confirmModal() {
-  showModal.value = false
-  saveAsDraft()
-  router.push('/senior/tracking')
+// 🧾 SUBMIT HANDLER
+const onSubmit = () => {
+  console.log('Form submission:', answers.value)
+  // TODO: integrate Supabase insert to FormSubmissions & RequestAnswers
 }
 
-async function onSubmit() {
-  const answers = Object.entries(formValues).map(([label, value]) => {
-    const field = fields.value.find((f) => f.label === label)
-    return {
-      field_id: field?.id,
-      value: Array.isArray(value) ? value.join(', ') : value,
-      filled_by: 'senior',
-    }
-  })
-
-  const { error } = await supabase.from('RequestAnswers').insert(answers)
-  if (error) console.error('❌ Submit error:', error)
-  else alert('✅ Form submitted successfully!')
+// 💾 SAVE AS DRAFT (placeholder)
+const saveAsDraft = () => {
+  console.log('Saved as draft:', answers.value)
 }
 
-function saveAsDraft() {
-  localStorage.setItem('draftForm', JSON.stringify(formValues))
-  alert('Draft saved locally!')
-}
+// MODAL STATE
+const showModal = ref(false)
+const confirmModal = () => (showModal.value = false)
+
+onMounted(loadFormFields)
 </script>
+
+
 
 <style scoped>
 .form-input {

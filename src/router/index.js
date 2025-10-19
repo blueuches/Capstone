@@ -11,11 +11,19 @@ const routes = [
   { path: '/signup', component: Signup },
 
   { path: '/admin/dashboard', component: () => import('../views/Admin/Dashboard.vue') },
+  { path: '/admin/formbuilder', component: () => import('../views/Admin/FormBuilder.vue') },
+  { path: '/admin/programconfig', component: () => import('../views/Admin/Programs.vue') },
+  { path: '/admin/usermanagement', component: () => import('../views/Admin/UserManagement.vue') },
+
   { path: '/staff/signup', component: () => import('../views//SignupMembers.vue') },
 
   { path: '/senior/dashboard', component: () => import('../views/Senior/Dashboard.vue') },
   { path: '/senior/form2', component: () => import('../views/Senior/Form2.vue') },
   { path: '/senior/form4', component: () => import('../views/Senior/Form4.vue') },
+
+  {path: '/senior/form/:programId', name: 'SeniorForm', component: () => import('@/views/Senior/Form2.vue'), props: true,},
+
+
   { path: '/senior/notifications', component: () => import('../views/Senior/Notifications.vue') },
   { path: '/senior/profile', component: () => import('../views/Senior/Profile.vue') },
 
