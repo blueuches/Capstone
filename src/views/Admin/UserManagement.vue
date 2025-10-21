@@ -146,7 +146,7 @@ const searchQuery = ref('')
 const selectedRole = ref('')
 
 onMounted(async () => {
-  // 🟢 Get USERS + their memberships + seniors
+  // Get USERS + their memberships + seniors
   const { data, error } = await supabase
     .from('Users')
     .select(`
