@@ -81,7 +81,7 @@
                 v-for="field in group"
                 :key="field.id"
                 :field="field"
-                v-model="formValues[field.label]"
+                v-model="formValues[field.id]"
               />
             </div>
           </template>
@@ -148,61 +148,103 @@
   </div>
 </template>
 
-<script setup>
+<!-- components/SmartForm.vue -->
+<script setup lang="ts">
 import { ref, onMounted, computed, watch } from 'vue'
-import { useRoute } from 'vue-router'
-import { supabase } from '@/supabase/client'
 import DynamicField from '@/components/DynamicField.vue'
+import { supabase } from '@/supabase/client'
 
-// ROUTER PARAMS
-const route = useRoute()
-const programId = route.params.programId || route.params.formId // fallback compatibility
+/* ---------- Props / Emits ---------- */
+type Mode = 'senior' | 'osca'
+const props = defineProps<{
+  programId: string | number
+  mode: Mode
+  maxPerStep?: number
+  readOnly?: boolean
+}>()
 
-// MAIN REACTIVE STATE
-const formId = ref(null)
-const formFields = ref([])
+const emit = defineEmits<{
+  (e: 'save', payload: { formId: number | null; values: Record<number, any>; mode: Mode }): void
+  (e: 'submit', payload: { formId: number | null; values: Record<number, any>; mode: Mode }): void
+  (e: 'changed', payload: { values: Record<number, any> }): void
+  (e: 'mic'): void
+}>()
+
+/* ---------- Types ---------- */
+type SectionNorm = 'senior' | 'osca' | 'other'
+type Field = {
+  id: number
+  form_id: number
+  label: string
+  type: string
+  placeholder?: string
+  required?: boolean
+  options?: any
+  section?: string | null
+  order_index?: number
+  section_norm?: SectionNorm
+}
+
+/* ---------- State ---------- */
+const formId = ref<number | null>(null)
+const formFields = ref<Field[]>([])
 const loading = ref(true)
 const errorMessage = ref('')
-const answers = ref({})
-const formValues = ref({})
 
+/** answers keyed by field.id (stable across forms) */
+const formValues = ref<Record<number, any>>({})
 
-// FORM DISPLAY STATE
+/** role flags derived from props.mode (no auth here) */
+const isSenior = computed(() => props.mode === 'senior')
+const isOsca = computed(() => props.mode === 'osca')
+
+/** stepper state */
 const formTitle = ref('Application Form')
 const currentStep = ref(1)
-const totalSteps = ref(1)
-const stepLabels = ref([])
-const stepGroups = ref([])
+const stepLabels = ref<string[]>([])
+const stepGroups = ref<Field[][]>([])
+const totalSteps = computed(() => stepGroups.value.length)
 
-// PROGRESS BAR WIDTH
-const progressWidth = computed(() => {
-  if (!totalSteps.value) return '0%'
-  return `${(currentStep.value / totalSteps.value) * 100}%`
-})
+/** progress bar */
+const progressWidth = computed(() =>
+  totalSteps.value ? `${(currentStep.value / totalSteps.value) * 100}%` : '0%',
+)
 
-// FETCH FORM FIELDS FROM SUPABASE
-const loadFormFields = async () => {
+/* ---------- Config ---------- */
+const MAX_FIELDS_PER_STEP = computed(() => props.maxPerStep ?? 4)
+
+/* ---------- Helpers ---------- */
+function normalizeSection(raw: any): SectionNorm {
+  const s = String(raw ?? '')
+    .trim()
+    .toLowerCase()
+  if (['osca', 'osca_section', 'osc', 'staff_osca'].includes(s)) return 'osca'
+  if (['senior', 'senior_section', 'sr', 'sc'].includes(s)) return 'senior'
+  return 'other'
+}
+
+/* ---------- Data Load ---------- */
+async function loadForm() {
   loading.value = true
   errorMessage.value = ''
 
   try {
-    // 1️⃣ Get the form linked to this program
+    // Find form by programId
     const { data: form, error: formError } = await supabase
       .from('Forms')
       .select('id, name, description')
-      .eq('program_id', programId)
+      .eq('program_id', props.programId)
       .single()
 
     if (formError || !form) {
       errorMessage.value = 'No form found for this program.'
-      console.error(formError)
       return
     }
 
     formId.value = form.id
     formTitle.value = form.name || 'Application Form'
 
-    // 2️⃣ Fetch fields for this form_id
+    // Load fields
     const { data: fields, error: fieldError } = await supabase
       .from('FormFields')
       .select('*')
@@ -211,71 +253,104 @@ const loadFormFields = async () => {
 
     if (fieldError) {
       errorMessage.value = 'Error fetching form fields.'
-      console.error(fieldError)
       return
     }
 
-    // Normalize options JSON → array
-    formFields.value = fields.map(f => ({
+    formFields.value = (fields || []).map((f: any) => ({
       ...f,
-      options: Array.isArray(f.options)
-        ? f.options
-        : f.options
-        ? Object.values(f.options)
-        : []
+      section_norm: normalizeSection(f.section),
+      options: Array.isArray(f.options) ? f.options : f.options ? Object.values(f.options) : [],
     }))
-  } catch (err) {
-    console.error('Unexpected error:', err)
+  } catch (e) {
+    console.error(e)
     errorMessage.value = 'Failed to load form data.'
   } finally {
     loading.value = false
   }
 }
 
-// 👀 WATCH FOR FIELDS TO POPULATE STEP DATA
-watch(formFields, fields => {
-  if (!fields || !fields.length) return
+/* ---------- Step Builder ---------- */
+function buildSteps(allFields: Field[]) {
+  if (!allFields?.length) {
+    stepGroups.value = []
+    stepLabels.value = []
+    currentStep.value = 1
+    return
+  }
 
-  // Group by `section` (or fallback to chunks)
-  const grouped = fields.reduce((acc, field) => {
-    const section = field.section || 'General'
-    if (!acc[section]) acc[section] = []
-    acc[section].push(field)
-    return acc
-  }, {})
+  const priority: SectionNorm[] = ['senior', 'osca', 'other']
+  const sorted = [...allFields].sort((a, b) => {
+    const sa = priority.indexOf(a.section_norm ?? 'other')
+    const sb = priority.indexOf(b.section_norm ?? 'other')
+    if (sa !== sb) return sa - sb
+    return (a.order_index ?? 0) - (b.order_index ?? 0)
+  })
 
-  stepGroups.value = Object.values(grouped)
-  stepLabels.value = Object.keys(grouped)
-  totalSteps.value = stepGroups.value.length
-})
+  // Role UI gating (DB RLS should still enforce server perms)
+  let visible = sorted
+  if (isSenior.value && !isOsca.value) {
+    visible = sorted.filter((f) => f.section_norm === 'senior')
+  } else if (isOsca.value) {
+    visible = sorted.filter((f) => f.section_norm === 'osca')
+  } else {
+    visible = sorted.filter((f) => f.section_norm === 'senior')
+  }
 
-// 🧭 NAVIGATION LOGIC
-const nextStep = () => {
+  // Chunk to avoid scrolling
+  const steps: Field[][] = []
+  const n = MAX_FIELDS_PER_STEP.value
+  for (let i = 0; i < visible.length; i += n) {
+    steps.push(visible.slice(i, i + n))
+  }
+  stepGroups.value = steps
+
+  // Labels by the section of the first field in each chunk
+  stepLabels.value = steps.map((grp) => {
+    const sect = grp[0]?.section_norm
+    if (sect === 'osca') return 'OSCA Section'
+    if (sect === 'senior') return 'Senior Section'
+    return 'Form Section'
+  })
+
+  currentStep.value = Math.min(currentStep.value, steps.length) || 1
+}
+
+/* ---------- Nav ---------- */
+function nextStep() {
   if (currentStep.value < totalSteps.value) currentStep.value++
 }
-const prevStep = () => {
+function prevStep() {
   if (currentStep.value > 1) currentStep.value--
 }
 
-// 🧾 SUBMIT HANDLER
-const onSubmit = () => {
-  console.log('Form submission:', answers.value)
-  // TODO: integrate Supabase insert to FormSubmissions & RequestAnswers
+/* ---------- Submit / Draft ---------- */
+function onSubmit() {
+  emit('submit', { formId: formId.value, values: formValues.value, mode: props.mode })
+}
+function saveAsDraft() {
+  emit('save', { formId: formId.value, values: formValues.value, mode: props.mode })
 }
 
-// 💾 SAVE AS DRAFT (placeholder)
-const saveAsDraft = () => {
-  console.log('Saved as draft:', answers.value)
-}
-
-// MODAL STATE
+/* ---------- Modal (kept for UI parity) ---------- */
 const showModal = ref(false)
-const confirmModal = () => (showModal.value = false)
+function confirmModal() {
+  showModal.value = false
+}
 
-onMounted(loadFormFields)
+/* ---------- Reactions ---------- */
+watch([formFields, isOsca, isSenior, MAX_FIELDS_PER_STEP], () => buildSteps(formFields.value), {
+  immediate: true,
+})
+
+// emit 'changed' whenever any field value changes
+watch(formValues, (v) => emit('changed', { values: v }), { deep: true })
+
+/* ---------- Mount ---------- */
+onMounted(async () => {
+  await loadForm()
+  buildSteps(formFields.value)
+})
 </script>
-
-
 
 <style scoped>
 .form-input {

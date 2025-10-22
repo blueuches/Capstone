@@ -18,10 +18,9 @@ const routes = [
   { path: '/staff/signup', component: () => import('../views//SignupMembers.vue') },
 
   { path: '/senior/dashboard', component: () => import('../views/Senior/Dashboard.vue') },
-  { path: '/senior/form2', component: () => import('../views/Senior/Form2.vue') },
-  { path: '/senior/form4', component: () => import('../views/Senior/Form4.vue') },
+  { path: '/senior/form2', component: () => import('../views/Senior/FormPage.vue') },
 
-  {path: '/senior/form/:programId', name: 'SeniorForm', component: () => import('@/views/Senior/Form2.vue'), props: true,},
+  {path: '/senior/form/:programId', name: 'SeniorForm', component: () => import('@/views/Senior/FormPage.vue'), props: true,},
 
 
   { path: '/senior/notifications', component: () => import('../views/Senior/Notifications.vue') },
@@ -38,6 +37,11 @@ const routes = [
   { path: '/osca/messaging', component: () => import('../views/OSCA/Messaging.vue') },
   { path: '/osca/applications', component: () => import('../views/OSCA/ApplicationReview.vue') },
   { path: '/osca/review', component: () => import('../views/OSCA/Review.vue') },
+  // router
+{ path: '/osca/review/:programId/:requestId', name: 'OscaReview', component: () => import('@/views/OSCA/ReviewPage.vue'), props: true },
+{ path: '/osca/review/:programId/:requestId?', name: 'OscaReviewTest', component: () => import('@/views/OSCA/ReviewPage.vue'), props: true },
+//sample without request
+
   //senior profiles view
 
   { path: '/barangay/dashboard', component: () => import('../views/Barangay/Dashboard.vue') },
