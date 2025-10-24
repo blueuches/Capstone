@@ -78,6 +78,25 @@
           />
         </div>
 
+        <!-- Barangay -->
+        <div class="relative">
+          <label for="barangay" class="sr-only">Barangay</label>
+          <span class="absolute left-4 top-3 text-emerald-500">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2C8.134 2 5 5.134 5 9v5l-2 2v1h18v-1l-2-2V9c0-3.866-3.134-7-7-7z" />
+            </svg>
+          </span>
+          <select
+            id="barangay"
+            v-model="form.barangay_id"
+            class="w-full pl-12 pr-4 py-3 text-lg border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-400 focus:outline-none text-gray-700"
+            required
+          >
+            <option value="">Select Barangay</option>
+            <option v-for="b in barangays" :key="b.id" :value="b.id">{{ b.name }}</option>
+          </select>
+        </div>
+
         <!-- Password -->
         <div class="relative">
           <label for="password" class="sr-only">Password</label>
@@ -99,7 +118,9 @@
           <button type="button" class="absolute right-3 top-3 text-gray-500 hover:text-gray-700" @click="showPw = !showPw" :aria-pressed="showPw.toString()">
             <span v-if="!showPw">Show</span><span v-else>Hide</span>
           </button>
-          <p class="mt-1 text-xs" :class="pwStrength.color">{{ pwStrength.text }}</p>
+            <p v-if="form.password" class="mt-1 text-xs" :class="pwStrength.color">
+              {{ pwStrength.text }}
+            </p>
         </div>
 
         <!-- Confirm Password -->
@@ -154,7 +175,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted} from 'vue'
 import { useRouter } from 'vue-router'
 import { supabase } from '@/supabase/client'
 
@@ -170,8 +191,17 @@ const form = ref({
   phone: '',
   email: '',
   password: '',
-  confirmPassword: ''
+  confirmPassword: '',
+  barangay_id: ''
 })
+
+const barangays = ref([])
+
+onMounted(async () => {
+  const { data, error } = await supabase.from('Barangays').select('*').order('name')
+  if (!error) barangays.value = data
+})
+
 
 // ------------ helpers ------------
 const phoneHint = computed(() => {
