@@ -49,7 +49,7 @@
       <router-link to="#" class="text-emerald-700">Settings</router-link>
       <router-link to="#" class="text-emerald-700">About</router-link>
       <router-link to="#" class="text-emerald-700">Complain</router-link>
-      <button @click="sidebarOpen=false" class="text-left text-red-600 font-medium">Log out</button>
+      <router-link to="/logout" @click="sidebarOpen=false" class="text-left text-red-600 font-medium">Log out</router-link>
     </nav>
   </div>
 </transition>

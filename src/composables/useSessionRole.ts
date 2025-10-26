@@ -1,41 +1,27 @@
-import { supabase } from '@/supabase/client'
+// src/composables/useSessionRole.ts
+import { useAuth } from '@/composables/useAuth'
 
+/**
+ * Returns the current role code from the unified auth composable:
+ * 'senior' | 'brgy_staff' | 'osca_staff' | null
+ */
 export async function resolveRoleAndRoute(): Promise<string | null> {
-  const { data: u } = await supabase.auth.getUser();
-  const user = u.user;
-  if (!user) return null;
+  const auth = useAuth()
+  await auth.init() // idempotent
+  return auth.role.value ?? null
+}
 
-  // 1) JWT metadata wins if present
-  const metaRole = (user.user_metadata?.active_role as string) || undefined;
-  if (metaRole) return metaRole;
-
-  // 2) Try staff membership -> role
-  const { data: mem, error: memErr } = await supabase
-    .from('Memberships')
-    .select('role:Roles!inner(code)')
-    .eq('user_id', user.id)
-    .limit(1)
-    .single();
-
-  if (!memErr) {
-    const roleCode = (mem as any)?.role?.code as string | undefined;
-    if (roleCode) {
-      await supabase.auth.updateUser({ data: { active_role: roleCode } });
-      return roleCode;
-    }
+/** Optional small helper if you also want easy booleans elsewhere */
+export function useSessionRole() {
+  const auth = useAuth()
+  // caller should have called auth.init() earlier (router or app startup)
+  return {
+    role: auth.role,               // Ref<string|null>
+    isSenior: auth.isSenior,       // Computed<boolean>
+    isBrgy: auth.isBrgy,           // Computed<boolean>
+    isOsca: auth.isOsca,           // Computed<boolean>
+    seniorId: auth.seniorId,       // Ref<number|null>
+    orgId: auth.orgId,             // Ref<number|null>
+    init: auth.init,               // expose init if needed
   }
-
-  // 3) Fallback: senior if they have a SeniorCitizens row
-  const { data: sc } = await supabase
-    .from('SeniorCitizens')
-    .select('user_id')
-    .eq('user_id', user.id)
-    .maybeSingle();
-
-  if (sc) {
-    await supabase.auth.updateUser({ data: { active_role: 'senior' } });
-    return 'senior';
-  }
-
-  return null;
 }

@@ -68,7 +68,7 @@ const oscaLinks = [
   { label: 'Review Seniors', path: '/osca/review', icon: CheckSquare },
   { label: 'Applicants', path: '/osca/applications', icon: Users },
   { label: 'Post Announcement', path: '/osca/messaging', icon: Megaphone },
-  { label: 'Logout', path: '/', icon: LogOut },
+  { label: 'Logout', path: '/logout', icon: LogOut },
 ]
 
 const brgyLinks = [
@@ -76,7 +76,7 @@ const brgyLinks = [
   { label: 'Seniors', path: '/barangay/senior-queue', icon: Users },
   { label: 'Post Announcement', path: '/barangay/messaging', icon: Megaphone },
   { label: 'Notification', path: '/barangay/notifications', icon: Bell },
-  { label: 'Logout', path: '/', icon: LogOut },
+  { label: 'Logout', path: '/logout', icon: LogOut },
 ]
 
 const links = props.role === 'brgy' ? brgyLinks : oscaLinks

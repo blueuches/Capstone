@@ -4,7 +4,8 @@
     "env.d.ts",
     "src/**/*",
     "src/**/*.vue",
-    "src/types/**/*.d.ts"    // <-- add this line
+    "src/types/**/*.d.ts",
+    "src/**/*.ts", "src/**/*.d.ts"  
   ],
   "exclude": ["src/**/__tests__/*"],
   "compilerOptions": {

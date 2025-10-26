@@ -99,14 +99,14 @@
 
       <!-- Logout -->
       <section class="max-w-md mx-auto mt-7">
-        <button
+        <router-link
           type="button"
+          to="/logout"
           class="w-full sm:w-56 mx-auto block px-5 py-3 rounded-full bg-emerald-700 text-white font-semibold
                  shadow hover:bg-gray-800"
-          @click="$router.push('/logout')"
         >
           Log Out
-        </button>
+        </router-link>
       </section>
     </main>
   </div>

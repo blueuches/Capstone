@@ -70,55 +70,38 @@
 </template>
 
 <script setup lang="ts">
-import { supabase } from '@/supabase/client'
+// If you already added src/types/useAuth.d.ts (Option A earlier), this import will be typed.
+// If not, you can temporarily add `// @ts-ignore` on the next line.
+// @ts-ignore
+import { useAuth } from '@/composables/useAuth'
 import { useRouter, useRoute } from 'vue-router'
-import { ref } from 'vue'
-import { resolveRoleAndRoute } from '@/composables/useSessionRole'
+import { ref, onMounted } from 'vue'
 
 const router = useRouter()
 const route = useRoute()
+const auth = useAuth()
+
 const email = ref('')
 const password = ref('')
 const loading = ref(false)
 const errorMsg = ref<string | null>(null)
 
-// 1) Standardize role keys
 const DASH = {
   senior: '/senior/dashboard',
   brgy_staff: '/barangay/dashboard',
   osca_staff: '/osca/dashboard',
-  admin: '/admin/dashboard',
 } as const
 
-type Role = keyof typeof DASH
+onMounted(async () => {
+  // Ensure session listener is attached (safe if called multiple times)
+  await auth.init()
+})
 
-// 2) Type guard: is string a Role?
-function isRole(x: string | null | undefined): x is Role {
-  return !!x && x in DASH
-}
-
-// Optional: fallback fetch from view if metadata is missing
-async function getUserRoles(userId: string): Promise<string[]> {
-  const { data, error } = await supabase
-    .from('v_user_roles')
-    .select('role_code')
-    .eq('user_id', userId)
-
-  if (error || !data) return []
-  // ensure strings
-  return data.map((r: { role_code: string }) => r.role_code).filter(Boolean)
-}
-
-function chooseRoleByPriority(roles: string[]): Role | null {
-  const order: Role[] = ['admin', 'osca_staff', 'brgy_staff', 'senior']
-  for (const r of order) if (roles.includes(r)) return r
-  return null
-}
-
-const handleLogin = async (e: Event) => {
+async function handleLogin(e: Event) {
   e.preventDefault()
   errorMsg.value = null
 
+  // simple client-side checks
   if (!email.value || !password.value) {
     errorMsg.value = 'Please enter both email and password.'
     return
@@ -128,52 +111,31 @@ const handleLogin = async (e: Event) => {
     return
   }
 
-  loading.value = true
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email: email.value,
-    password: password.value,
-  })
-  loading.value = false
-
-  if (error) {
-    errorMsg.value = 'Login failed: ' + error.message
+  try {
+    loading.value = true
+    await auth.signInWithPassword(email.value, password.value)
+  } catch (err: any) {
+    loading.value = false
+    errorMsg.value = 'Login failed: ' + (err?.message || 'Unknown error')
     return
+  } finally {
+    loading.value = false
   }
 
-  const user = data.user
-  if (!user) {
-    errorMsg.value = 'No user returned by Supabase.'
-    return
-  }
-
-  // 3) Preferred: resolve role (sets metadata if possible)
-  let role: Role | null = null
-  const resolved = await resolveRoleAndRoute() // returns string | null
-  if (isRole(resolved)) {
-    role = resolved
-  } else {
-    // 4) Fallback: query roles then pick by priority
-    const roles = await getUserRoles(user.id)
-    const picked = chooseRoleByPriority(roles)
-    if (picked) {
-      // persist to JWT metadata for next time
-      await supabase.auth.updateUser({ data: { active_role: picked } })
-      role = picked
-    }
-  }
-
-  if (!role) {
-    errorMsg.value = 'Your account has no assigned role yet.'
-    return
-  }
-
-  // 5) Optional redirect override: ?redirect=/path
+  // If the router guard set ?redirect earlier, honor it
   const redirect = (route.query.redirect as string | undefined) || null
   if (redirect) {
-    router.push(redirect)
+    router.replace(redirect)
     return
   }
 
-  router.push(DASH[role]) // role is guaranteed to be a key now
+  // Route by role (resolved via your DB RPCs in useAuth)
+  if (auth.isSenior.value)   return router.replace(DASH.senior)
+  if (auth.isBrgy.value)     return router.replace(DASH.brgy_staff)
+  if (auth.isOsca.value)     return router.replace(DASH.osca_staff)
+
+  // No recognized role
+  errorMsg.value = 'Your account has no assigned role yet.'
 }
 </script>
+

@@ -1,39 +1,23 @@
-import { supabase } from '../supabase/client'
-import { router } from '../router'
+// src/utils/auth.js
+import { router } from '@/router'
+import { useAuth } from '@/composables/useAuth'
 
+/**
+ * After a successful login, send the user to the right dashboard.
+ * Uses the unified auth composable (session + role from RPCs).
+ */
 export async function handleLoginRedirect() {
-  const {
-    data: { user },
-    error: userError
-  } = await supabase.auth.getUser()
+  const auth = useAuth()
+  await auth.init()
 
-  if (userError || !user) {
-    console.error('User not found or error fetching user:', userError)
-    return
+  if (!auth.isSignedIn.value) {
+    return router.push('/login')
   }
 
-  const { data: profile, error: profileError } = await supabase
-    .from('Users')
-    .select('role')
-    .eq('id', user.id)
-    .single()
+  if (auth.isOsca.value)   return router.push('/osca/dashboard')
+  if (auth.isBrgy.value)   return router.push('/barangay/dashboard')
+  if (auth.isSenior.value) return router.push('/senior/dashboard')
 
-  if (profileError || !profile) {
-    console.error('Role not found or error fetching role:', profileError)
-    return
-  }
-
-  switch (profile.role) {
-    case 'osca':
-      router.push('/osca/dashboard')
-      break
-    case 'barangay':
-      router.push('/barangay/dashboard')
-      break
-    case 'senior':
-      router.push('/senior/dashboard')
-      break
-    default:
-      console.warn('Unknown role:', profile.role)
-  }
+  // Fallback when no recognized role
+  return router.push('/')
 }
