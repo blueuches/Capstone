@@ -18,6 +18,7 @@ declare module '@/composables/useAuth' {
     isSenior: ComputedRef<boolean>
     isBrgy: ComputedRef<boolean>
     isOsca: ComputedRef<boolean>
+    isAdmin: ComputedRef<boolean>
 
     // actions
     init: () => Promise<void>

@@ -5,7 +5,8 @@ import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 
 import App from './App.vue'
-import router from './router'
+// @ts-ignore
+import router from './router/index.js'
 
 import { Quasar } from 'quasar'
 import 'quasar/dist/quasar.css'                            // Quasar core CSS
