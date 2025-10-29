@@ -1,0 +1,107 @@
+Folder PATH listing
+Volume serial number is 9CA0-216E
+C:\USERS\USER\DOWNLOADS\SENIOR-APP\SRC
+¦   App.vue
+¦   main.ts
+¦   shims.d.ts
+¦   
++---assets
+¦       base.css
+¦       logo.svg
+¦       main.css
+¦       
++---components
+¦   ¦   DynamicField.vue
+¦   ¦   HelloWorld.vue
+¦   ¦   SeniorHeader.vue
+¦   ¦   SeniorNav.vue
+¦   ¦   Sidebar.vue
+¦   ¦   SmartForm.vue
+¦   ¦   TheWelcome.vue
+¦   ¦   WelcomeItem.vue
+¦   ¦   
+¦   +---auth
+¦   +---icons
+¦   ¦       IconCommunity.vue
+¦   ¦       IconDocumentation.vue
+¦   ¦       IconEcosystem.vue
+¦   ¦       IconSupport.vue
+¦   ¦       IconTooling.vue
+¦   ¦       
+¦   +---osca
+¦   ¦       DocumentsPanel.vue
+¦   ¦       SeniorAnswersPanel.vue
+¦   ¦       StatusActions.vue
+¦   ¦       Timeline.vue
+¦   ¦       
+¦   +---senior
+¦   +---shared
+¦           Button.vue
+¦           
++---composables
+¦       useAuth.js
+¦       useSessionRole.ts
+¦       
++---lib
++---router
+¦       index.js
+¦       
++---stores
+¦       counter.ts
+¦       
++---supabase
+¦       client.js
+¦       
++---types
+¦       supabase-client.d.ts
+¦       useAuth.d.ts
+¦       
++---utils
+¦       auth.js
+¦       
++---views
+    ¦   AboutView.vue
+    ¦   AuthDebug.vue
+    ¦   HomeView.vue
+    ¦   Login.vue
+    ¦   NotAuthorized.vue
+    ¦   Signup.vue
+    ¦   SignupMembers.vue
+    ¦   Welcome.vue
+    ¦   
+    +---Admin
+    ¦       Dashboard.vue
+    ¦       FormBuilder.vue
+    ¦       Programs.vue
+    ¦       UserManagement.vue
+    ¦       
+    +---Barangay
+    ¦       Dashboard.vue
+    ¦       Messaging.vue
+    ¦       Notifications.vue
+    ¦       SeniorQueue.vue
+    ¦       
+    +---OSCA
+    ¦       ApplicationReview.vue
+    ¦       BarangayList.vue
+    ¦       Dashboard.vue
+    ¦       Messaging.vue
+    ¦       Review.vue
+    ¦       ReviewPage.vue
+    ¦       
+    +---Senior
+        ¦   Announcements.vue
+        ¦   Dashboard.vue
+        ¦   FormPage.vue
+        ¦   Notifications.vue
+        ¦   Profile.vue
+        ¦   
+        +---Features
+                Application.vue
+                ApplyRequest.vue
+                Help.vue
+                Location.vue
+                Programs.vue
+                Requirements.vue
+                VariantPicker.vue
+                

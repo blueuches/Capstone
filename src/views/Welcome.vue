@@ -124,7 +124,6 @@
 </template>
 
 <script setup>
-import router from '@/router'
 import { onMounted, onBeforeUnmount, ref, computed } from 'vue'
 
 const menuOpen = ref(false)

@@ -157,7 +157,7 @@ import { supabase } from '@/supabase/client'
 /* ---------- Props / Emits ---------- */
 type Mode = 'senior' | 'osca'
 const props = defineProps<{
-  programId: string | number
+  programId: number
   mode: Mode
   maxPerStep?: number
   readOnly?: boolean

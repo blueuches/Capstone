@@ -43,9 +43,9 @@
           class="border rounded-lg px-4 py-2.5 w-72 focus:ring-2 focus:ring-emerald-500 outline-none text-[1rem]"
         />
         <div class="flex items-center gap-4">
-          <button class="bg-emerald-600 text-white px-5 py-2.5 rounded-md hover:bg-emerald-700 shadow text-[1rem]">
+          <router-link to="/logout" class="bg-emerald-600 text-white px-5 py-2.5 rounded-md hover:bg-emerald-700 shadow text-[1rem]">
             Logout
-          </button>
+          </router-link>
         </div>
       </header>
 

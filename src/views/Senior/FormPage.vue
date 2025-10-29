@@ -1,23 +1,35 @@
-<!-- views/Senior/FormPage.vue -->
+<!-- src/views/Senior/FormPage.vue -->
 <template>
-  <SmartForm
-    :programId="programId"
-    mode="senior"
-    :maxPerStep="4"
-    @save="saveDraft"
-    @submit="submitForm"
-    @changed="autoSave"
-  />
-  <!-- mic button here -->
+
+    <SmartForm
+      v-if="ready"
+      :programId="programId!"
+      mode="senior"
+      :maxPerStep="4"
+      @save="saveDraft"
+      @submit="submitForm"
+      @changed="autoSave"
+    />
+    <p v-else class="text-gray-500">Loading form…</p>
+
 </template>
 
 <script setup lang="ts">
-import { useRoute } from 'vue-router'
+import { computed } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import SmartForm from '@/components/SmartForm.vue'
-const route = useRoute()
-const programId = route.params.programId as string
 
-function saveDraft({ values }: any) { /* upsert RequestAnswers filled_by=senior */ }
-function submitForm({ values }: any) { /* flip Requests.status='submitted' */ }
-function autoSave({ values }: any) { /* optional debounce */ }
+const route = useRoute()
+const router = useRouter()
+
+const programId = computed<number | null>(() => {
+  const n = Number(route.params.programId)
+  return Number.isFinite(n) ? n : null
+})
+const ready = computed(() => programId.value != null)
+
+// TODO: fill these in when you wire them to your RequestAnswers flow
+function saveDraft({ values }: any) {}
+function submitForm({ values }: any) {}
+function autoSave({ values }: any) {}
 </script>

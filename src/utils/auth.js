@@ -17,6 +17,7 @@ export async function handleLoginRedirect() {
   if (auth.isOsca.value)   return router.push('/osca/dashboard')
   if (auth.isBrgy.value)   return router.push('/barangay/dashboard')
   if (auth.isSenior.value) return router.push('/senior/dashboard')
+  if (auth.isAdmin.value) return router.push('/admin/dashboard')
 
   // Fallback when no recognized role
   return router.push('/')

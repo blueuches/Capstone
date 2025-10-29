@@ -27,7 +27,7 @@
         <div class="bg-white rounded-2xl border shadow p-4 overflow-hidden flex flex-col">
           <div class="flex-1 min-h-0 overflow-y-auto smart-embed">
             <SmartForm
-              :programId="programId"
+              :programId="Number(programId)"
               mode="osca"
               :maxPerStep="4"
               @save="saveOscaDraft"
@@ -75,7 +75,7 @@ import Timeline from '@/components/osca/Timeline.vue'
 const route = useRoute()
 const router = useRouter()
 
-const programId = route.params.programId as string
+const programId = Number(route.params.programId);
 const requestId = route.params.requestId as string | undefined
 const isPreview = computed(() => requestId === undefined)
 const sidebarCollapsed = ref(false)
