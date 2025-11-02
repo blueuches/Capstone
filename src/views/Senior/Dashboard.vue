@@ -161,7 +161,6 @@
       </section>
 
       <!-- Announcements -->
-      <!-- Announcements -->
       <section class="flex-1 flex flex-col min-h-0">
         <h2 class="text-sm font-semibold text-emerald-800 mb-2 flex-none">OSCA Announcements</h2>
 
@@ -198,7 +197,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { supabase } from '@/supabase/client'
 import { useAuth } from '@/composables/useAuth'
@@ -222,10 +221,7 @@ function useInlineAvatar() {
 
 /* hamburger */
 const sidebarOpen = ref(false)
-
-function toggleSidebar() {
-  sidebarOpen.value = !sidebarOpen.value
-}
+function toggleSidebar() { sidebarOpen.value = !sidebarOpen.value }
 
 /* Quick actions (3 per row) */
 const actions = [
@@ -241,14 +237,12 @@ const actions = [
 const micActive = ref(false)
 function toggleMic() {
   micActive.value = true
-  setTimeout(() => {
-    micActive.value = false
-  }, 3000)
+  setTimeout(() => { micActive.value = false }, 3000)
 }
 
 /* ===== Apply flow state ===== */
 const applyOpen = ref(false)
-const programs = ref([]) // [{ id, name }]
+const programs = ref([])
 const loading = ref(false)
 const loadError = ref(null)
 const search = ref('')
@@ -257,9 +251,7 @@ function openApply() {
   applyOpen.value = true
   if (!programs.value.length) fetchPrograms()
 }
-function closeApply() {
-  applyOpen.value = false
-}
+function closeApply() { applyOpen.value = false }
 
 async function fetchPrograms() {
   loading.value = true
@@ -267,7 +259,7 @@ async function fetchPrograms() {
   try {
     const { data, error } = await supabase
       .from('Programs')
-      .select('id, name') // name only
+      .select('id, name')
       .order('name', { ascending: true })
     if (error) throw error
     programs.value = data || []
@@ -283,15 +275,10 @@ async function fetchPrograms() {
 const filteredPrograms = computed(() => {
   const q = (search.value || '').toLowerCase()
   if (!q) return programs.value
-  return programs.value.filter((p) =>
-    String(p.name || '')
-      .toLowerCase()
-      .includes(q),
-  )
+  return programs.value.filter(p => String(p.name || '').toLowerCase().includes(q))
 })
 
 async function goToApply(programId) {
-  // Check if program has variants
   const { data: variants, error } = await supabase
     .from('ProgramVariants')
     .select('id')
@@ -307,33 +294,99 @@ async function goToApply(programId) {
   }
 
   if (variants && variants.length > 0) {
-    // If variants exist, go to variant picker first
     router.push({ name: 'variant-picker', params: { programId } })
   } else {
-    // Otherwise, go straight to application page
     router.push({ name: 'apply-request', params: { programId } })
   }
 }
 
+/* ===== Real OSCA Announcements for this senior (via Notifications join) ===== */
+const announcements = ref([])
+let notifChannel = null
 
-/* Announcements list */
-const announcements = [
-  {
-    title: 'Vaccination Drive',
-    subtitle: 'Free flu shots at City Hall tomorrow',
-    meta: 'April 10, 2025 • 9AM–3PM',
-    to: '/senior/announcements/1',
-  },
-  {
-    title: 'Pension Distribution',
-    subtitle: 'Schedule for this month’s pension',
-    meta: 'April 15, 2025 • Local treasury',
-    to: '/senior/announcements/2',
-  },
-]
+function summarize(text = '', n = 120) {
+  const t = String(text).replace(/\s+/g, ' ').trim()
+  return t.length > n ? t.slice(0, n - 1) + '…' : t
+}
+function fmtDate(iso) {
+  try {
+    return new Date(iso || Date.now()).toLocaleString(undefined, {
+      year: 'numeric', month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit'
+    })
+  } catch { return '' }
+}
+
+async function loadAnnouncements() {
+  if (!user?.value?.id) return
+  const { data, error } = await supabase
+    .from('Notifications')
+    .select(`
+      id,
+      created_at,
+      Announcements (
+        id,
+        title,
+        content,
+        created_at
+      )
+    `)
+    .eq('user_id', user.value.id)
+    .order('created_at', { ascending: false })
+    .limit(100)
+
+  if (error) {
+    console.error('loadAnnouncements error:', error)
+    announcements.value = []
+    return
+  }
+
+  announcements.value = (data ?? []).map(row => {
+    const ann = row.Announcements ?? {}
+    return {
+      title: ann.title || 'Announcement',
+      subtitle: summarize(ann.content || ''),
+      meta: fmtDate(ann.created_at || row.created_at),
+      to: `/senior/announcements/${ann.id}`,
+    }
+  })
+}
+
+function subscribeAnnouncements() {
+  if (!user?.value?.id) return
+  notifChannel = supabase
+    .channel(`notif-senior-${user.value.id}`)
+    .on(
+      'postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'Notifications', filter: `user_id=eq.${user.value.id}` },
+      async (payload) => {
+        const { data, error } = await supabase
+          .from('Notifications')
+          .select(`
+            id,
+            created_at,
+            Announcements ( id, title, content, created_at )
+          `)
+          .eq('id', payload.new.id)
+          .single()
+        if (error || !data) return
+        const ann = data.Announcements ?? {}
+        announcements.value.unshift({
+          title: ann.title || 'Announcement',
+          subtitle: summarize(ann.content || ''),
+          meta: fmtDate(ann.created_at || data.created_at),
+          to: `/senior/announcements/${ann.id}`,
+        })
+      }
+    )
+    .subscribe()
+}
+
+onMounted(() => { loadAnnouncements(); subscribeAnnouncements() })
+onBeforeUnmount(() => { if (notifChannel) supabase.removeChannel(notifChannel) })
 
 const notifCount = ref(2)
 </script>
+
 
 <style scoped>
 /* Make long text nicely clipped without extra height */

@@ -98,6 +98,7 @@ const routes = [
   { path: '/senior/form/:programId', name: 'form-page', component: () => import('@/views/Senior/FormPage.vue'), props: true, meta: { requiresAuth: true, roles: ['senior'] } },
   { path: '/senior/notifications', component: () => import('@/views/Senior/Notifications.vue'), meta: { requiresAuth: true, roles: ['senior'] } },
   { path: '/senior/profile', component: () => import('@/views/Senior/Profile.vue'), meta: { requiresAuth: true, roles: ['senior'] } },
+  { path: '/senior/profile/edit', component: () => import('@/views/Senior/Features/ProfileEdit.vue'), meta: { requiresAuth: true, roles: ['senior'] } },
   { path: '/senior/application', component: () => import('@/views/Senior/Features/Application.vue'), meta: { requiresAuth: true, roles: ['senior'] } },
   { path: '/senior/programs', component: () => import('@/views/Senior/Features/Programs.vue'), meta: { requiresAuth: true, roles: ['senior'] } },
   { path: '/senior/requirements', component: () => import('@/views/Senior/Features/Requirements.vue'), meta: { requiresAuth: true, roles: ['senior'] } },
@@ -105,6 +106,7 @@ const routes = [
   { path: '/senior/help', component: () => import('@/views/Senior/Features/Help.vue'), meta: { requiresAuth: true, roles: ['senior'] } },
   { path: '/senior/apply/:programId/:variantId?', name: 'apply-request', component: () => import('@/views/Senior/Features/ApplyRequest.vue') },
   { path: '/senior/apply/:programId', name: 'variant-picker', component: () => import('@/views/Senior/Features/VariantPicker.vue') },
+  { path: '/senior/testvoice', component: () => import('@/views/Test.vue') }, //sample test
 
   // OSCA
   { path: '/osca/dashboard', component: () => import('@/views/OSCA/Dashboard.vue'), meta: { requiresAuth: true, roles: ['osca_staff'] } },

@@ -3,6 +3,7 @@ Volume serial number is 9CA0-216E
 C:\USERS\USER\DOWNLOADS\SENIOR-APP\SRC
 ¦   App.vue
 ¦   main.ts
+¦   shims-vue.d.ts
 ¦   shims.d.ts
 ¦   
 +---assets
@@ -55,6 +56,7 @@ C:\USERS\USER\DOWNLOADS\SENIOR-APP\SRC
 +---types
 ¦       supabase-client.d.ts
 ¦       useAuth.d.ts
+¦       utils-auth.d.ts
 ¦       
 +---utils
 ¦       auth.js

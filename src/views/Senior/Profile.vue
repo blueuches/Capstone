@@ -113,30 +113,12 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref } from 'vue'
+import { reactive, ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { supabase } from '@/supabase/client'
+import { useAuth } from '@/composables/useAuth'
 
-interface ProfileData {
-  fullName: string
-  milestone: string
-  age: number
-  oscaId: string
-  rrn: string
-  dob: string
-  sex: string
-  civilStatus: string
-  citizenship: string
-  address: string
-  contact: string
-  email: string
-  emergencyContact: string
-  emergencyNumber: string
-  benefits: string[]
-  photoUrl?: string
-}
-
-const props = defineProps<{ profileData?: Partial<ProfileData> }>()
-
+const { user } = useAuth()
 const router = useRouter()
 
 const INLINE_PLACEHOLDER =
@@ -147,33 +129,69 @@ const INLINE_PLACEHOLDER =
     <rect x="60" y="135" width="80" height="40" rx="12" fill="#10b981" fill-opacity="0.18"/>
   </svg>`)
 
-const profile = reactive<ProfileData>({
-  fullName: 'Juan C. Dela Cruz',
-  milestone: '—',
-  age: 70,
-  oscaId: 'SC-12345678',
-  rrn: '—',
-  dob: 'January 15, 1955',
-  sex: 'Male',
-  civilStatus: 'Married',
-  citizenship: 'Filipino',
-  address: 'P-7 DeOro',
-  contact: '0946-123-9867',
-  email: 'juan.cruz@gmail.com',
-  emergencyContact: '',
-  emergencyNumber: '',
-  benefits: [],
-  photoUrl: INLINE_PLACEHOLDER,
-  ...props.profileData,
+const state = reactive({
+  loading: true,
+  row: null as any
 })
 
-const photoUrl = ref<string>(profile.photoUrl || INLINE_PLACEHOLDER)
+const photoUrl = ref<string>(INLINE_PLACEHOLDER)
 function useInlinePlaceholder() { photoUrl.value = INLINE_PLACEHOLDER }
 
+const profile = computed(() => {
+  const r = state.row ?? {}
+  const fullName = r.full_name ?? '—'
+  const oscaId   = r.osca_id ?? '—'
+  const rrn      = r.rrn ?? '—'
+  const dobStr   = r.birthdate ? new Date(r.birthdate).toLocaleDateString() : '—'
+  const age      = r.age ?? '—'
+  const sex      = r.sex ? (r.sex as string).charAt(0).toUpperCase() + (r.sex as string).slice(1) : '—'
+  const address  = [r.house_no, r.street].filter(Boolean).join(' ') || '—'
+  const city     = r.city ?? '—'
+  const phone    = r.phone ?? '—'
+  const email    = user.value?.email ?? '—'
+  return {
+    fullName, oscaId, rrn, dob: dobStr, age, sex,
+    civilStatus: '—', // not in schema yet
+    address, city, contact: phone, email
+  }
+})
+
+onMounted(async () => {
+  if (!user.value) return
+  // 1) pull the merged profile
+  const { data, error } = await supabase
+    .from('SeniorProfiles_v1')
+    .select('*')
+    .eq('user_id', user.value.id)
+    .maybeSingle()
+
+  if (!error && data) {
+    state.row = data
+    // 2) resolve avatar: if stored path in Users.photo_url, get a signed URL
+    if (data.photo_url) {
+      // if you used a private bucket:
+      const { data: signed, error: signErr } = await supabase
+        .storage.from('avatars')
+        .createSignedUrl(data.photo_url.replace(/^avatars\//,''), 60 * 10) // 10 min
+      photoUrl.value = (!signErr && signed?.signedUrl) ? signed.signedUrl : INLINE_PLACEHOLDER
+    } else {
+      photoUrl.value = INLINE_PLACEHOLDER
+    }
+  } else {
+    // still render placeholder labels with blanks
+    state.row = {}
+    photoUrl.value = INLINE_PLACEHOLDER
+  }
+
+  state.loading = false
+})
+
 function onEdit() {
-  // go to your edit page
   try {
-    router.push({ name: 'SeniorEdit', query: { oscaId: profile.oscaId } })
+    // pass oscaId if present
+    const oscaId = state.row?.osca_id
+    if (oscaId) router.push({ name: 'SeniorEdit', query: { oscaId } })
+    else router.push('/senior/profile/edit')
   } catch {
     router.push('/senior/profile/edit')
   }
