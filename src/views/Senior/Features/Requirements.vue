@@ -23,15 +23,15 @@
 
     <!-- Main Content -->
     <main class="flex-1 overflow-y-auto p-4 pb-[88px]">
-        <nav class="text-sm text-emerald-700 mb-4" aria-label="Breadcrumb">
-    <ol class="list-reset flex items-center space-x-2">
-        <li>
-        <a href="/senior/dashboard" class="hover:underline font-medium">Dashboard</a>
-        </li>
-        <li class="text-emerald-500">›</li>
-        <li class="font-semibold text-emerald-700">My Requirements</li>
-    </ol>
-    </nav>
+      <nav class="text-sm text-emerald-700 mb-4" aria-label="Breadcrumb">
+        <ol class="list-reset flex items-center space-x-2">
+          <li>
+            <a href="/senior/dashboard" class="hover:underline font-medium">Dashboard</a>
+          </li>
+          <li class="text-emerald-500">›</li>
+          <li class="font-semibold text-emerald-700">My Requirements</li>
+        </ol>
+      </nav>
 
       <div class="space-y-4">
         <div
@@ -49,7 +49,7 @@
               <p class="text-xs text-gray-500 mt-0.5">{{ program.status }}</p>
             </div>
             <svg
-              :class="{'rotate-180': expanded === program.id}"
+              :class="{ 'rotate-180': expanded === program.id }"
               class="w-5 h-5 text-emerald-700 transition-transform"
               fill="none"
               stroke="currentColor"
@@ -107,9 +107,7 @@
     </main>
 
     <!-- Bottom Tabbar -->
-    <nav
-      class="fixed bottom-0 inset-x-0 bg-white/95 border-t border-emerald-100 py-2 flex justify-around backdrop-blur"
-    >
+    <nav class="fixed bottom-0 inset-x-0 bg-white/95 border-t border-emerald-100 py-2 flex justify-around backdrop-blur">
       <router-link
         to="/senior/notifications"
         class="w-12 h-12 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center"
@@ -148,47 +146,14 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { ref, onMounted } from "vue";
+import { supabase } from "@/supabase/client";
 
+/* UI state */
 const sidebarOpen = ref(false);
 const expanded = ref(null);
 
-const programs = ref([
-  {
-    id: 1,
-    name: "Social Pension Program",
-    status: "Under Review",
-    documents: [
-      { name: "Application Form", status: "completed", url: "/files/social-pension-form.pdf" },
-      { name: "OSCA ID Photocopy", status: "completed", url: "/files/id.pdf" },
-      { name: "Barangay Certificate", status: "draft", url: "" },
-    ],
-  },
-  {
-    id: 2,
-    name: "Medical Assistance Program",
-    status: "Approved",
-    documents: [
-      { name: "Doctor’s Certificate", status: "completed", url: "/files/doc-cert.pdf" },
-      { name: "Prescription Copy", status: "completed", url: "/files/prescription.pdf" },
-    ],
-  },
-]);
-
-function toggleProgram(id) {
-  expanded.value = expanded.value === id ? null : id;
-}
-
-function viewDocument(url) {
-  window.open(url, "_blank");
-}
-
-function printDocument(url) {
-  const printWindow = window.open(url, "_blank");
-  printWindow?.print();
-}
-
-// Avatar fallback
+/* Avatar */
 const avatarUrl = ref("https://via.placeholder.com/60");
 function useInlineAvatar() {
   avatarUrl.value =
@@ -199,6 +164,165 @@ function useInlineAvatar() {
       <rect x='14' y='38' width='32' height='14' rx='7' fill='#10b981' fill-opacity='0.35'/>
     </svg>`);
 }
+
+/* Data */
+const programs = ref([]);
+
+/* UI helpers */
+function toggleProgram(id) {
+  expanded.value = expanded.value === id ? null : id;
+}
+function viewDocument(url) {
+  if (!url) return;
+  window.open(url, "_blank");
+}
+function printDocument(url) {
+  if (!url) return;
+  const w = window.open(url, "_blank");
+  w?.print?.();
+}
+
+/* Mappers */
+function mapStatus(status) {
+  switch ((status || "").toLowerCase()) {
+    case "approved": return "Approved";
+    case "reviewed": return "Under Review";
+    case "rejected": return "Rejected";
+    case "submitted": return "Submitted";
+    default: return "Draft";
+  }
+}
+function prettifyDocName(s) {
+  if (!s) return "Uploaded Document";
+  return String(s).replace(/[_-]+/g, " ").replace(/\b\w/g, m => m.toUpperCase());
+}
+
+/* Storage URL helper */
+async function resolveFileUrl(filePath) {
+  if (!filePath) return "";
+  if (/^https?:\/\//i.test(filePath)) return filePath;
+
+  try {
+    if (filePath.startsWith("requirements/")) {
+      return supabase.storage.from("requirements").getPublicUrl(filePath).data.publicUrl;
+    }
+    if (filePath.startsWith("requests/")) {
+      const { data } = await supabase.storage.from("requests").createSignedUrl(filePath, 600);
+      return data?.signedUrl || "";
+    }
+    if (filePath.startsWith("documents/")) {
+      const { data } = await supabase.storage.from("documents").createSignedUrl(filePath, 600);
+      return data?.signedUrl || "";
+    }
+  } catch (_) {}
+
+  try {
+    const { data } = await supabase.storage.from("requirements").createSignedUrl(filePath, 600);
+    if (data?.signedUrl) return data.signedUrl;
+  } catch (_) {}
+  try {
+    const { data } = await supabase.storage.from("documents").createSignedUrl(filePath, 600);
+    if (data?.signedUrl) return data.signedUrl;
+  } catch (_) {}
+  try {
+    const { data } = await supabase.storage.from("requests").createSignedUrl(filePath, 600);
+    if (data?.signedUrl) return data.signedUrl;
+  } catch (_) {}
+
+  return "";
+}
+
+/* Data load */
+onMounted(async () => {
+  try {
+    // 1) who am I
+    const { data: authRes, error: authErr } = await supabase.auth.getUser();
+    if (authErr || !authRes?.user) { programs.value = []; return; }
+    const uid = authRes.user.id;
+
+    // 2) get my senior_id
+    const { data: seniorRow, error: seniorErr } = await supabase
+      .from("senior_citizens")              // ✅ use the view
+      .select("id")
+      .eq("user_id", uid)
+      .maybeSingle();
+    if (seniorErr || !seniorRow?.id) { programs.value = []; return; }
+    const seniorId = seniorRow.id;
+
+    // 3) my requests (via view; no server-side order yet)
+    const { data: reqs, error: reqErr } = await supabase
+      .from("requests")                     // ✅ use the view (not "Requests")
+      .select("id, status, program_id, created_at")
+      .eq("senior_id", seniorId);
+    if (reqErr || !reqs?.length) { programs.value = []; return; }
+
+    // client-side order desc by created_at
+    reqs.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+    // 4) programs lookup via view
+    const programIds = Array.from(new Set(reqs.map(r => r.program_id))).filter(Boolean);
+    let progMap = new Map();
+    if (programIds.length) {
+      const { data: progs, error: progErr } = await supabase
+        .from("programs")                   // ✅ use the view (not "Programs")
+        .select("id, name")
+        .in("id", programIds);
+      if (!progErr && progs) progMap = new Map(progs.map(p => [p.id, p.name]));
+    }
+
+// 5) Documents for each request — per-request fetch to avoid .in/.or issues
+const reqIds = reqs.map(r => r.id).filter(Boolean);
+
+let allDocs = [];
+for (const rid of reqIds) {
+  const { data, error: docErr } = await supabase
+    .from('request_documents') // lowercase view
+    .select('request_id, kind, file_path') // ⚠️ no 'label' — view doesn’t have it
+    .eq('request_id', rid);
+
+  if (docErr) {
+    console.warn('Docs load error for request', rid, docErr);
+    continue;
+  }
+  if (data?.length) allDocs = allDocs.concat(data);
+}
+
+// group docs by request
+const docsByReq = new Map();
+(allDocs || []).forEach(d => {
+  const arr = docsByReq.get(d.request_id) || [];
+  arr.push(d);
+  docsByReq.set(d.request_id, arr);
+});
+
+// 6) Build UI list (use kind for the display name)
+const ui = [];
+for (const r of reqs) {
+  const rawDocs = docsByReq.get(r.id) || [];
+  const documents = [];
+  for (const d of rawDocs) {
+    const url = await resolveFileUrl(d.file_path);
+    documents.push({
+      name: prettifyDocName(d.kind || 'Uploaded Document'), // ✅ no label
+      status: url ? 'completed' : 'draft',
+      url
+    });
+  }
+  ui.push({
+    id: r.id,
+    name: progMap.get(r.program_id) || 'Program',
+    status: mapStatus(r.status),
+    documents
+  });
+}
+programs.value = ui;
+
+  } catch (e) {
+    console.error("Requirements load failed:", e);
+    programs.value = [];
+  }
+});
+
 </script>
 
 <style scoped>
