@@ -50,9 +50,10 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 
-const avatarUrl = ref('https://via.placeholder.com/60')
+const avatarUrl = ref('')
+
 function useInlineAvatar() {
   avatarUrl.value =
     'data:image/svg+xml;utf8,' +
@@ -62,4 +63,7 @@ function useInlineAvatar() {
       <rect x="14" y="38" width="32" height="14" rx="7" fill="#10b981" fill-opacity="0.35"/>
     </svg>`)
 }
+
+onMounted(() => useInlineAvatar())
+
 </script>

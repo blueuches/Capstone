@@ -148,6 +148,21 @@
       </div>
     </div>
 
+    <div v-else-if="normalizedType === 'number'">
+      <input
+        type="number"
+        class="fancy-input"
+        v-model.number="model"
+        :placeholder="field.placeholder"
+        :required="field.required"
+        :min="field.options?.min ?? null"
+        :max="field.options?.max ?? null"
+        :step="field.options?.step ?? '1'"
+        :readonly="!!field.options?.readonly"
+        :disabled="!!field.options?.disabled"
+      />
+    </div>
+
     <!-- FALLBACK -->
     <div v-else class="text-gray-400 text-sm italic">
       Unsupported field type: {{ field.type }}

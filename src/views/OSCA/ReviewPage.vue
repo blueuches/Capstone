@@ -48,15 +48,18 @@
               :requestId="requestId"
               :mock="isPreview"
             />
-            <StatusActions
-              :requestId="requestId"
-              :mock="isPreview"
-              @set-status="setStatus"
-            />
-            <Timeline :requestId="requestId" :mock="isPreview" />
+
           </div>
         </aside>
+
       </section>
+
+            <Remarks
+        v-model="remarksOpen"
+        :requestId="requestId ? Number(requestId) : undefined"
+        @sent="onRemarksSent"
+      />
+
     </main>
   </div>
 </template>
@@ -64,13 +67,13 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import Remarks from '@/components/Remarks.vue'
 
 import Sidebar from '@/components/Sidebar.vue'
 import SmartForm from '@/components/SmartForm.vue'
-import DocumentsPanel from '@/components/osca/DocumentsPanel.vue'
-import SeniorAnswersPanel from '@/components/osca/SeniorAnswersPanel.vue'
-import StatusActions from '@/components/osca/StatusActions.vue'
-import Timeline from '@/components/osca/Timeline.vue'
+import DocumentsPanel from '@/components/DocumentsPanel.vue'
+import SeniorAnswersPanel from '@/components/SeniorAnswersPanel.vue'
+import StatusActions from '@/components/StatusActions.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -83,7 +86,6 @@ const modal = ref<{ open: boolean }>({ open: false })
 
 function saveOscaDraft(_: any) {}
 function completeOscaSection(_: any) {}
-function askForMoreDocs(_: string) {}
 function setStatus(_: 'verified' | 'approved' | 'rejected') {}
 
 const FALLBACK_PROGRAM_ID = 4
@@ -96,6 +98,17 @@ function goToReview(app: any) {
   router.push({ name: 'OscaReview', params: { programId, requestId } })
 
   modal.value.open = false
+}
+
+const remarksOpen = ref(false)
+
+function askForMoreDocs(_: string) {
+  remarksOpen.value = true
+}
+
+function onRemarksSent(_payload: { announcementId: number; targetUserId: string }) {
+  // optional: toast, refresh notifications count, etc.
+  // console.log('Sent', _payload)
 }
 </script>
 

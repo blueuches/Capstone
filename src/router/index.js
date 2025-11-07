@@ -7,6 +7,7 @@ import { supabase } from '@/supabase/client'
 import Welcome from '@/views/Welcome.vue'
 import Login from '@/views/Login.vue'
 import Signup from '@/views/Signup.vue'
+import OscaReview from '@/views/OSCA/ReviewPage.vue' 
 
 // ──────────────────────────────
 // Utility: robust role fetch (RPC-first)
@@ -115,6 +116,11 @@ const routes = [
   { path: '/osca/applications', component: () => import('@/views/OSCA/ApplicationReview.vue'), meta: { requiresAuth: true, roles: ['osca_staff'] } },
   { path: '/osca/review', component: () => import('@/views/OSCA/Review.vue'), meta: { requiresAuth: true, roles: ['osca_staff'] } },
   { path: '/osca/review/:programId/:requestId?', name: 'OscaReview', component: () => import('@/views/OSCA/ReviewPage.vue'), props: true, meta: { requiresAuth: true, roles: ['osca_staff'] } },
+      {path: '/osca/review/:programId/:requestId?',
+      name: 'OscaReview',
+      component: OscaReview,                           
+      props: true,
+      meta: { requiresAuth: true, roles: ['osca_staff'] }},
 
   // Barangay
   { path: '/barangay/dashboard', component: () => import('@/views/Barangay/Dashboard.vue'), meta: { requiresAuth: true, roles: ['brgy_staff'] } },
@@ -128,7 +134,7 @@ const routes = [
 
 export const router = createRouter({
   history: createWebHistory(),
-  routes,
+    routes,
 })
 
 // ──────────────────────────────

@@ -157,7 +157,7 @@ import { supabase } from '@/supabase/client'
 /* ---------- Props / Emits ---------- */
 type Mode = 'senior' | 'osca'
 const props = defineProps<{
-  programId: number
+  programId: number 
   mode: Mode
   maxPerStep?: number
   readOnly?: boolean
@@ -215,13 +215,32 @@ const MAX_FIELDS_PER_STEP = computed(() => props.maxPerStep ?? 4)
 
 /* ---------- Helpers ---------- */
 function normalizeSection(raw: any): SectionNorm {
-  const s = String(raw ?? '')
-    .trim()
-    .toLowerCase()
+  const s = String(raw ?? '').trim().toLowerCase()
   if (['osca', 'osca_section', 'osc', 'staff_osca'].includes(s)) return 'osca'
   if (['senior', 'senior_section', 'sr', 'sc'].includes(s)) return 'senior'
   return 'other'
 }
+function norm(s?: string | null) {
+  return (s || '').trim().toLowerCase()
+}
+function isChoiceType(t = '') {
+  const k = t.toLowerCase()
+  return k === 'dropdown' || k === 'select' || k === 'radio' || k === 'checkbox'
+}
+function computeAge(dob: Date | string): number | null {
+  if (!dob) return null
+  const d = typeof dob === 'string' ? new Date(dob) : dob
+  if (isNaN(+d)) return null
+  const today = new Date()
+  let age = today.getFullYear() - d.getFullYear()
+  const m = today.getMonth() - d.getMonth()
+  if (m < 0 || (m === 0 && today.getDate() < d.getDate())) age--
+  return age >= 0 ? age : null
+}
+
+/* Will hold the IDs we detect from loaded fields */
+const dobFieldId = ref<number | null>(null)
+const ageFieldId = ref<number | null>(null)
 
 /* ---------- Data Load ---------- */
 async function loadForm() {
@@ -256,11 +275,46 @@ async function loadForm() {
       return
     }
 
-    formFields.value = (fields || []).map((f: any) => ({
-      ...f,
-      section_norm: normalizeSection(f.section),
-      options: Array.isArray(f.options) ? f.options : f.options ? Object.values(f.options) : [],
-    }))
+    // Keep options as OBJECT for non-choice types (e.g., number/date config)
+    formFields.value = (fields || []).map((f: any) => {
+      const t = (f.type || '').toLowerCase()
+      const opts = isChoiceType(t)
+        ? (Array.isArray(f.options)
+            ? f.options
+            : f.options
+              ? Object.values(f.options)
+              : [])
+        : (f.options ?? null)
+      return {
+        ...f,
+        section_norm: normalizeSection(f.section),
+        options: opts,
+      } as Field
+    })
+
+    // Find DOB & Age fields by label (fallback to regex if labels differ)
+    const byExact = (txt: string) =>
+      formFields.value.find((ff) => norm(ff.label) === norm(txt))
+
+    const dobField =
+      byExact('Date of Birth') ||
+      formFields.value.find((ff) => /(^|\b)(dob|birth|birthdate)(\b|$)/i.test(ff.label))
+
+    const ageField =
+      byExact('Age') ||
+      formFields.value.find((ff) => norm(ff.label) === 'age')
+
+    dobFieldId.value = dobField?.id ?? null
+    ageFieldId.value = ageField?.id ?? null
+
+    // Make Age read-only in UI (recommended so users don't fight the auto value)
+    if (ageField) {
+      if (!ageField.options || typeof ageField.options !== 'object') {
+        ageField.options = { readonly: true }
+      } else {
+        ageField.options.readonly = true
+      }
+    }
   } catch (e) {
     console.error(e)
     errorMessage.value = 'Failed to load form data.'
@@ -338,12 +392,28 @@ function confirmModal() {
 }
 
 /* ---------- Reactions ---------- */
+// rebuild steps whenever inputs change
 watch([formFields, isOsca, isSenior, MAX_FIELDS_PER_STEP], () => buildSteps(formFields.value), {
   immediate: true,
 })
 
 // emit 'changed' whenever any field value changes
 watch(formValues, (v) => emit('changed', { values: v }), { deep: true })
+
+// when DOB changes, recompute Age and set it
+watch(
+  () => (dobFieldId.value ? formValues.value[dobFieldId.value] : null),
+  (dobVal) => {
+    if (!ageFieldId.value) return
+    const age = computeAge(dobVal)
+    if (age != null) {
+      formValues.value[ageFieldId.value] = age
+    } else {
+      delete formValues.value[ageFieldId.value]
+    }
+  },
+  { immediate: true }
+)
 
 /* ---------- Mount ---------- */
 onMounted(async () => {
