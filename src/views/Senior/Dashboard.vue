@@ -171,12 +171,12 @@
             :key="i"
             class="bg-white rounded-xl ring-1 ring-emerald-100 shadow-sm p-3 mb-2.5"
           >
-            <p
+            <router-link
               :to="a.to"
               class="text-emerald-700 font-semibold text-[15px] leading-tight hover:underline line-clamp-1"
             >
               {{ a.title }}
-            </p>
+            </router-link>
             <p class="text-[13px] text-gray-600 mt-0.5 line-clamp-2">
               {{ a.subtitle }}
             </p>

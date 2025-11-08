@@ -11,6 +11,7 @@
           class="relative w-12 h-12 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center"
           aria-label="Notifications"
         >
+          <!-- bell -->
           <svg viewBox="0 0 24 24" class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M6 8a6 6 0 1 1 12 0c0 7 3 5 3 9H3c0-4 3-2 3-9"/><path d="M10 21a2 2 0 0 0 4 0"/>
           </svg>
@@ -54,8 +55,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-const notifCount = ref(2)
+import { computed, ref } from 'vue'
+import { useNotifications } from '@/composables/useNotifications'
+
+/** Live unread count from Supabase (updates in real time) */
+const { unreadCount } = useNotifications(100)
+const notifCount = computed(() => unreadCount.value)
+
+/** Mic UI state (unchanged) */
 const micActive = ref(false)
 </script>
 

@@ -166,6 +166,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'save', payload: { formId: number | null; values: Record<number, any>; mode: Mode }): void
   (e: 'submit', payload: { formId: number | null; values: Record<number, any>; mode: Mode }): void
+    (e: 'form-submit', payload: { formId: number | null; values: Record<number, any>; mode: Mode }): void
   (e: 'changed', payload: { values: Record<number, any> }): void
   (e: 'mic'): void
 }>()
@@ -379,7 +380,9 @@ function prevStep() {
 
 /* ---------- Submit / Draft ---------- */
 function onSubmit() {
-  emit('submit', { formId: formId.value, values: formValues.value, mode: props.mode })
+  const payload = { formId: formId.value, values: formValues.value, mode: props.mode }
+  emit('submit', payload)        // senior side continues to use this
+  emit('form-submit', payload)   // OSCA page will listen to this to avoid any collisions
 }
 function saveAsDraft() {
   emit('save', { formId: formId.value, values: formValues.value, mode: props.mode })
