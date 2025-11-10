@@ -16,8 +16,9 @@
           </svg>
         </button>
         <div class="flex items-center gap-3">
-          <h1 class="text-2xl font-extrabold text-emerald-700 tracking-tight">Barangay Ampayon</h1>
-          <span class="hidden sm:inline text-[11px] px-2 py-1 rounded-full bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200">Design-only</span>
+          <h1 class="text-2xl font-extrabold text-emerald-700 tracking-tight">
+            Barangay {{ loading ? 'Loading…' : (barangayName || 'Barangay') }}
+          </h1>          <span class="hidden sm:inline text-[11px] px-2 py-1 rounded-full bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200">Design-only</span>
         </div>
       </div>
 
@@ -158,9 +159,11 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import Sidebar from '@/components/Sidebar.vue'
+import { supabase } from '@/supabase/client'
+import { useBarangayContext } from '@/composables/useBarangayContext'
 
 const sidebarOpen = ref(false)
 const route = useRoute()
@@ -171,6 +174,53 @@ const navActive = (path) => {
   return isActive
     ? 'bg-emerald-50 text-emerald-900 font-extrabold relative before:content-[\'\'] before:absolute before:-left-1 before:h-6 before:w-1 before:rounded-full before:bg-emerald-500'
     : ''
+}
+
+const stats = ref({ seniors: 0, validatedFromSubmitted: 0, currentApplicants: 0 })
+const { loading, orgId, barangayId, barangayName, fetchContext } = useBarangayContext()
+
+onMounted(async () => {
+  // 1) Resolve barangay + org context
+  const ctx = await fetchContext()
+
+  // 2) Load KPIs scoped to barangay/org
+  await Promise.all([
+    loadSeniorsCount(),           // by barangay_id
+    loadValidatedFromSubmitted(), // by orgId & status
+    loadCurrentApplicants(),      // by orgId & status
+  ])
+})
+
+// Seniors that belong to this barangay
+async function loadSeniorsCount() {
+  if (!barangayId.value) return
+  const { count } = await supabase
+    .from('SeniorCitizens')
+    .select('id', { count: 'exact', head: true })
+    .eq('barangay_id', barangayId.value)
+  stats.value.seniors = count || 0
+}
+
+// Requests validated (example: status 'approved') from those submitted by this org
+async function loadValidatedFromSubmitted() {
+  if (!orgId.value) return
+  const { count } = await supabase
+    .from('Requests')
+    .select('id', { count: 'exact', head: true })
+    .eq('organization_id', orgId.value)
+    .eq('status', 'approved')
+  stats.value.validatedFromSubmitted = count || 0
+}
+
+// Requests currently awaiting OSCA action (example: 'submitted'/'in_review')
+async function loadCurrentApplicants() {
+  if (!orgId.value) return
+  const { count } = await supabase
+    .from('Requests')
+    .select('id', { count: 'exact', head: true })
+    .eq('organization_id', orgId.value)
+    .in('status', ['submitted', 'in_review'])
+  stats.value.currentApplicants = count || 0
 }
 </script>
 

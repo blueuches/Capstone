@@ -121,6 +121,7 @@ const routes = [
       component: OscaReview,                           
       props: true,
       meta: { requiresAuth: true, roles: ['osca_staff'] }},
+        { path: '/osca/notifications', component: () => import('@/views/OSCA/Notifications.vue'), meta: { requiresAuth: true, roles: ['osca_staff'] } },
 
   // Barangay
   { path: '/barangay/dashboard', component: () => import('@/views/Barangay/Dashboard.vue'), meta: { requiresAuth: true, roles: ['brgy_staff'] } },

@@ -12,8 +12,13 @@ C:\USERS\USER\DOWNLOADS\SENIOR-APP\SRC
 ¦       main.css
 ¦       
 +---components
+¦   ¦   DocumentsPanel.vue
 ¦   ¦   DynamicField.vue
+¦   ¦   FilePreviewModal.vue
 ¦   ¦   HelloWorld.vue
+¦   ¦   MicButton.vue
+¦   ¦   Remarks.vue
+¦   ¦   SeniorAnswersPanel.vue
 ¦   ¦   SeniorHeader.vue
 ¦   ¦   SeniorNav.vue
 ¦   ¦   Sidebar.vue
@@ -41,9 +46,13 @@ C:\USERS\USER\DOWNLOADS\SENIOR-APP\SRC
 ¦           
 +---composables
 ¦       useAuth.js
+¦       useNotifications.ts
 ¦       useSessionRole.ts
 ¦       
 +---lib
++---mapping
+¦       oscaIdForm.ts
+¦       
 +---router
 ¦       index.js
 ¦       
@@ -59,6 +68,7 @@ C:\USERS\USER\DOWNLOADS\SENIOR-APP\SRC
 ¦       utils-auth.d.ts
 ¦       
 +---utils
+¦       answers.ts
 ¦       auth.js
 ¦       
 +---views
@@ -69,6 +79,7 @@ C:\USERS\USER\DOWNLOADS\SENIOR-APP\SRC
     ¦   NotAuthorized.vue
     ¦   Signup.vue
     ¦   SignupMembers.vue
+    ¦   Test.vue
     ¦   Welcome.vue
     ¦   
     +---Admin
@@ -88,6 +99,7 @@ C:\USERS\USER\DOWNLOADS\SENIOR-APP\SRC
     ¦       BarangayList.vue
     ¦       Dashboard.vue
     ¦       Messaging.vue
+    ¦       Notifications.vue
     ¦       Review.vue
     ¦       ReviewPage.vue
     ¦       
@@ -103,6 +115,7 @@ C:\USERS\USER\DOWNLOADS\SENIOR-APP\SRC
                 ApplyRequest.vue
                 Help.vue
                 Location.vue
+                ProfileEdit.vue
                 Programs.vue
                 Requirements.vue
                 VariantPicker.vue

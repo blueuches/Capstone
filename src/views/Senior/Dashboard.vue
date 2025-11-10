@@ -203,6 +203,7 @@ import { supabase } from '@/supabase/client'
 import { useAuth } from '@/composables/useAuth'
 import SeniorHeader from '@/components/SeniorHeader.vue'
 import SeniorNav from '@/components/SeniorNav.vue'
+import { useTTS } from '@/composables/useTTS'
 
 const router = useRouter()
 const { user } = useAuth()
@@ -239,6 +240,27 @@ function toggleMic() {
   micActive.value = true
   setTimeout(() => { micActive.value = false }, 3000)
 }
+
+// Get the speak() function from our composable
+const { speak } = useTTS()
+
+// Function to determine greeting
+function getGreeting() {
+  const hour = new Date().getHours()
+  if (hour < 12) return 'Maayong buntag!'
+  if (hour < 18) return 'Maayong hapon!'
+  return 'Maayong gabii!'
+}
+
+// Run TTS when the user opens dashboard (after login)
+onMounted(() => {
+  const greeting = getGreeting()
+
+  // Give a short delay so the page finishes loading
+  setTimeout(() => {
+    speak(greeting)
+  }, 800)
+})
 
 /* ===== Apply flow state ===== */
 const applyOpen = ref(false)

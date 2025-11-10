@@ -68,6 +68,7 @@ const oscaLinks = [
   { label: 'Review Seniors', path: '/osca/review', icon: CheckSquare },
   { label: 'Applicants', path: '/osca/applications', icon: Users },
   { label: 'Post Announcement', path: '/osca/messaging', icon: Megaphone },
+  { label: 'Notification', path: '/osca/notifications', icon: Bell },
   { label: 'Logout', path: '/logout', icon: LogOut },
 ]
 
