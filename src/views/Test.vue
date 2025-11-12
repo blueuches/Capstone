@@ -33,7 +33,7 @@ async function onTranscribed(text) {
     loading.value = true
     transcript.value = text
 
-    // 👉 Send the text to RASA NLU for intent recognition
+    // 👉 Send the text to hehe RASA NLU for intent recognition
     const rasaRes = await fetch('http://localhost:5005/model/parse', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
