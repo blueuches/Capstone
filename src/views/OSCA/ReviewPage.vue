@@ -68,7 +68,7 @@ import Sidebar from '@/components/Sidebar.vue'
 import SmartForm from '@/components/SmartForm.vue'
 import DocumentsPanel from '@/components/DocumentsPanel.vue'
 import SeniorAnswersPanel from '@/components/SeniorAnswersPanel.vue'
-import StatusActions from '@/components/StatusActions.vue'
+
 
 type AnswersPayload = Record<string, any>
 

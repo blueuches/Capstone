@@ -1,0 +1,244 @@
+version: "3.1"
+
+intents:
+  - greet
+  - goodbye
+  - affirm
+  - deny
+  - thank_you
+  - provide_personal_info
+  - provide_address
+  - provide_contact
+  - provide_birthdate
+  - provide_documents
+  - request_osca_id
+  - request_social_pension
+  - request_onc_benefit
+  - check_status
+
+entities:
+  - first_name
+  - middle_name
+  - last_name
+  - gender
+  - age
+  - birthdate
+  - place_of_birth
+  - home_address
+  - barangay
+  - citizenship
+  - civil_status
+  - landline
+  - mobile_no
+  - educational_attainment
+  - philhealth_membership
+  - living_arrangements
+  - relative_name
+  - health_condition
+  - disability
+  - pensioner
+  - pension_source
+  - beneficiary
+  - beneficiary_source
+  - emergency_contact_name
+  - emergency_contact_address
+  - emergency_contact_number
+  - blood_type
+  - applicant_signature
+  - picture
+  - check_id
+  - place_transferred
+  - authorized_representative
+  - representative_contact
+  - representative_address
+  - old_record_attached
+  - date_issued_old
+  - no_record_found
+  - proof_of_birth
+  - osca_id_number
+  - issued_on
+  - received_by
+  - verified_by
+  - date_accomplished
+  - remarks
+  - approved_by
+
+  # ONC fields
+  - rrn
+  - applicant_age
+  - residential_address
+  - permanent_address
+  - sex
+  - spouse_name
+  - spouse_citizenship
+  - children
+  - representatives
+  - contact_numbers
+  - email
+  - primary_beneficiary
+  - primary_relationship
+  - contingent_beneficiary
+  - contingent_relationship
+  - utilization
+  - utilization_other
+  - certification_statement
+  - applicant_signature_thumbmark
+  - date_application
+  - gov_id_type
+  - gov_id_number
+  - gov_id_issued
+  - applicant_type
+  - requirements_complied
+  - findings
+  - assessment
+  - validated_by
+  - data_privacy_notice
+
+slots:
+  first_name:
+    type: text
+    mappings:
+      - type: from_entity
+        entity: first_name
+  middle_name:
+    type: text
+    mappings:
+      - type: from_entity
+        entity: middle_name
+  last_name:
+    type: text
+    mappings:
+      - type: from_entity
+        entity: last_name
+  gender:
+    type: text
+    mappings:
+      - type: from_entity
+        entity: gender
+  age:
+    type: text
+    mappings:
+      - type: from_entity
+        entity: age
+  birthdate:
+    type: text
+    mappings:
+      - type: from_entity
+        entity: birthdate
+  place_of_birth:
+    type: text
+    mappings:
+      - type: from_entity
+        entity: place_of_birth
+  home_address:
+    type: text
+    mappings:
+      - type: from_entity
+        entity: home_address
+  barangay:
+    type: text
+    mappings:
+      - type: from_entity
+        entity: barangay
+  citizenship:
+    type: text
+    mappings:
+      - type: from_entity
+        entity: citizenship
+  civil_status:
+    type: text
+    mappings:
+      - type: from_entity
+        entity: civil_status
+  mobile_no:
+    type: text
+    mappings:
+      - type: from_entity
+        entity: mobile_no
+  philhealth_membership:
+    type: text
+    mappings:
+      - type: from_entity
+        entity: philhealth_membership
+  living_arrangements:
+    type: text
+    mappings:
+      - type: from_entity
+        entity: living_arrangements
+  relative_name:
+    type: text
+    mappings:
+      - type: from_entity
+        entity: relative_name
+  health_condition:
+    type: text
+    mappings:
+      - type: from_entity
+        entity: health_condition
+  disability:
+    type: text
+    mappings:
+      - type: from_entity
+        entity: disability
+  pensioner:
+    type: text
+    mappings:
+      - type: from_entity
+        entity: pensioner
+  pension_source:
+    type: text
+    mappings:
+      - type: from_entity
+        entity: pension_source
+  beneficiary:
+    type: text
+    mappings:
+      - type: from_entity
+        entity: beneficiary
+  beneficiary_source:
+    type: text
+    mappings:
+      - type: from_entity
+        entity: beneficiary_source
+  blood_type:
+    type: text
+    mappings:
+      - type: from_entity
+        entity: blood_type
+  osca_id_number:
+    type: text
+    mappings:
+      - type: from_entity
+        entity: osca_id_number
+  remarks:
+    type: text
+    mappings:
+      - type: from_entity
+        entity: remarks
+  program_type:
+    type: text
+    mappings:
+      - type: from_entity
+        entity: program_type
+
+responses:
+  utter_greet:
+    - text: "Maayong buntag! Ako si SeniorGo, unsa man imong gusto buhaton karon?"
+  utter_goodbye:
+    - text: "Salamat sa imong oras! Amping pirmi."
+  utter_ask_first_name:
+    - text: "Unsa imong unang ngalan?"
+  utter_ask_last_name:
+    - text: "Unsa imong apelyido?"
+  utter_ask_barangay:
+    - text: "Asa ka nagpuyo nga barangay?"
+  utter_submit_success:
+    - text: "Salamat! Na-record na ang imong impormasyon. Ang OSCA mopadala ug update sa imong aplikasyon."
+  utter_thank_you:
+    - text: "Walay sapayan! Nalipay ko makatabang nimo."
+
+actions:
+  - action_fill_form
+  - action_check_status
+  - action_submit_request
+  - action_greet_user

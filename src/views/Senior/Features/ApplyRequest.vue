@@ -143,6 +143,7 @@ import { supabase } from '@/supabase/client'
 import SeniorHeader from '@/components/SeniorHeader.vue'
 import SeniorNav from '@/components/SeniorNav.vue'
 import FilePreviewModal from '@/components/FilePreviewModal.vue'
+import { useTTS } from '@/composables/useTTS'
 
 const route = useRoute()
 const router = useRouter()
@@ -169,6 +170,15 @@ const previewLoading = ref(false)
 const previewError = ref<string | undefined>()
 
 onMounted(init)
+
+const { speak } = useTTS()
+
+onMounted(() => {
+  // Short delay to avoid interrupting other page audio
+  setTimeout(() => {
+    speak("Diri mag-pasa ug ma nga rekwayerments para maka-aplay. Paki-basa ko sa proseso og tuploka lang ang 'Upload' kung mag-pasa naka sa imo ma nga papeles.")
+  }, 1500)
+})
 
 async function init() {
   loading.value = true;
@@ -294,7 +304,7 @@ async function onUpload(reqLabel: string, file?: File) {
 
     // 6) Local UI state + TTS hint
     uploads.value[reqLabel] = fullPath
-    speak(`${reqLabel} uploaded`)
+    speak(`${reqLabel} kay na-upload na.`)
   } catch (e: any) {
     alert(e.message || String(e))
   } finally {
@@ -320,13 +330,6 @@ function continueToForm() {
 
 /* -------- Accessibility: simple web TTS -------- */
 
-function speak(text: string) {
-  ariaHint.value = text
-  if ('speechSynthesis' in window) {
-    const u = new SpeechSynthesisUtterance(text)
-    window.speechSynthesis.speak(u)
-  }
-}
 
 /* -------- Label → enum mapping (expanded for 2x2 / picture / pic) -------- */
 
