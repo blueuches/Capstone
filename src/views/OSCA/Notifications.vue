@@ -4,7 +4,7 @@
     <Sidebar role="osca" />
 
     <!-- Main Content -->
-    <main class="flex-1 flex flex-col items-center px-6 py-10">
+<main class="flex-1 p-4 sm:p-6 md:p-7">
       <!-- Header -->
       <div class="w-full max-w-2xl bg-white rounded-3xl shadow-lg p-6 mb-6 text-center">
         <h1 class="text-3xl font-extrabold text-emerald-700">OSCA Notifications</h1>

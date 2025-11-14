@@ -4,7 +4,7 @@
     <Sidebar role="osca" />
 
   <!-- Main Content -->
-  <main class="flex-1 p-6 md:ml-60">
+  <main class="flex-1 p-7 md:ml-100">
     
     <!-- Header -->
     <div class="bg-white rounded-3xl shadow-lg p-6 mb-8 flex flex-col md:flex-row items-center justify-between">

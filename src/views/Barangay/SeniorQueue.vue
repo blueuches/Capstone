@@ -4,7 +4,8 @@
     <Sidebar role="brgy" />
 
     <!-- Main -->
-    <div class="flex-1 flex flex-col md:ml-60">
+    <div class="flex-1 flex flex-col px-4 sm:px-6">
+
       <header class="bg-white shadow-md p-5 flex items-center justify-between">
         <div>
           <h1 class="text-2xl md:text-3xl font-extrabold text-emerald-700">Senior List</h1>

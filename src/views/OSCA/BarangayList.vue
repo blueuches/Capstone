@@ -4,7 +4,7 @@
     <Sidebar role="osca" />
 
     <!-- Main -->
-    <main class="flex-1 p-6 md:ml-60">
+   <main class="flex-1 p-7 md:ml-100">
       <h1 class="text-2xl font-extrabold text-emerald-700 mb-6">
         Barangays in Butuan City
       </h1>

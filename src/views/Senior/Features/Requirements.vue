@@ -23,6 +23,7 @@
 
     <!-- Main Content -->
     <main class="flex-1 overflow-y-auto p-4 pb-[88px]">
+      <!-- Breadcrumb -->
       <nav class="text-sm text-emerald-700 mb-4" aria-label="Breadcrumb">
         <ol class="list-reset flex items-center space-x-2">
           <li>
@@ -33,6 +34,17 @@
         </ol>
       </nav>
 
+      <!-- Page Title -->
+      <div class="mb-3">
+        <h2 class="text-base font-semibold text-emerald-800">
+          Application Requirements
+        </h2>
+        <p class="text-xs text-gray-500 mt-1">
+          Review the documents you have submitted for each SeniorGo program.
+        </p>
+      </div>
+
+      <!-- Programs List -->
       <div class="space-y-4">
         <div
           v-for="program in programs"
@@ -41,59 +53,131 @@
         >
           <!-- Program Header -->
           <div
-            class="flex justify-between items-center cursor-pointer select-none"
+            class="flex items-start gap-3 cursor-pointer select-none"
             @click="toggleProgram(program.id)"
           >
-            <div>
-              <h2 class="text-[15px] font-semibold text-emerald-800">{{ program.name }}</h2>
-              <p class="text-xs text-gray-500 mt-0.5">{{ program.status }}</p>
-            </div>
-            <svg
-              :class="{ 'rotate-180': expanded === program.id }"
-              class="w-5 h-5 text-emerald-700 transition-transform"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              viewBox="0 0 24 24"
+            <!-- Program Icon -->
+            <div
+              class="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 text-sm font-semibold"
             >
-              <path d="M6 9l6 6 6-6" />
-            </svg>
+              {{ (program.name || 'P').charAt(0).toUpperCase() }}
+            </div>
+
+            <!-- Name + Info -->
+            <div class="flex-1">
+              <p class="text-[11px] uppercase tracking-wide text-emerald-500">
+                Program
+              </p>
+              <h2 class="text-[15px] font-semibold text-emerald-800 leading-snug">
+                {{ program.name }}
+              </h2>
+              <p class="text-[11px] text-gray-500 mt-1">
+                {{ program.documents?.length || 0 }} document(s) linked to this application.
+              </p>
+            </div>
+
+            <!-- Status + Arrow -->
+            <div class="flex flex-col items-end gap-1">
+              <span
+                class="px-2 py-0.5 rounded-full text-[11px] font-semibold"
+                :class="{
+                  'bg-emerald-50 text-emerald-700 border border-emerald-200': program.status === 'Approved',
+                  'bg-yellow-50 text-yellow-700 border border-yellow-200': program.status === 'Under Review' || program.status === 'Submitted',
+                  'bg-red-50 text-red-700 border border-red-200': program.status === 'Rejected',
+                  'bg-gray-50 text-gray-600 border border-gray-200': program.status === 'Draft'
+                }"
+              >
+                {{ program.status }}
+              </span>
+              <svg
+                :class="{ 'rotate-180': expanded === program.id }"
+                class="w-5 h-5 text-emerald-700 transition-transform mt-1"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+              >
+                <path d="M6 9l6 6 6-6" />
+              </svg>
+            </div>
           </div>
 
           <!-- Expanded Section -->
           <transition name="fade">
-            <div v-if="expanded === program.id" class="mt-4 border-t border-emerald-100 pt-3">
-              <h3 class="text-sm font-medium text-emerald-700 mb-2">Uploaded Documents</h3>
-              <ul class="space-y-3">
+            <div v-if="expanded === program.id" class="mt-4 pt-3 border-t border-emerald-100">
+              <div class="flex items-center justify-between mb-2">
+                <h3 class="text-sm font-medium text-emerald-700">
+                  Uploaded Documents
+                </h3>
+                <p class="text-[11px] text-gray-500">
+                  Tap “View” to open a file; “Print” for a printable version.
+                </p>
+              </div>
+
+              <!-- Empty State -->
+              <div
+                v-if="!program.documents || !program.documents.length"
+                class="text-center text-xs text-gray-500 bg-emerald-50/60 border border-dashed border-emerald-200 rounded-lg py-3 px-3"
+              >
+                No documents found for this application yet.
+              </div>
+
+              <!-- Documents List -->
+              <ul v-else class="space-y-3">
                 <li
                   v-for="(doc, j) in program.documents"
                   :key="j"
-                  class="flex items-center justify-between bg-emerald-50/30 px-3 py-2 rounded-lg border border-emerald-100"
+                  class="flex items-center justify-between gap-3 bg-emerald-50/40 px-3 py-2.5 rounded-lg border border-emerald-100"
                 >
-                  <div>
-                    <p class="text-[14px] text-gray-800 font-medium">{{ doc.name }}</p>
-                    <p
-                      class="text-[12px] capitalize"
-                      :class="{
-                        'text-green-700': doc.status === 'completed',
-                        'text-yellow-700': doc.status === 'draft'
-                      }"
-                    >
-                      {{ doc.status }}
-                    </p>
+                  <!-- Left: icon + info -->
+                  <div class="flex items-center gap-3">
+                    <div class="w-7 h-7 rounded-md bg-emerald-100 flex items-center justify-center">
+                      <svg
+                        viewBox="0 0 24 24"
+                        class="w-4 h-4 text-emerald-700"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                        <polyline points="14 2 14 8 20 8" />
+                        <line x1="10" y1="13" x2="18" y2="13" />
+                        <line x1="10" y1="17" x2="16" y2="17" />
+                        <line x1="8" y1="13" x2="8.01" y2="13" />
+                        <line x1="8" y1="17" x2="8.01" y2="17" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p class="text-[14px] text-gray-900 font-medium leading-tight">
+                        {{ doc.name }}
+                      </p>
+                      <span
+                        class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] mt-0.5"
+                        :class="{
+                          'bg-green-50 text-green-700 border border-green-200': doc.status === 'completed',
+                          'bg-yellow-50 text-yellow-700 border border-yellow-200': doc.status === 'draft'
+                        }"
+                      >
+                        {{ doc.status === 'completed' ? 'Completed' : 'Draft' }}
+                      </span>
+                    </div>
                   </div>
-                  <div class="flex gap-2">
+
+                  <!-- Right: Actions -->
+                  <div class="flex flex-col gap-1 items-end">
                     <button
                       v-if="doc.url"
-                      class="text-xs px-3 py-1 bg-emerald-500 text-white rounded-md shadow-sm hover:bg-emerald-600"
-                      @click="viewDocument(doc.url)"
+                      class="text-[11px] px-3 py-1 bg-emerald-500 text-white rounded-md shadow-sm hover:bg-emerald-600"
+                      @click.stop="viewDocument(doc.url)"
                     >
                       View
                     </button>
                     <button
                       v-if="doc.status === 'completed'"
-                      class="text-xs px-3 py-1 bg-emerald-600 text-white rounded-md shadow-sm hover:bg-emerald-700"
-                      @click="printDocument(doc.url)"
+                      class="text-[11px] px-3 py-1 bg-emerald-600 text-white rounded-md shadow-sm hover:bg-emerald-700"
+                      @click.stop="printDocument(doc.url)"
                     >
                       Print
                     </button>
@@ -144,6 +228,7 @@
     </nav>
   </div>
 </template>
+
 
 <script setup>
 import { ref, onMounted } from "vue";

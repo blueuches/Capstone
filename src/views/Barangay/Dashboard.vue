@@ -3,7 +3,7 @@
     <Sidebar role="brgy" />
 
     <!-- Main Content -->
-    <main class="flex-1 p-6 md:ml-64">
+   <main class="flex-1 p-7 md:ml-100">
       <!-- Topbar -->
       <div class="flex items-center justify-between mb-6">
         <button

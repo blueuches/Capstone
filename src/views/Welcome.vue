@@ -1,12 +1,22 @@
 <template>
   <div class="text-gray-800 gradient-bg overflow-x-hidden" id="top">
     <!-- Navbar -->
-    <header
-      class="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur shadow-md"
-      :class="{'border-b': isScrolled}"
-    >
-      <div class="mx-auto max-w-7xl flex items-center justify-between px-4 sm:px-6 py-4">
-        <h1 class="text-2xl font-bold text-emerald-600">SeniorGo</h1>
+<header
+  class="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur shadow-md"
+  :class="{'border-b': isScrolled}"
+>
+  <div class="mx-auto max-w-7xl flex items-center justify-between px-4 sm:px-6 py-2">
+    <!-- Logo: big icon on the far left -->
+    <div class="flex items-center gap-2">
+      <img
+        src="/icon.png"
+        alt="SeniorGo logo"
+        class="h-10 w-auto md:h-12 object-contain flex-shrink-0"
+      />
+      <h1 class="text-base md:text-lg font-bold text-emerald-600">
+        SeniorGo
+      </h1>
+    </div>
 
         <!-- Desktop Nav -->
         <nav class="hidden md:flex items-center gap-6 text-sm font-medium">
@@ -74,8 +84,8 @@
 
       <div class="md:w-1/2 mt-10 md:mt-0 flex justify-center z-10">
         <img
-          src="https://pressone.ph/wp-content/uploads/2020/04/seniors.jpg"
-          alt="Senior citizens in the Philippines"
+              src="/cover1.png"
+    alt="SeniorGo Cover Image"
           class="w-full max-w-3xl h-auto rounded-2xl shadow-2xl object-cover ring-4 ring-emerald-300 transition-transform duration-500 hover:scale-105"
           loading="lazy"
         />

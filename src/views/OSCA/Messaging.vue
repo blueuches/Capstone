@@ -2,7 +2,7 @@
   <div class="min-h-screen flex bg-gradient-to-br from-green-100 via-emerald-50 to-white">
     <Sidebar role="osca" />
 
-    <main class="flex-1 p-6 md:ml-60">
+    <main class="flex-1 p-7 md:ml-100">
       <div class="max-w-4xl mx-auto bg-white border rounded-2xl shadow-md p-6">
         <h1 class="text-2xl font-extrabold text-emerald-700 mb-2">Post an Announcement</h1>
         <p class="text-gray-600 mb-6">

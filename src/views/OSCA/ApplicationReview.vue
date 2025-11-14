@@ -4,7 +4,7 @@
     <Sidebar role="osca" />
 
     <!-- MAIN CONTENT -->
-    <main class="flex-1 p-6 md:ml-60">
+    <main class="flex-1 p-7 md:ml-100">
       <!-- PROGRAMS GRID -->
       <div v-if="!selectedProgram">
         <h1 class="text-2xl font-extrabold text-emerald-700 mb-6">Available Programs</h1>

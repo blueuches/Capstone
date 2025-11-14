@@ -2,7 +2,8 @@
   <div class="min-h-screen flex bg-gradient-to-br from-green-100 via-emerald-50 to-white">
     <Sidebar role="osca" />
 
-    <main class="flex-1 p-6 md:ml-60">
+       <main class="flex-1 p-7 md:ml-100">
+
       <!-- Filter -->
       <section class="bg-white p-6 rounded-xl shadow-md space-y-4">
         <h2 class="text-lg font-semibold text-gray-800">Filter Applications</h2>

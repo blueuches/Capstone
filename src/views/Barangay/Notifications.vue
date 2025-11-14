@@ -4,7 +4,8 @@
     <Sidebar role="brgy" />
 
     <!-- Main Content -->
-    <main class="flex-1 flex flex-col items-center px-6 py-8 md:ml-60">
+   <main class="flex-1 flex flex-col items-center px-4 sm:px-6 py-8 ml-4 sm:ml-6">
+
       <!-- Header -->
       <div class="w-full max-w-3xl bg-white rounded-3xl shadow-lg p-6 mb-4">
         <div class="flex items-center justify-between">

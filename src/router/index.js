@@ -107,6 +107,8 @@ const routes = [
   { path: '/senior/help', component: () => import('@/views/Senior/Features/Help.vue'), meta: { requiresAuth: true, roles: ['senior'] } },
   { path: '/senior/apply/:programId/:variantId?', name: 'apply-request', component: () => import('@/views/Senior/Features/ApplyRequest.vue') },
   { path: '/senior/apply/:programId', name: 'variant-picker', component: () => import('@/views/Senior/Features/VariantPicker.vue') },
+    { path: '/senior/settings', component: () => import('@/views/Senior/Features/Settings.vue'), meta: { requiresAuth: true, roles: ['senior'] } },
+      { path: '/senior/about', component: () => import('@/views/Senior/Features/About.vue'), meta: { requiresAuth: true, roles: ['senior'] } },
   { path: '/senior/testvoice', component: () => import('@/views/Test.vue') }, //sample test
 
   // OSCA
@@ -121,7 +123,7 @@ const routes = [
       component: OscaReview,                           
       props: true,
       meta: { requiresAuth: true, roles: ['osca_staff'] }},
-        { path: '/osca/notifications', component: () => import('@/views/OSCA/Notifications.vue'), meta: { requiresAuth: true, roles: ['osca_staff'] } },
+  { path: '/osca/notifications', component: () => import('@/views/OSCA/Notifications.vue'), meta: { requiresAuth: true, roles: ['osca_staff'] } },
 
   // Barangay
   { path: '/barangay/dashboard', component: () => import('@/views/Barangay/Dashboard.vue'), meta: { requiresAuth: true, roles: ['brgy_staff'] } },

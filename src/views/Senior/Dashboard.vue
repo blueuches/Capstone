@@ -13,9 +13,8 @@
           <button @click="sidebarOpen = false" class="text-emerald-700">✕</button>
         </div>
         <nav class="p-4 flex flex-col space-y-3">
-          <router-link to="#" class="text-emerald-700">Settings</router-link>
-          <router-link to="#" class="text-emerald-700">About</router-link>
-          <router-link to="#" class="text-emerald-700">Complain</router-link>
+          <router-link to="/senior/settings" class="text-emerald-700">Settings</router-link>
+          <router-link to="/senior/about" class="text-emerald-700">About</router-link>
           <router-link
             to="/logout"
             @click="sidebarOpen = false"
@@ -55,7 +54,6 @@
             <button class="text-emerald-700 text-sm" @click="closeApply">Close</button>
           </div>
 
-          <!-- Body -->
           <!-- Body -->
           <div class="px-5 mt-3 overflow-y-auto" style="max-height: calc(80dvh - 90px)">
             <label class="relative block mb-3">
@@ -171,12 +169,11 @@
             :key="i"
             class="bg-white rounded-xl ring-1 ring-emerald-100 shadow-sm p-3 mb-2.5"
           >
-            <router-link
-              :to="a.to"
+            <p
               class="text-emerald-700 font-semibold text-[15px] leading-tight hover:underline line-clamp-1"
             >
               {{ a.title }}
-            </router-link>
+            </p>
             <p class="text-[13px] text-gray-600 mt-0.5 line-clamp-2">
               {{ a.subtitle }}
             </p>
