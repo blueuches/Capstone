@@ -24,7 +24,7 @@
           Application Requirements
         </h2>
         <p class="text-xs text-gray-500 mt-1">
-          Review the documents you have submitted for each SeniorGo program.
+          Review the documents you have submitted for an OSCA program.
         </p>
       </div>
 

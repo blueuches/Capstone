@@ -42,13 +42,6 @@
           </div>
         </div>
       </div>
-
-      <!-- Back -->
-      <div class="mt-10">
-        <RouterLink to="/barangay/dashboard">
-          <p class="text-emerald-700 font-bold underline text-lg">← Back to Dashboard</p>
-        </RouterLink>
-      </div>
     </main>
   </div>
 </template>

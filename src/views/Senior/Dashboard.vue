@@ -181,7 +181,7 @@ import { useAuth } from '@/composables/useAuth'
 import SeniorHeader from '@/components/SeniorHeader.vue'
 import SeniorNav from '@/components/SeniorNav.vue'
 import SeniorSidebar from '@/components/SeniorSidebar.vue'
-//import { useTTS } from '@/composables/useTTS'
+import { useTTS } from '@/composables/useTTS'
 import { useUnifiedTTS } from '@/composables/useUnifiedTTS';
 
 const router = useRouter()
@@ -221,14 +221,14 @@ function toggleMic() {
 }
 
 // Get the speak() function from our composable
-//const { speak } = useTTS()
+const { speak } = useTTS()
 
 // Function to determine greeting
 function getGreeting() {
   const hour = new Date().getHours()
   if (hour < 12) return 'Maayong buntag!'
   if (hour < 18) return 'Maayong hapon!'
-  return 'Maayong gabii!'
+  return 'Maayong ga-be-i!'
 }
 
 // Run TTS when the user opens dashboard (after login)
