@@ -97,7 +97,6 @@
             <span class="font-semibold">Maayong Buntag,</span>
             <span class="font-bold text-emerald-700"> Tatay Juan!</span>
           </p>
-          <p class="text-xs text-emerald-900/80 mt-0.5">Senior Citizen ID: N/A</p>
         </div>
       </section>
 

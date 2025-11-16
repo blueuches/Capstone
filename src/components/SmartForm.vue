@@ -1,237 +1,331 @@
 <template>
-  <div
-    class="relative flex items-center justify-center w-screen h-screen bg-gradient-to-b from-emerald-100 via-emerald-50 to-white overflow-hidden"
-  >
-    <!-- HEADER -->
-    <div class="absolute top-4 left-0 right-0 flex items-center justify-between px-6 z-50">
-      <router-link
-        to="/senior/dashboard"
-        class="flex items-center gap-2 text-emerald-700 font-semibold hover:text-emerald-900 transition"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          class="w-5 h-5"
-          viewBox="0 0 24 24"
-          fill="currentColor"
+  <div class="min-h-screen bg-gradient-to-b from-emerald-100 via-emerald-50 to-white flex justify-center items-start py-6 px-4">
+    <div class="w-full max-w-3xl bg-white/95 backdrop-blur rounded-3xl shadow-2xl border border-emerald-100 px-6 pt-16 pb-28 relative">
+      <!-- HEADER -->
+      <div class="absolute top-4 left-0 right-0 flex items-center justify-between px-6 z-50">
+        <router-link
+          to="/senior/dashboard"
+          class="flex items-center gap-2 text-emerald-700 font-semibold hover:text-emerald-900 transition"
         >
-          <path
-            d="M15.75 19.5a.75.75 0 0 1-.53-.22L8.97 13.03a.75.75 0 0 1 0-1.06l6.25-6.25a.75.75 0 1 1 1.06 1.06L10.56 12l5.72 5.72a.75.75 0 0 1-.53 1.28z"
-          />
-        </svg>
-        <span class="text-base">Back</span>
-      </router-link>
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+            <path
+              d="M15.75 19.5a.75.75 0 0 1-.53-.22L8.47 12.53a.75.75 0 0 1 0-1.06l6.75-6.75a.75.75 0 0 1 1.06 1.06L10.56 12l5.72 5.72a.75.75 0 0 1-.53 1.28z"
+            />
+          </svg>
+          <span class="text-base">Back</span>
+        </router-link>
 
-      <button
-        @click="saveAsDraft"
-        class="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold px-4 py-2 rounded-full shadow-md transition"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          class="w-4 h-4"
-          fill="currentColor"
-          viewBox="0 0 20 20"
+        <button
+          v-if="isSenior && !readOnly"
+          @click="saveAsDraft"
+          class="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3 py-1.5 rounded-full shadow"
         >
-          <path
-            d="M17 3H3a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V4a1 1 0 0 0-1-1zm-1 12H4V5h12v10z"
-          />
-          <path d="M9 7h2v2H9z" />
-        </svg>
-        Save as Draft
-      </button>
-    </div>
+          Save Draft
+        </button>
+      </div>
 
-    <!-- MAIN CONTENT -->
-    <main
-      class="relative w-[92%] max-w-md h-[90vh] bg-white shadow-2xl rounded-3xl border border-emerald-200 flex flex-col overflow-hidden"
-    >
-      <header
-        class="flex flex-col items-center justify-center py-4 border-b border-emerald-100 bg-white/90 backdrop-blur z-10 relative"
-      >
-        <h1 class="text-xl font-extrabold text-emerald-700 text-center leading-tight">
-          {{ formTitle || 'Application Form' }}
-        </h1>
-        <div class="w-[85%] mt-4">
-          <div class="flex justify-between text-xs font-medium text-gray-600 mb-1">
-            <span>Step {{ currentStep }} of {{ totalSteps }}</span>
-            <span>{{ stepLabels[currentStep - 1] }}</span>
+      <!-- TITLE & STEP PROGRESS -->
+      <header class="mt-2 mb-6 space-y-3">
+        <div class="flex items-center justify-between gap-3">
+          <div>
+            <h1 class="text-xl font-bold text-emerald-900">{{ formTitle }}</h1>
+            <p class="text-xs text-gray-600">
+              Voice-guided form: questions will be read aloud and your answers will be filled automatically.
+            </p>
           </div>
-          <div class="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+
+          <!-- Lang selector + status -->
+          <div class="text-right space-y-1">
+            <select
+              v-model="voiceLang"
+              class="px-3 py-1.5 border rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-emerald-400"
+              :disabled="isListening || isSpeaking"
+            >
+              <option value="ceb-PH">Cebuano</option>
+              <option value="fil-PH">Filipino</option>
+              <option value="en-US">English (US)</option>
+            </select>
+            <p :class="statusClass">{{ statusText }}</p>
+          </div>
+        </div>
+
+        <!-- Step progress bar -->
+        <div class="space-y-1">
+          <div class="flex justify-between text-[11px] font-medium text-gray-600">
+            <span>Step {{ currentStep }} of {{ totalSteps }}</span>
+            <span>{{ stepLabels[currentStep - 1] || '' }}</span>
+          </div>
+          <div class="h-2 bg-emerald-50 rounded-full overflow-hidden">
             <div
-              class="h-2 bg-emerald-600 rounded-full transition-all duration-500"
+              class="h-full bg-gradient-to-r from-emerald-400 to-emerald-600 transition-all duration-300"
               :style="{ width: progressWidth }"
             ></div>
           </div>
         </div>
+
+        <!-- Voice-sequential progress (like Test.vue) -->
+        <div v-if="voiceFields.length > 0" class="mt-3 bg-emerald-50/70 border border-emerald-100 rounded-xl p-3">
+          <div class="flex justify-between text-xs text-gray-700 mb-1">
+            <span>Voice Progress</span>
+            <span>{{ currentFieldIndex + 1 }} of {{ voiceFields.length }}</span>
+          </div>
+          <div class="w-full bg-gray-200 rounded-full h-2">
+            <div
+              class="bg-emerald-500 h-2 rounded-full transition-all duration-500"
+              :style="{ width: voiceProgress + '%' }"
+            ></div>
+          </div>
+          <p class="text-[11px] text-gray-700 mt-1">
+            Current field:
+            <strong>{{ currentVoiceField ? currentVoiceField.label : '—' }}</strong>
+          </p>
+        </div>
       </header>
 
-      <!-- FORM STEPS -->
-      <section class="flex-1 px-6 py-6 overflow-y-auto">
-        <form @submit.prevent="onSubmit" class="space-y-6">
-          <p v-if="loading" class="text-center text-gray-500">Loading form...</p>
+      <!-- ERROR / LOADING -->
+      <p v-if="errorMessage" class="text-sm text-red-600 bg-red-50 border border-red-100 rounded-xl p-3 mb-4">
+        {{ errorMessage }}
+      </p>
+      <p v-if="loading && !errorMessage" class="text-center text-gray-500 text-sm">
+        Loading form...
+      </p>
 
-          <template v-else>
-            <div
-              v-for="(group, i) in stepGroups"
-              :key="i"
-              v-show="currentStep === i + 1"
-              class="animate-fade-in space-y-4"
+      <!-- VOICE CONTROLS (like Test.vue) -->
+      <section class="mb-4 bg-emerald-50/70 border border-emerald-100 rounded-xl p-4 space-y-3">
+        <div class="flex items-center justify-between">
+          <h2 class="text-sm font-semibold text-emerald-900">Voice Assistant</h2>
+          <div class="flex gap-2">
+            <button
+              v-if="!isFormComplete && logs.length === 0"
+              @click="startForm"
+              :disabled="loading || !voiceFields.length || isSpeaking || isListening"
+              class="px-3 py-1.5 bg-emerald-600 text-white text-xs font-semibold rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <h2 class="font-bold text-emerald-700 text-lg mb-2">{{ stepLabels[i] }}</h2>
-              <DynamicField
-                v-for="field in group"
-                :key="field.id"
-                :field="field"
-                v-model="formValues[field.id]"
-              />
-            </div>
-          </template>
-        </form>
+              Start Form
+            </button>
+
+            <button
+              v-if="isListening"
+              @click="stopListening"
+              class="px-3 py-1.5 bg-red-600 text-white text-xs font-semibold rounded-lg hover:bg-red-700"
+            >
+              Stop & Use Answer
+            </button>
+
+            <button
+              v-if="isFormComplete"
+              @click="startForm"
+              class="px-3 py-1.5 bg-emerald-600 text-white text-xs font-semibold rounded-lg hover:bg-emerald-700"
+            >
+              Start New Voice Run
+            </button>
+          </div>
+        </div>
+
+        <!-- Interim / final transcripts -->
+        <div v-if="isListening || interimTranscript || transcript" class="space-y-2">
+          <div class="p-3 bg-emerald-50 border-2 border-emerald-200 rounded-lg">
+            <p class="text-[10px] text-emerald-700 font-semibold mb-1">
+              LISTENING... (Interim)
+            </p>
+            <p class="text-xs text-gray-800">
+              {{ interimTranscript || 'Speak now...' }}
+            </p>
+          </div>
+          <div v-if="transcript" class="p-2 bg-blue-50 border border-blue-200 rounded-lg">
+            <p class="text-[10px] text-blue-700 font-semibold mb-1">Final Transcript</p>
+            <p class="text-xs text-gray-800">{{ transcript }}</p>
+          </div>
+        </div>
+
+        <p v-if="isFormComplete" class="mt-1 text-[11px] text-green-700">
+          Voice run complete. You can still review and edit any field manually before submitting.
+        </p>
       </section>
 
-      <!-- FOOTER -->
-      <footer
-        class="flex items-center justify-between px-6 py-5 border-t border-emerald-100 bg-white/90 backdrop-blur z-10"
-      >
-        <button v-if="currentStep > 1" @click="prevStep" class="btn-secondary">Back</button>
+      <!-- FORM FIELDS -->
+      <section v-if="!loading" class="flex-1 overflow-y-auto space-y-4 mb-4">
+        <div v-if="!stepGroups.length" class="text-sm text-gray-500">
+          No fields available for this form.
+        </div>
 
-        <button v-if="currentStep < totalSteps" @click="nextStep" class="btn-primary ml-auto">
+        <div v-else class="space-y-4">
+          <div v-for="(group, i) in stepGroups" :key="i" v-show="currentStep === i + 1" class="space-y-3">
+            <div
+              v-for="field in group"
+              :key="field.id"
+              :class="fieldContainerClass(field)"
+            >
+              <label class="block text-[11px] font-semibold text-gray-700 mb-1">
+                {{ field.label }}
+                <span
+                  v-if="currentVoiceField && currentVoiceField.id === field.id && !isFormComplete"
+                  class="ml-2 text-emerald-600 text-[10px]"
+                >
+                  (Voice: current)
+                </span>
+              </label>
+
+              <DynamicField
+                :field="field"
+                v-model="formValues[field.id]"
+                :readonly="readOnly"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- FOOTER BUTTONS -->
+      <footer
+        class="fixed bottom-0 left-0 right-0 px-6 py-3 bg-white/95 border-t border-emerald-100 flex items-center justify-between gap-3"
+      >
+        <button
+          v-if="currentStep > 1"
+          @click="prevStep"
+          class="btn-secondary text-xs"
+        >
+          Back
+        </button>
+
+        <div class="flex-1"></div>
+
+        <button
+          v-if="currentStep < totalSteps"
+          @click="nextStep"
+          class="btn-primary text-xs"
+        >
           Next
         </button>
 
         <button
-          @click="$emit('mic')"
-          class="fixed bottom-2 left-1/2 -translate-x-1/2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-full p-5 shadow-2xl focus:ring-4 focus:ring-emerald-300 transition-all z-50"
-          title="Tap to Speak"
+          v-if="currentStep === totalSteps"
+          @click="onSubmit"
+          class="btn-primary text-xs"
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            class="w-7 h-7"
-            viewBox="0 0 24 24"
-            fill="currentColor"
-          >
-            <path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v5a3 3 0 0 0 3 3z" />
-            <path
-              d="M19 11a1 1 0 1 0-2 0 5 5 0 1 1-10 0 1 1 0 1 0-2 0 7 7 0 0 0 6 6.92V20H8a1 1 0 1 0 0 2h8a1 1 0 1 0 0-2h-3v-2.08A7 7 0 0 0 19 11z"
-            />
-          </svg>
-        </button>
-
-        <button v-if="currentStep === totalSteps" @click="onSubmit" class="btn-primary ml-auto">
           Submit
         </button>
       </footer>
-    </main>
 
-    <!-- MODAL -->
-    <transition name="fade">
-      <div
-        v-if="showModal"
-        class="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-50"
-      >
-        <div class="bg-white rounded-2xl p-6 max-w-sm text-center shadow-2xl">
-          <h2 class="text-lg font-bold text-emerald-700 mb-3">OSCA Personnel Section</h2>
-          <p class="text-gray-700 text-sm leading-relaxed mb-5">
-            OSCA Personnel will handle this part.<br />
-            Please double-check the information you provided.<br />
-            If you are finished, click <strong>Save as Draft</strong> and wait for OSCA personnel to
-            verify your application.
-          </p>
-          <button
-            @click="confirmModal"
-            class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-6 py-2 rounded-xl shadow transition"
-          >
-            Okay
-          </button>
-        </div>
-      </div>
-    </transition>
+
+    </div>
   </div>
 </template>
 
-<!-- components/SmartForm.vue -->
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from 'vue'
 import DynamicField from '@/components/DynamicField.vue'
 import { supabase } from '@/supabase/client'
+import { useUnifiedTTS } from '@/composables/useUnifiedTTS'
+import { useWebSpeechStt } from '@/composables/useWebSpeechStt'
 
-/* ---------- Props / Emits ---------- */
 type Mode = 'senior' | 'osca'
+
 const props = defineProps<{
-  programId: number 
+  programId: number
   mode: Mode
   maxPerStep?: number
   readOnly?: boolean
 }>()
 
 const emit = defineEmits<{
-  (e: 'save', payload: { formId: number | null; values: Record<number, any>; mode: Mode }): void
-  (e: 'submit', payload: { formId: number | null; values: Record<number, any>; mode: Mode }): void
-    (e: 'form-submit', payload: { formId: number | null; values: Record<number, any>; mode: Mode }): void
+  (e: 'save', payload: { formId: number | null; values: Record<number, any> }): void
+  (e: 'submit', payload: { formId: number | null; values: Record<number, any> }): void
   (e: 'changed', payload: { values: Record<number, any> }): void
-  (e: 'mic'): void
 }>()
 
-/* ---------- Types ---------- */
+/* ---------- Types & basic state ---------- */
 type SectionNorm = 'senior' | 'osca' | 'other'
-type Field = {
+interface Field {
   id: number
   form_id: number
   label: string
   type: string
-  placeholder?: string
-  required?: boolean
+  placeholder?: string | null
+  required?: boolean | null
   options?: any
   section?: string | null
-  order_index?: number
   section_norm?: SectionNorm
+  order_index?: number | null
 }
 
-/* ---------- State ---------- */
 const formId = ref<number | null>(null)
+const formTitle = ref('Application Form')
 const formFields = ref<Field[]>([])
+const formValues = ref<Record<number, any>>({})
 const loading = ref(true)
 const errorMessage = ref('')
 
-/** answers keyed by field.id (stable across forms) */
-const formValues = ref<Record<number, any>>({})
+const currentStep = ref(1)
+const stepGroups = ref<Field[][]>([])
+const stepLabels = ref<string[]>([])
+const MAX_FIELDS_PER_STEP = computed(() => props.maxPerStep ?? 4)
 
-/** role flags derived from props.mode (no auth here) */
 const isSenior = computed(() => props.mode === 'senior')
 const isOsca = computed(() => props.mode === 'osca')
-
-/** stepper state */
-const formTitle = ref('Application Form')
-const currentStep = ref(1)
-const stepLabels = ref<string[]>([])
-const stepGroups = ref<Field[][]>([])
 const totalSteps = computed(() => stepGroups.value.length)
-
-/** progress bar */
 const progressWidth = computed(() =>
   totalSteps.value ? `${(currentStep.value / totalSteps.value) * 100}%` : '0%',
 )
 
-/* ---------- Config ---------- */
-const MAX_FIELDS_PER_STEP = computed(() => props.maxPerStep ?? 4)
+/* ---------- Voice assistant (Test.vue-like) ---------- */
+const unifiedTts = useUnifiedTTS()
+const stt = useWebSpeechStt()
+
+const voiceLang = ref<'ceb-PH' | 'fil-PH' | 'en-US'>('ceb-PH')
+const statusText = ref('Ready to start')
+const logs = ref<string[]>([])
+const isFormComplete = ref(false)
+
+// STT state shown in the UI
+const transcript = ref('')
+const interimTranscript = ref('')
+
+// flags to control auto-processing
+const isSpeaking = ref(false)
+const isListening = computed(() => stt.listening?.value ?? false)
+const isAwaitingAnswer = ref(false)
+const hasProcessedCurrentAnswer = ref(false)
+
+
+const currentFieldIndex = ref(0)
+const voiceFields = computed<Field[]>(() => stepGroups.value.flat())
+const currentVoiceField = computed<Field | null>(
+  () => voiceFields.value[currentFieldIndex.value] ?? null,
+)
+const voiceProgress = computed(() =>
+  voiceFields.value.length ? ((currentFieldIndex.value + 1) / voiceFields.value.length) * 100 : 0,
+)
+
+const statusClass = computed(() => {
+  if (isListening.value) return 'text-[11px] mt-1 text-emerald-600 font-semibold'
+  if (isSpeaking.value) return 'text-[11px] mt-1 text-blue-600 font-semibold'
+  return 'text-[11px] mt-1 text-gray-600'
+})
+
+function addLog(message: string) {
+  const ts = new Date().toLocaleTimeString()
+  logs.value.push(`[${ts}] ${message}`)
+}
 
 /* ---------- Helpers ---------- */
 function normalizeSection(raw: any): SectionNorm {
   const s = String(raw ?? '').trim().toLowerCase()
-  if (['osca', 'osca_section', 'osc', 'staff_osca'].includes(s)) return 'osca'
-  if (['senior', 'senior_section', 'sr', 'sc'].includes(s)) return 'senior'
+  if (!s) return 'other'
+  if (s.includes('osca')) return 'osca'
+  if (s.includes('senior')) return 'senior'
   return 'other'
 }
-function norm(s?: string | null) {
-  return (s || '').trim().toLowerCase()
-}
+
 function isChoiceType(t = '') {
   const k = t.toLowerCase()
   return k === 'dropdown' || k === 'select' || k === 'radio' || k === 'checkbox'
 }
+
 function computeAge(dob: Date | string): number | null {
   if (!dob) return null
   const d = typeof dob === 'string' ? new Date(dob) : dob
-  if (isNaN(+d)) return null
+  if (isNaN(d.getTime())) return null
   const today = new Date()
   let age = today.getFullYear() - d.getFullYear()
   const m = today.getMonth() - d.getMonth()
@@ -239,17 +333,16 @@ function computeAge(dob: Date | string): number | null {
   return age >= 0 ? age : null
 }
 
-/* Will hold the IDs we detect from loaded fields */
+/* IDs for DOB & Age auto-link */
 const dobFieldId = ref<number | null>(null)
 const ageFieldId = ref<number | null>(null)
 
-/* ---------- Data Load ---------- */
+/* ---------- Supabase: load form & fields ---------- */
 async function loadForm() {
   loading.value = true
   errorMessage.value = ''
 
   try {
-    // Find form by programId
     const { data: form, error: formError } = await supabase
       .from('Forms')
       .select('id, name, description')
@@ -264,7 +357,6 @@ async function loadForm() {
     formId.value = form.id
     formTitle.value = form.name || 'Application Form'
 
-    // Load fields
     const { data: fields, error: fieldError } = await supabase
       .from('FormFields')
       .select('*')
@@ -272,20 +364,21 @@ async function loadForm() {
       .order('order_index', { ascending: true })
 
     if (fieldError) {
+      console.error(fieldError)
       errorMessage.value = 'Error fetching form fields.'
       return
     }
 
-    // Keep options as OBJECT for non-choice types (e.g., number/date config)
-    formFields.value = (fields || []).map((f: any) => {
+    const mapped: Field[] = (fields || []).map((f: any) => {
       const t = (f.type || '').toLowerCase()
       const opts = isChoiceType(t)
         ? (Array.isArray(f.options)
             ? f.options
             : f.options
-              ? Object.values(f.options)
-              : [])
-        : (f.options ?? null)
+            ? Object.values(f.options)
+            : [])
+        : f.options ?? null
+
       return {
         ...f,
         section_norm: normalizeSection(f.section),
@@ -293,22 +386,25 @@ async function loadForm() {
       } as Field
     })
 
-    // Find DOB & Age fields by label (fallback to regex if labels differ)
-    const byExact = (txt: string) =>
-      formFields.value.find((ff) => norm(ff.label) === norm(txt))
+    formFields.value = mapped
 
+    // init values
+    const vals: Record<number, any> = {}
+    for (const f of mapped) {
+      if (!(f.id in vals)) vals[f.id] = ''
+    }
+    formValues.value = vals
+
+    // find DOB & Age
     const dobField =
-      byExact('Date of Birth') ||
-      formFields.value.find((ff) => /(^|\b)(dob|birth|birthdate)(\b|$)/i.test(ff.label))
-
+      mapped.find((ff) => String(ff.label ?? '').trim().toLowerCase() === 'date of birth') ||
+      mapped.find((ff) => /dob|birth|birthdate/i.test(String(ff.label ?? '')))
     const ageField =
-      byExact('Age') ||
-      formFields.value.find((ff) => norm(ff.label) === 'age')
+      mapped.find((ff) => String(ff.label ?? '').trim().toLowerCase() === 'age') || null
 
     dobFieldId.value = dobField?.id ?? null
     ageFieldId.value = ageField?.id ?? null
 
-    // Make Age read-only in UI (recommended so users don't fight the auto value)
     if (ageField) {
       if (!ageField.options || typeof ageField.options !== 'object') {
         ageField.options = { readonly: true }
@@ -316,15 +412,15 @@ async function loadForm() {
         ageField.options.readonly = true
       }
     }
-  } catch (e) {
-    console.error(e)
+  } catch (err) {
+    console.error(err)
     errorMessage.value = 'Failed to load form data.'
   } finally {
     loading.value = false
   }
 }
 
-/* ---------- Step Builder ---------- */
+/* ---------- Step builder ---------- */
 function buildSteps(allFields: Field[]) {
   if (!allFields?.length) {
     stepGroups.value = []
@@ -341,7 +437,6 @@ function buildSteps(allFields: Field[]) {
     return (a.order_index ?? 0) - (b.order_index ?? 0)
   })
 
-  // Role UI gating (DB RLS should still enforce server perms)
   let visible = sorted
   if (isSenior.value && !isOsca.value) {
     visible = sorted.filter((f) => f.section_norm === 'senior')
@@ -351,7 +446,6 @@ function buildSteps(allFields: Field[]) {
     visible = sorted.filter((f) => f.section_norm === 'senior')
   }
 
-  // Chunk to avoid scrolling
   const steps: Field[][] = []
   const n = MAX_FIELDS_PER_STEP.value
   for (let i = 0; i < visible.length; i += n) {
@@ -359,7 +453,6 @@ function buildSteps(allFields: Field[]) {
   }
   stepGroups.value = steps
 
-  // Labels by the section of the first field in each chunk
   stepLabels.value = steps.map((grp) => {
     const sect = grp[0]?.section_norm
     if (sect === 'osca') return 'OSCA Section'
@@ -367,10 +460,10 @@ function buildSteps(allFields: Field[]) {
     return 'Form Section'
   })
 
-  currentStep.value = Math.min(currentStep.value, steps.length) || 1
+  currentStep.value = steps.length ? Math.min(currentStep.value, steps.length) : 1
 }
 
-/* ---------- Nav ---------- */
+/* ---------- Step navigation ---------- */
 function nextStep() {
   if (currentStep.value < totalSteps.value) currentStep.value++
 }
@@ -378,44 +471,260 @@ function prevStep() {
   if (currentStep.value > 1) currentStep.value--
 }
 
-/* ---------- Submit / Draft ---------- */
-function onSubmit() {
-  const payload = { formId: formId.value, values: formValues.value, mode: props.mode }
-  emit('submit', payload)        // senior side continues to use this
-  emit('form-submit', payload)   // OSCA page will listen to this to avoid any collisions
-}
-function saveAsDraft() {
-  emit('save', { formId: formId.value, values: formValues.value, mode: props.mode })
+/* ---------- Voice: sync step when currentFieldIndex changes ---------- */
+function syncStepWithVoiceIndex() {
+  const groups = stepGroups.value
+  const idx = currentFieldIndex.value
+  let acc = 0
+
+  for (let i = 0; i < groups.length; i++) {
+    const size = groups[i].length
+    if (idx < acc + size) {
+      currentStep.value = i + 1
+      return
+    }
+    acc += size
+  }
 }
 
-/* ---------- Modal (kept for UI parity) ---------- */
-const showModal = ref(false)
-function confirmModal() {
-  showModal.value = false
-}
-
-/* ---------- Reactions ---------- */
-// rebuild steps whenever inputs change
-watch([formFields, isOsca, isSenior, MAX_FIELDS_PER_STEP], () => buildSteps(formFields.value), {
-  immediate: true,
+watch(currentFieldIndex, () => {
+  syncStepWithVoiceIndex()
+  hasProcessedCurrentAnswer.value = false
 })
 
-// emit 'changed' whenever any field value changes
-watch(formValues, (v) => emit('changed', { values: v }), { deep: true })
+// Keep interim text in sync with the composable (for the green "LISTENING..." box)
+watch(
+  () => stt.interimTranscript?.value,
+  (val) => {
+    if (!isAwaitingAnswer.value) return
+    interimTranscript.value = val ?? ''
+  }
+)
 
-// when DOB changes, recompute Age and set it
+// When a final transcript appears, auto-stop and process the answer once
+watch(
+  () => stt.finalTranscript?.value,
+  (val, oldVal) => {
+    if (!isAwaitingAnswer.value) return
+
+    const text = (val || '').trim()
+    const prev = (oldVal || '').trim()
+    if (!text || text === prev) return
+    if (hasProcessedCurrentAnswer.value) return
+
+    transcript.value = text
+    logs.value.push(`[AUTO] Heard: ${text}`)
+    stopListening() // will call processAnswer() but guarded so it runs only once
+  }
+)
+
+// Basic error logging from STT
+watch(
+  () => stt.error?.value,
+  (err) => {
+    if (!err) return
+    statusText.value = 'Speech recognition error.'
+    logs.value.push(`[ERROR] STT: ${String(err)}`)
+    isAwaitingAnswer.value = false
+  }
+)
+
+
+/* ---------- Voice: speak wrapper ---------- */
+async function speakText(text: string) {
+  if (!text) return
+  try {
+    isSpeaking.value = true
+    await Promise.resolve(unifiedTts.stop())
+    addLog(`Speaking: ${text}`)
+    await Promise.resolve(unifiedTts.speak(text))
+    addLog('Speech ended')
+  } catch (err) {
+    console.error('TTS error', err)
+    addLog('Speech error')
+  } finally {
+    isSpeaking.value = false
+  }
+}
+
+
+/* ---------- Voice: start/stop listening & process answer ---------- */
+function startListening() {
+  if (!stt.supported?.value) {
+    statusText.value = 'Speech recognition is not supported on this device.'
+    addLog('STT not supported')
+    return
+  }
+
+  // new voice turn
+  transcript.value = ''
+  interimTranscript.value = ''
+  isAwaitingAnswer.value = true
+  hasProcessedCurrentAnswer.value = false
+
+  if ('lang' in stt && stt.lang) {
+    stt.lang.value = voiceLang.value
+  }
+  if ('autoRestart' in stt && stt.autoRestart) {
+    stt.autoRestart.value = false
+  }
+
+  stt.clear()
+  stt.start()
+  statusText.value = `Listening for: ${currentVoiceField.value?.label ?? ''}`
+  addLog('Microphone started')
+}
+
+
+async function stopListening() {
+  // prevent double processing for the same field
+  if (hasProcessedCurrentAnswer.value) return
+  hasProcessedCurrentAnswer.value = true
+
+  if (stt.listening?.value) {
+    stt.stop()
+    addLog('Microphone stopped')
+  }
+
+  statusText.value = 'Processing answer...'
+
+  // small delay to let Web Speech flush its final result
+  await new Promise((resolve) => setTimeout(resolve, 500))
+
+  const finalText = (stt.finalTranscript?.value || '').trim()
+  const interimText = (stt.interimTranscript?.value || '').trim()
+
+  interimTranscript.value = interimText
+  transcript.value = finalText || interimText
+
+  const answer = finalText || interimText
+  isAwaitingAnswer.value = false
+
+  if (!answer) {
+    addLog('No answer received')
+    statusText.value = 'No answer received. Please try again.'
+    return
+  }
+
+  await processAnswer(answer)
+}
+
+
+async function processAnswer(answer: string) {
+  const field = currentVoiceField.value
+  if (!field) return
+
+  const cleaned = answer.trim()
+  addLog(`Processing answer for ${field.label}: ${cleaned}`)
+  statusText.value = `Processing answer for ${field.label}...`
+
+  if (cleaned) {
+    formValues.value[field.id] = cleaned
+    emit('changed', { values: formValues.value })
+    addLog(`Filled ${field.label} with: ${cleaned}`)
+
+    if (currentFieldIndex.value < voiceFields.value.length - 1) {
+      currentFieldIndex.value++
+      transcript.value = ''
+      interimTranscript.value = ''
+      await new Promise((resolve) => setTimeout(resolve, 700))
+      await askCurrentQuestion()
+    } else {
+      isFormComplete.value = true
+      statusText.value = 'Form completed (voice run).'
+      await speakText('Salamat! Kompleto na ang imong mga tubag.')
+      addLog('Form completed')
+    }
+  } else {
+    addLog('Empty answer after cleaning')
+    statusText.value = 'No answer received. Please try again.'
+  }
+}
+
+
+/* ---------- Voice: start form & ask current question ---------- */
+async function startForm() {
+  if (!voiceFields.value.length) {
+    statusText.value = 'No fields available for voice mode.'
+    return
+  }
+
+  currentFieldIndex.value = 0
+  isFormComplete.value = false
+  logs.value = []
+  transcript.value = ''
+  interimTranscript.value = ''
+  isAwaitingAnswer.value = false
+  hasProcessedCurrentAnswer.value = false
+
+  statusText.value = 'Starting voice run...'
+  addLog('Starting form process')
+
+  await new Promise((resolve) => setTimeout(resolve, 300))
+  await askCurrentQuestion()
+}
+
+
+async function askCurrentQuestion() {
+  const field = currentVoiceField.value
+  if (!field) return
+
+  statusText.value = `Asking: ${field.label}`
+  const question = field.label // you can later replace with Cebuano question from options
+  await speakText(question)
+
+  await new Promise((resolve) => setTimeout(resolve, 400))
+  startListening()
+}
+
+/* ---------- Submit & Draft ---------- */
+function onSubmit() {
+  emit('submit', { formId: formId.value, values: formValues.value })
+}
+
+function saveAsDraft() {
+  emit('save', { formId: formId.value, values: formValues.value })
+}
+
+/* ---------- Field container class (highlight current voice field) ---------- */
+function fieldContainerClass(field: Field) {
+  const base = 'rounded-2xl border px-4 py-3 transition-all'
+  if (currentVoiceField.value && currentVoiceField.value.id === field.id && !isFormComplete.value) {
+    return `${base} border-emerald-500 bg-emerald-50`
+  }
+  if (formValues.value[field.id]) {
+    return `${base} border-green-300 bg-green-50`
+  }
+  return `${base} border-emerald-50 bg-emerald-50/40`
+}
+
+/* ---------- Watches ---------- */
+watch(
+  [formFields, isSenior, isOsca, MAX_FIELDS_PER_STEP],
+  () => buildSteps(formFields.value),
+  { immediate: true },
+)
+
+watch(
+  formValues,
+  (v) => {
+    emit('changed', { values: v })
+  },
+  { deep: true },
+)
+
 watch(
   () => (dobFieldId.value ? formValues.value[dobFieldId.value] : null),
   (dobVal) => {
     if (!ageFieldId.value) return
-    const age = computeAge(dobVal)
+    const age = computeAge(dobVal as any)
     if (age != null) {
       formValues.value[ageFieldId.value] = age
     } else {
       delete formValues.value[ageFieldId.value]
     }
   },
-  { immediate: true }
+  { immediate: true },
 )
 
 /* ---------- Mount ---------- */
@@ -426,35 +735,10 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.form-input {
-  @apply w-full rounded-xl border border-gray-300 p-3 text-gray-700 text-base focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400 transition-all;
-}
 .btn-primary {
-  @apply bg-emerald-600 text-white px-6 py-2 rounded-xl font-semibold shadow hover:bg-emerald-700 transition;
+  @apply bg-emerald-600 text-white px-4 py-2 rounded-xl font-semibold shadow hover:bg-emerald-700 transition;
 }
 .btn-secondary {
-  @apply border border-gray-300 px-6 py-2 rounded-xl font-semibold hover:bg-gray-100 transition;
-}
-.animate-fade-in {
-  animation: fadeIn 0.3s ease-in;
-}
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-.fade-enter-active,
-.fade-leave-active {
-  transition: all 0.3s ease;
-}
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-  transform: scale(0.95);
+  @apply border border-gray-300 px-4 py-2 rounded-xl font-semibold hover:bg-gray-100 transition;
 }
 </style>
