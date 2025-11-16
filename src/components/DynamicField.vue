@@ -74,21 +74,25 @@
     </div>
 
     <!-- CHECKBOX -->
-    <div v-else-if="normalizedType === 'checkbox'" class="flex flex-col gap-2">
-      <label
-        v-for="opt in options"
-        :key="opt"
-        class="flex items-center gap-3 bg-emerald-50/60 p-2 rounded-lg hover:bg-emerald-100/60 transition cursor-pointer"
-      >
-        <input
-          type="checkbox"
-          class="w-5 h-5 accent-emerald-600 focus:ring-emerald-500"
-          :value="opt"
-          v-model="model"
-        />
-        <span class="text-gray-800 font-medium text-base">{{ opt }}</span>
-      </label>
-    </div>
+<!-- NEW (per-option, array-based) -->
+<div v-else-if="field.type === 'checkbox'">
+  <div class="space-y-2">
+    <label
+      v-for="opt in field.options"
+      :key="opt"
+      class="flex items-center gap-2 cursor-pointer"
+    >
+      <input
+        type="checkbox"
+        :value="opt"
+        v-model="checkboxValue"
+        class="h-4 w-4 rounded border-emerald-400 text-emerald-600 focus:ring-emerald-500"
+      />
+      <span class="text-sm text-gray-800">{{ opt }}</span>
+    </label>
+  </div>
+</div>
+
 
     <!-- DATE -->
     <div v-else-if="normalizedType === 'date'">
