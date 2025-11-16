@@ -84,3 +84,22 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+:root {
+  --senior-font-scale: 1;
+}
+
+/* If you want it app-wide for seniors container only: */
+.senior-font-root {
+  font-size: calc(16px * var(--senior-font-scale));
+}
+
+/* Optional: make headings scale nicely too */
+.senior-font-root h1,
+.senior-font-root h2,
+.senior-font-root h3,
+.senior-font-root p,
+.senior-font-root span,
+.senior-font-root li {
+  font-size: calc(1rem * var(--senior-font-scale));
+}

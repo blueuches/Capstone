@@ -1,6 +1,6 @@
 <!-- src/pages/ApplyRequest.vue -->
 <template>
-  <div class="min-h-screen bg-gradient-to-b from-emerald-50 to-white flex flex-col">
+  <div class="senior-font-root min-h-screen bg-gradient-to-b from-emerald-50 to-white flex flex-col">
     <!-- 🔹 Top Header -->
     <SeniorHeader @toggle-sidebar="toggleSidebar" />
 
@@ -150,7 +150,7 @@ const previewError = ref<string | undefined>()
 
 onMounted(init)
 
-const { speak } = useTTS()
+//const { speak } = useTTS()
 
 onMounted(() => {
   // Short delay to avoid interrupting other page audio

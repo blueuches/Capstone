@@ -1,6 +1,6 @@
 <!-- src/pages/Settings.vue -->
 <template>
-  <div class="min-h-screen bg-gradient-to-b from-emerald-50 to-white flex flex-col">
+  <div class="senior-font-root min-h-screen bg-gradient-to-b from-emerald-50 to-white flex flex-col">
     <!-- Header -->
     <header class="bg-emerald-600 text-white px-4 py-4 flex items-center shadow">
       <button @click="$router.back()" class="text-white text-2xl mr-3 leading-none">

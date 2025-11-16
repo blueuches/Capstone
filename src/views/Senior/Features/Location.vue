@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-gradient-to-b from-emerald-50 via-white to-emerald-50/40 min-h-screen flex flex-col">
+  <div class="senior-font-root bg-gradient-to-b from-emerald-50 via-white to-emerald-50/40 min-h-screen flex flex-col">
     <!-- Header -->
     <SeniorHeader @toggle-sidebar="toggleSidebar" />
 

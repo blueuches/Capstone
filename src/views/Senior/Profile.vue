@@ -1,6 +1,6 @@
 <!-- SeniorProfile.vue (polished to match mock) -->
 <template>
-  <div class="min-h-screen bg-gradient-to-b from-emerald-50 to-white flex flex-col">
+  <div class="senior-font-root min-h-screen bg-gradient-to-b from-emerald-50 to-white flex flex-col">
     <!-- Top bar -->
     <header class="sticky top-0 z-30 bg-emerald-600 text-white shadow">
       <div class="px-4 py-3 flex items-center justify-between">

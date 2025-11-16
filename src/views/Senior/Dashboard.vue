@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-gradient-to-b from-emerald-50 to-white h-dvh flex flex-col overflow-hidden">
+  <div class="senior-font-root bg-gradient-to-b from-emerald-50 to-white h-dvh flex flex-col overflow-hidden">
     <!-- Sticky Top Bar -->
     <SeniorHeader @toggle-sidebar="toggleSidebar" />
 

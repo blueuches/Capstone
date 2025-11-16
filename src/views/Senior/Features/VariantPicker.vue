@@ -1,5 +1,5 @@
 <template>
-  <div class="relative min-h-screen flex flex-col bg-gradient-to-b from-emerald-50 to-white overflow-hidden">
+  <div class="senior-font-root relative min-h-screen flex flex-col bg-gradient-to-b from-emerald-50 to-white overflow-hidden">
     <SeniorHeader @toggle-sidebar="toggleSidebar" />
       <SeniorSidebar :open="sidebarOpen" @close="sidebarOpen = false" />
     <h2 class="text-lg font-semibold text-emerald-800 mb-3">Choose OSCA ID Variant</h2>

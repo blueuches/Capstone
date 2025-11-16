@@ -5,6 +5,8 @@
     role="navigation"
   >
     <ul class="flex items-center justify-around px-6">
+      <!-- 🔠 Font size controls -->
+
       <li>
         <router-link
           to="/senior/notifications"
@@ -23,7 +25,17 @@
       </li>
 
       <li>
-        <button
+        <div class="flex items-center gap-1">
+          <button
+            type="button"
+            @click="decreaseFont"
+            class="w-9 h-9 rounded-full border border-emerald-200 flex items-center justify-center
+                   text-base font-bold text-emerald-700 hover:bg-emerald-50 active:scale-95"
+            aria-label="Smaller text"
+          >
+            –
+          </button>
+                  <button
           @click="$emit('mic')"
           :class="[ 'relative w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 shadow-lg',
                     micActive ? 'bg-emerald-500 text-white ring-4 ring-emerald-300 animate-pulse-glow'
@@ -37,6 +49,16 @@
             <path d="M12 18v4" />
           </svg>
         </button>
+          <button
+            type="button"
+            @click="increaseFont"
+            class="w-9 h-9 rounded-full border border-emerald-200 flex items-center justify-center
+                   text-base font-bold text-emerald-700 hover:bg-emerald-50 active:scale-95"
+            aria-label="Larger text"
+          >
+            +
+          </button>
+        </div>
       </li>
 
       <li>
@@ -57,6 +79,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useNotifications } from '@/composables/useNotifications'
+import { useSeniorFontSize } from '@/composables/useSeniorFontSize'
 
 /** Live unread count from Supabase (updates in real time) */
 const { unreadCount } = useNotifications(100)
@@ -64,6 +87,9 @@ const notifCount = computed(() => unreadCount.value)
 
 /** Mic UI state (unchanged) */
 const micActive = ref(false)
+
+/** 🔠 Global font size controls */
+const { increaseFont, decreaseFont } = useSeniorFontSize()
 </script>
 
 <style scoped>
