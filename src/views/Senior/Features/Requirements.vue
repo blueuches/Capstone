@@ -1,25 +1,9 @@
 <template>
   <div class="bg-gradient-to-b from-emerald-50 via-white to-emerald-50/30 min-h-screen flex flex-col">
     <!-- Header -->
-    <header class="sticky top-0 z-40 bg-emerald-600 text-white shadow-md">
-      <div class="px-4 py-3 flex items-center gap-3">
-        <!-- Menu -->
-        <button @click="sidebarOpen = !sidebarOpen" class="p-2 rounded-full hover:bg-emerald-700/40">
-          <svg viewBox="0 0 24 24" class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M4 6h16M4 12h16M4 18h16" />
-          </svg>
-        </button>
-        <h1 class="flex-1 text-lg font-semibold text-center -ml-8 tracking-wide">SeniorGo</h1>
-        <router-link to="/senior/profile" aria-label="Profile">
-          <img
-            :src="avatarUrl"
-            @error="useInlineAvatar"
-            class="w-8 h-8 rounded-full border border-white/70 object-cover"
-            alt="Profile"
-          />
-        </router-link>
-      </div>
-    </header>
+    <SeniorHeader @toggle-sidebar="toggleSidebar" />
+
+  <SeniorSidebar :open="sidebarOpen" @close="sidebarOpen = false" />
 
     <!-- Main Content -->
     <main class="flex-1 overflow-y-auto p-4 pb-[88px]">
@@ -191,41 +175,7 @@
     </main>
 
     <!-- Bottom Tabbar -->
-    <nav class="fixed bottom-0 inset-x-0 bg-white/95 border-t border-emerald-100 py-2 flex justify-around backdrop-blur">
-      <router-link
-        to="/senior/notifications"
-        class="w-12 h-12 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center"
-      >
-        <svg viewBox="0 0 24 24" class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M6 8a6 6 0 1 1 12 0c0 7 3 5 3 9H3c0-4 3-2 3-9" />
-          <path d="M10 21a2 2 0 0 0 4 0" />
-        </svg>
-      </router-link>
-
-      <button class="w-12 h-12 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-lg">
-        <svg viewBox="0 0 24 24" class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M12 14a3 3 0 0 0 3-3V7a3 3 0 1 0-6 0v4a3 3 0 0 0 3 3Z" />
-          <path d="M19 11a7 7 0 0 1-14 0" />
-          <path d="M12 18v4" />
-        </svg>
-      </button>
-
-      <router-link
-        to="/senior/dashboard"
-        class="w-12 h-12 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center"
-      >
-        <svg
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <polyline points="15 18 9 12 15 6"></polyline>
-        </svg>
-      </router-link>
-    </nav>
+    <SeniorNav />
   </div>
 </template>
 
@@ -233,10 +183,16 @@
 <script setup>
 import { ref, onMounted } from "vue";
 import { supabase } from "@/supabase/client";
+import SeniorNav from '@/components/SeniorNav.vue'
+import SeniorSidebar from '@/components/SeniorSidebar.vue'
+import SeniorHeader from '@/components/SeniorHeader.vue'
+
 
 /* UI state */
-const sidebarOpen = ref(false);
 const expanded = ref(null);
+
+const sidebarOpen = ref(false)
+function toggleSidebar() { sidebarOpen.value = !sidebarOpen.value }
 
 /* Avatar */
 const avatarUrl = ref("https://via.placeholder.com/60");

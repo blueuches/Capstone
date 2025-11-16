@@ -1,39 +1,10 @@
 <!-- src/pages/ApplyRequest.vue -->
 <template>
-<div class="min-h-screen bg-gradient-to-b from-emerald-50 to-white flex flex-col">
+  <div class="min-h-screen bg-gradient-to-b from-emerald-50 to-white flex flex-col">
     <!-- 🔹 Top Header -->
-    <header class="sticky top-0 z-50 bg-emerald-50/90 backdrop-blur-sm border-b border-emerald-100">
-      <SeniorHeader @toggle-sidebar="toggleSidebar" />
-    </header>
+    <SeniorHeader @toggle-sidebar="toggleSidebar" />
 
-    <!-- 🔹 Sidebar Overlay -->
-    <transition name="fade">
-      <div
-        v-if="sidebarOpen"
-        class="fixed inset-0 z-40 bg-black/30 lg:hidden"
-        @click="toggleSidebar"
-      ></div>
-    </transition>
-
-    <!-- 🔹 Sidebar Menu -->
-    <transition name="slide">
-      <aside
-        v-if="sidebarOpen"
-        class="fixed top-0 left-0 z-50 h-full w-64 bg-white shadow-xl ring-1 ring-emerald-100 p-4 flex flex-col space-y-4 lg:hidden"
-      >
-        <div class="flex justify-between items-center border-b pb-2">
-          <h2 class="font-semibold text-emerald-700">Menu</h2>
-          <button @click="toggleSidebar" class="text-emerald-700 text-lg">✕</button>
-        </div>
-
-        <nav class="flex flex-col space-y-3">
-          <router-link to="/senior/dashboard" class="text-emerald-700 hover:text-emerald-900">Dashboard</router-link>
-          <router-link to="/senior/profile" class="text-emerald-700 hover:text-emerald-900">Profile</router-link>
-          <router-link to="/senior/requirements" class="text-emerald-700 hover:text-emerald-900">My Requirements</router-link>
-          <router-link to="/logout" class="text-red-600 font-semibold hover:text-red-700">Log out</router-link>
-        </nav>
-      </aside>
-    </transition>
+  <SeniorSidebar :open="sidebarOpen" @close="sidebarOpen = false" />
 
     <!-- 🔹 Main Content -->
     <main class="flex-1 w-full max-w-4xl mx-auto p-4 space-y-6">
@@ -46,7 +17,10 @@
       </section>
 
       <!-- Process Section -->
-      <section v-if="program?.process" class="bg-white rounded-2xl shadow p-5 ring-1 ring-emerald-100">
+      <section
+        v-if="program?.process"
+        class="bg-white rounded-2xl shadow p-5 ring-1 ring-emerald-100"
+      >
         <h3 class="text-lg font-semibold text-emerald-800 mb-3">📋 Process</h3>
         <div class="space-y-4">
           <div
@@ -54,7 +28,9 @@
             :key="i"
             class="flex items-start gap-3 p-3 bg-emerald-50 rounded-xl border border-emerald-100"
           >
-            <div class="flex-shrink-0 w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold">
+            <div
+              class="flex-shrink-0 w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold"
+            >
               {{ i + 1 }}
             </div>
             <p class="text-sm text-gray-800 leading-snug flex-1">{{ step }}</p>
@@ -95,14 +71,16 @@
                 Open
               </button>
 
-              <label class="flex-1 px-3 py-1 rounded-lg bg-emerald-600 text-white text-sm text-center cursor-pointer">
+              <label
+                class="flex-1 px-3 py-1 rounded-lg bg-emerald-600 text-white text-sm text-center cursor-pointer"
+              >
                 <input
                   type="file"
                   class="hidden"
-                  :disabled="busyKind===req"
-                  @change="(e:any)=>onUpload(req, e.target.files?.[0])"
-                >
-                {{ busyKind===req ? 'Uploading…' : (uploads[req] ? 'Replace' : 'Upload') }}
+                  :disabled="busyKind === req"
+                  @change="(e: any) => onUpload(req, e.target.files?.[0])"
+                />
+                {{ busyKind === req ? 'Uploading…' : uploads[req] ? 'Replace' : 'Upload' }}
               </label>
 
               <!-- Continue to Form if requirement is the Application Form -->
@@ -130,7 +108,7 @@
         :type="previewType"
         :loading="previewLoading"
         :error="previewError"
-        @close="previewOpen=false"
+        @close="previewOpen = false"
       />
     </main>
   </div>
@@ -142,6 +120,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { supabase } from '@/supabase/client'
 import SeniorHeader from '@/components/SeniorHeader.vue'
 import SeniorNav from '@/components/SeniorNav.vue'
+import SeniorSidebar from '@/components/SeniorSidebar.vue'
 import FilePreviewModal from '@/components/FilePreviewModal.vue'
 import { useTTS } from '@/composables/useTTS'
 
@@ -152,7 +131,7 @@ const programId = Number(route.params.programId)
 const loading = ref(true)
 const program = ref<any>(null)
 const requestId = ref<number | null>(null)
-const uploads = ref<Record<string, any>>({})  // track uploaded files per requirement
+const uploads = ref<Record<string, any>>({}) // track uploaded files per requirement
 const busyKind = ref<string | null>(null)
 const ariaHint = ref('')
 const variantId = Number(route.params.variantId || 0)
@@ -176,12 +155,14 @@ const { speak } = useTTS()
 onMounted(() => {
   // Short delay to avoid interrupting other page audio
   setTimeout(() => {
-    speak("Diri mag-pasa ug ma nga rekwayerments para maka-aplay. Paki-basa ko sa proseso og tuploka lang ang 'Upload' kung mag-pasa naka sa imo ma nga papeles.")
+    speak(
+      "Diri mag-pasa ug ma nga rekwayerments para maka-aplay. Paki-basa ko sa proseso og tuploka lang ang 'Upload' kung mag-pasa naka sa imo ma nga papeles.",
+    )
   }, 1500)
 })
 
 async function init() {
-  loading.value = true;
+  loading.value = true
 
   // Load program or variant (unchanged)
   if (variantId) {
@@ -189,48 +170,58 @@ async function init() {
       .from('ProgramVariants')
       .select('id, name, description, process, requirements, program_id')
       .eq('id', variantId)
-      .single();
-    if (vErr) { alert('Failed to load variant'); loading.value = false; return; }
-    program.value = v;
+      .single()
+    if (vErr) {
+      alert('Failed to load variant')
+      loading.value = false
+      return
+    }
+    program.value = v
   } else {
     const { data: p, error: pErr } = await supabase
       .from('Programs')
       .select('id, name, description, process, requirements')
       .eq('id', programId)
-      .single();
-    if (pErr) { alert('Failed to load program'); loading.value = false; return; }
-    program.value = p;
+      .single()
+    if (pErr) {
+      alert('Failed to load program')
+      loading.value = false
+      return
+    }
+    program.value = p
   }
 
   // Get or create draft request (unchanged)
   const { data: reqId, error } = await supabase.rpc('ensure_draft_request', {
     p_program_id: programId,
-  });
-  if (error) { alert(error.message); loading.value = false; return; }
-  requestId.value = reqId;
+  })
+  if (error) {
+    alert(error.message)
+    loading.value = false
+    return
+  }
+  requestId.value = reqId
 
   // 🔹 NEW: hydrate uploads from DB (so buttons show "Open" not "Upload")
-  await loadUploadsForRequest();
+  await loadUploadsForRequest()
 
-  loading.value = false;
+  loading.value = false
 }
-
 
 /* -------- Storage helpers (fixed) -------- */
 
 function slugify(s: string) {
   return (s || '')
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')   // spaces & symbols → dashes
-    .replace(/^-+|-+$/g, '');
+    .replace(/[^a-z0-9]+/g, '-') // spaces & symbols → dashes
+    .replace(/^-+|-+$/g, '')
 }
 
 function buildStoragePath(filename: string, label: string) {
   // Keep keys inside the bucket neat & safe: requests/{requestId}/...
   const base = `requests/${requestId.value}`
   const safeLabel = slugify(label)
-  const safeName = (filename || 'file')
-    .replace(/[^\w.\-]+/g, '_')    // allow only word chars, dot, dash, underscore
+  const safeName = (filename || 'file').replace(/[^\w.\-]+/g, '_') // allow only word chars, dot, dash, underscore
   return `${base}/${safeLabel}_${Date.now()}_${safeName}`
 }
 
@@ -264,7 +255,7 @@ async function onUpload(reqLabel: string, file?: File) {
     // 1) Upload to Storage with a clean, predictable key
     const fullPath = buildStoragePath(file.name, reqLabel)
     const { error: upErr } = await supabase.storage
-      .from('requirements')     // bucket name only
+      .from('requirements') // bucket name only
       .upload(fullPath, file, { upsert: true })
     if (upErr) throw upErr
 
@@ -272,7 +263,9 @@ async function onUpload(reqLabel: string, file?: File) {
     const enumKind = mapDocKind(reqLabel)
 
     // 3) Current user (UUID) — matches RequestDocuments.uploaded_by → Users(user_id)
-    const { data: { user } } = await supabase.auth.getUser()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
 
     // 4) Update the seeded row by label
     const { data: upd, error: saveErr } = await supabase
@@ -284,21 +277,19 @@ async function onUpload(reqLabel: string, file?: File) {
       })
       .eq('request_id', requestId.value)
       .eq('label', reqLabel)
-      .select('id')    // lets us detect "0 rows updated"
+      .select('id') // lets us detect "0 rows updated"
 
     if (saveErr) throw saveErr
 
     // 5) If no seeded row matched the label, INSERT a new one (requires RLS insert policy)
     if (!upd || upd.length === 0) {
-      const { error: insErr } = await supabase
-        .from('RequestDocuments')
-        .insert({
-          request_id: requestId.value,
-          kind: enumKind,
-          file_path: fullPath,
-          uploaded_by: user?.id,
-          label: reqLabel,
-        })
+      const { error: insErr } = await supabase.from('RequestDocuments').insert({
+        request_id: requestId.value,
+        kind: enumKind,
+        file_path: fullPath,
+        uploaded_by: user?.id,
+        label: reqLabel,
+      })
       if (insErr) throw insErr
     }
 
@@ -317,8 +308,8 @@ async function onUpload(reqLabel: string, file?: File) {
 function continueToForm() {
   // If this page was opened via a ProgramVariant, use its parent program_id
   const pid = variantId
-    ? Number(program.value?.program_id)   // variant → parent program
-    : Number(programId)                   // base program
+    ? Number(program.value?.program_id) // variant → parent program
+    : Number(programId) // base program
 
   if (!Number.isFinite(pid)) {
     alert('Program not ready yet. Please try again in a moment.')
@@ -330,12 +321,20 @@ function continueToForm() {
 
 /* -------- Accessibility: simple web TTS -------- */
 
-
 /* -------- Label → enum mapping (expanded for 2x2 / picture / pic) -------- */
 
-function mapDocKind(label: string):
-  'id_photo' | 'selfie' | 'birth_cert' | 'marriage_cert' | 'death_cert' |
-  'barangay_cert' | 'medical_cert' | 'proof_of_addr' | 'others' {
+function mapDocKind(
+  label: string,
+):
+  | 'id_photo'
+  | 'selfie'
+  | 'birth_cert'
+  | 'marriage_cert'
+  | 'death_cert'
+  | 'barangay_cert'
+  | 'medical_cert'
+  | 'proof_of_addr'
+  | 'others' {
   const s = (label || '').toLowerCase()
 
   if (s.includes('barangay') && s.includes('cert')) return 'barangay_cert'
@@ -345,14 +344,24 @@ function mapDocKind(label: string):
   if (s.includes('marriage cert')) return 'marriage_cert'
   if (s.includes('birth cert')) return 'birth_cert'
 
-  if (s.includes('proof of address') || s.includes('residence') || s.includes('utility bill') || s.includes('billing'))
+  if (
+    s.includes('proof of address') ||
+    s.includes('residence') ||
+    s.includes('utility bill') ||
+    s.includes('billing')
+  )
     return 'proof_of_addr'
 
-  if (s.includes('medical cert') || s.includes('medical certificate'))
-    return 'medical_cert'
+  if (s.includes('medical cert') || s.includes('medical certificate')) return 'medical_cert'
 
   // catch common ID photo wording
-  if (s.includes('2x2') || s.includes('2 by 2') || s.includes('id pic') || s.includes('id picture') || (s.includes('id') && s.includes('photo')))
+  if (
+    s.includes('2x2') ||
+    s.includes('2 by 2') ||
+    s.includes('id pic') ||
+    s.includes('id picture') ||
+    (s.includes('id') && s.includes('photo'))
+  )
     return 'id_photo'
 
   if (s.includes('selfie')) return 'selfie'
@@ -364,41 +373,41 @@ function mapDocKind(label: string):
 function normLabel(s: string) {
   return (s || '')
     .toLowerCase()
-    .replace(/\s+/g, ' ')      // collapse spaces
+    .replace(/\s+/g, ' ') // collapse spaces
     .trim()
-    .replace(/[^a-z0-9]/g, ''); // strip punctuation
+    .replace(/[^a-z0-9]/g, '') // strip punctuation
 }
 
 async function loadUploadsForRequest() {
-  if (!requestId.value) return;
+  if (!requestId.value) return
 
   // Fetch existing docs for this request
   const { data: docs, error } = await supabase
     .from('RequestDocuments')
     .select('label, file_path')
-    .eq('request_id', requestId.value);
+    .eq('request_id', requestId.value)
 
   if (error) {
-    console.error('loadUploadsForRequest error:', error.message);
-    return;
+    console.error('loadUploadsForRequest error:', error.message)
+    return
   }
 
   // Build a lookup by normalized label for quick matching
-  const byNormLabel = new Map<string, string>();
-  for (const d of (docs || [])) {
+  const byNormLabel = new Map<string, string>()
+  for (const d of docs || []) {
     if (d?.file_path && d.file_path !== '') {
-      byNormLabel.set(normLabel(d.label || ''), d.file_path);
+      byNormLabel.set(normLabel(d.label || ''), d.file_path)
     }
   }
 
   // Reconcile program requirements with saved docs (by normalized label)
-  const reqs: string[] = program.value?.requirements || [];
-  const newUploads: Record<string, string> = {};
+  const reqs: string[] = program.value?.requirements || []
+  const newUploads: Record<string, string> = {}
   for (const req of reqs) {
-    const hit = byNormLabel.get(normLabel(req));
-    if (hit) newUploads[req] = hit;
+    const hit = byNormLabel.get(normLabel(req))
+    if (hit) newUploads[req] = hit
   }
-  uploads.value = newUploads; // reactive update
+  uploads.value = newUploads // reactive update
 }
 
 function detectTypeFromPath(path: string): 'image' | 'pdf' | 'other' {
@@ -408,20 +417,20 @@ function detectTypeFromPath(path: string): 'image' | 'pdf' | 'other' {
   if (ext === 'pdf') return 'pdf'
   return 'other'
 }
-
-
 </script>
 
-
 <style scoped>
-.fade-enter-active, .fade-leave-active {
+.fade-enter-active,
+.fade-leave-active {
   transition: opacity 0.2s ease;
 }
-.fade-enter-from, .fade-leave-to {
+.fade-enter-from,
+.fade-leave-to {
   opacity: 0;
 }
 
-.slide-enter-active, .slide-leave-active {
+.slide-enter-active,
+.slide-leave-active {
   transition: transform 0.25s ease;
 }
 .slide-enter-from {
@@ -451,6 +460,3 @@ main {
   scroll-behavior: smooth;
 }
 </style>
-
-
-

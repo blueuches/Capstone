@@ -1,6 +1,7 @@
 <template>
   <div class="relative min-h-screen flex flex-col bg-gradient-to-b from-emerald-50 to-white overflow-hidden">
     <SeniorHeader @toggle-sidebar="toggleSidebar" />
+      <SeniorSidebar :open="sidebarOpen" @close="sidebarOpen = false" />
     <h2 class="text-lg font-semibold text-emerald-800 mb-3">Choose OSCA ID Variant</h2>
 
     <div v-if="loading" class="text-gray-600 text-sm">Loading variants…</div>
@@ -30,6 +31,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { supabase } from '@/supabase/client'
 import SeniorHeader from '@/components/SeniorHeader.vue'
 import SeniorNav from '@/components/SeniorNav.vue'
+import SeniorSidebar from '@/components/SeniorSidebar.vue'
 
 const route = useRoute()
 const router = useRouter()

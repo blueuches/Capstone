@@ -101,7 +101,7 @@ function askForMoreDocs(_: string) {
   remarksOpen.value = true
 }
 
-function onRemarksSent(_payload: { announcementId: number; targetUserId: string }) {
+function onRemarksSent(_payload: any) {
   // optional: toast, refresh notifications count, etc.
   // console.log('Sent', _payload)
 }

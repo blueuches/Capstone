@@ -107,9 +107,10 @@ const routes = [
   { path: '/senior/help', component: () => import('@/views/Senior/Features/Help.vue'), meta: { requiresAuth: true, roles: ['senior'] } },
   { path: '/senior/apply/:programId/:variantId?', name: 'apply-request', component: () => import('@/views/Senior/Features/ApplyRequest.vue') },
   { path: '/senior/apply/:programId', name: 'variant-picker', component: () => import('@/views/Senior/Features/VariantPicker.vue') },
-    { path: '/senior/settings', component: () => import('@/views/Senior/Features/Settings.vue'), meta: { requiresAuth: true, roles: ['senior'] } },
-      { path: '/senior/about', component: () => import('@/views/Senior/Features/About.vue'), meta: { requiresAuth: true, roles: ['senior'] } },
+  { path: '/senior/settings', component: () => import('@/views/Senior/Features/Settings.vue'), meta: { requiresAuth: true, roles: ['senior'] } },
+  { path: '/senior/about', component: () => import('@/views/Senior/Features/About.vue'), meta: { requiresAuth: true, roles: ['senior'] } },
   { path: '/senior/testvoice', component: () => import('@/views/Test.vue') }, //sample test
+  { path: '/senior/testvoiceweb', component: () => import('@/views/Test1.vue') }, //sample test
 
   // OSCA
   { path: '/osca/dashboard', component: () => import('@/views/OSCA/Dashboard.vue'), meta: { requiresAuth: true, roles: ['osca_staff'] } },

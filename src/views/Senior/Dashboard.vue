@@ -3,27 +3,7 @@
     <!-- Sticky Top Bar -->
     <SeniorHeader @toggle-sidebar="toggleSidebar" />
 
-    <transition name="fade">
-      <div
-        v-if="sidebarOpen"
-        class="absolute top-0 left-0 w-56 h-screen bg-white text-emerald-800 z-50 shadow-xl"
-      >
-        <div class="p-4 border-b border-emerald-100 flex justify-between items-center">
-          <h2 class="font-semibold text-emerald-700">More</h2>
-          <button @click="sidebarOpen = false" class="text-emerald-700">✕</button>
-        </div>
-        <nav class="p-4 flex flex-col space-y-3">
-          <router-link to="/senior/settings" class="text-emerald-700">Settings</router-link>
-          <router-link to="/senior/about" class="text-emerald-700">About</router-link>
-          <router-link
-            to="/logout"
-            @click="sidebarOpen = false"
-            class="text-left text-red-600 font-medium"
-            >Log out</router-link
-          >
-        </nav>
-      </div>
-    </transition>
+  <SeniorSidebar :open="sidebarOpen" @close="sidebarOpen = false" />
 
     <!-- APPLY SHEET (bottom modal) -->
     <transition name="fade">
@@ -200,7 +180,9 @@ import { supabase } from '@/supabase/client'
 import { useAuth } from '@/composables/useAuth'
 import SeniorHeader from '@/components/SeniorHeader.vue'
 import SeniorNav from '@/components/SeniorNav.vue'
-import { useTTS } from '@/composables/useTTS'
+import SeniorSidebar from '@/components/SeniorSidebar.vue'
+//import { useTTS } from '@/composables/useTTS'
+import { useUnifiedTTS } from '@/composables/useUnifiedTTS';
 
 const router = useRouter()
 const { user } = useAuth()
@@ -239,7 +221,7 @@ function toggleMic() {
 }
 
 // Get the speak() function from our composable
-const { speak } = useTTS()
+//const { speak } = useTTS()
 
 // Function to determine greeting
 function getGreeting() {
