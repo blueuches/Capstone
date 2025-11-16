@@ -65,7 +65,7 @@ const navActive = (path) => {
 const oscaLinks = [
   { label: 'Dashboard', path: '/osca/dashboard', icon: Home },
   { label: 'View Barangays', path: '/osca/barangays', icon: Map },
-  { label: 'Review Seniors', path: '/osca/review', icon: CheckSquare },
+  { label: 'Review Seniors', path: '/osca/review', icon: Users },
   { label: 'Applicants', path: '/osca/applications', icon: Users },
   { label: 'Post Announcement', path: '/osca/messaging', icon: Megaphone },
   { label: 'Notification', path: '/osca/notifications', icon: Bell },

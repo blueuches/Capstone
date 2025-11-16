@@ -45,7 +45,7 @@ export function useBarangayContext() {
 
       if (mErr) throw mErr
 
-      const mems = (memsRaw ?? []) as BrgyMembership[]
+      const mems = (memsRaw ?? []) as unknown as BrgyMembership[]
 
       const brgyMem = mems.find(
         m => m.role?.code === 'brgy_staff' && m.organization?.kind === 'barangay'

@@ -123,6 +123,7 @@ import SeniorNav from '@/components/SeniorNav.vue'
 import SeniorSidebar from '@/components/SeniorSidebar.vue'
 import FilePreviewModal from '@/components/FilePreviewModal.vue'
 import { useTTS } from '@/composables/useTTS'
+import useUnifiedTTS from '@/composables/useUnifiedTTS'
 
 const route = useRoute()
 const router = useRouter()
@@ -150,7 +151,7 @@ const previewError = ref<string | undefined>()
 
 onMounted(init)
 
-//const { speak } = useTTS()
+const { speak } = useTTS()
 
 onMounted(() => {
   // Short delay to avoid interrupting other page audio

@@ -220,7 +220,7 @@ function toggleMic() {
 }
 
 // Get the speak() function from our composable
-const { speak } = useTTS()
+const { speak } = useUnifiedTTS()
 
 // Function to determine greeting
 function getGreeting() {

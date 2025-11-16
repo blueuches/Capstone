@@ -12,8 +12,8 @@
     <div v-if="normalizedType === 'text'">
       <input
         v-model="model"
-        :placeholder="field.placeholder"
-        :required="field.required"
+        :placeholder="field.placeholder ?? ''"
+        :required="!!field.required"
         class="fancy-input"
       />
     </div>
@@ -23,8 +23,8 @@
       <textarea
         v-model="model"
         rows="3"
-        :placeholder="field.placeholder"
-        :required="field.required"
+        :placeholder="field.placeholder ?? ''"
+        :required="!!field.required"
         class="fancy-input resize-none"
       ></textarea>
     </div>
@@ -34,10 +34,12 @@
       <select
         v-model="model"
         class="fancy-input appearance-none pr-10"
-        :required="field.required"
+        :required="!!field.required"
       >
         <option disabled value="">Select {{ field.label }}</option>
-        <option v-for="opt in options" :key="opt" :value="opt">{{ opt }}</option>
+        <option v-for="opt in options" :key="opt" :value="opt">
+          {{ opt }}
+        </option>
       </select>
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -73,26 +75,24 @@
       </label>
     </div>
 
-    <!-- CHECKBOX -->
-<!-- NEW (per-option, array-based) -->
-<div v-else-if="field.type === 'checkbox'">
-  <div class="space-y-2">
-    <label
-      v-for="opt in field.options"
-      :key="opt"
-      class="flex items-center gap-2 cursor-pointer"
-    >
-      <input
-        type="checkbox"
-        :value="opt"
-        v-model="checkboxValue"
-        class="h-4 w-4 rounded border-emerald-400 text-emerald-600 focus:ring-emerald-500"
-      />
-      <span class="text-sm text-gray-800">{{ opt }}</span>
-    </label>
-  </div>
-</div>
-
+    <!-- CHECKBOX (array-based, per option) -->
+    <div v-else-if="field.type === 'checkbox'">
+      <div class="space-y-2">
+        <label
+          v-for="opt in field.options"
+          :key="opt"
+          class="flex items-center gap-2 cursor-pointer"
+        >
+          <input
+            type="checkbox"
+            :value="opt"
+            v-model="checkboxValue"
+            class="h-4 w-4 rounded border-emerald-400 text-emerald-600 focus:ring-emerald-500"
+          />
+          <span class="text-sm text-gray-800">{{ opt }}</span>
+        </label>
+      </div>
+    </div>
 
     <!-- DATE -->
     <div v-else-if="normalizedType === 'date'">
@@ -107,7 +107,7 @@
     <!-- FILE -->
     <div v-else-if="normalizedType === 'file'">
       <div
-        class="border-2 border-dashed border-emerald-300 bg-emerald-50/40 rounded-2xl p-4 text-center hover:bg-emerald-100/50 cursor-pointer transition"
+        class="border-2 border-dashed border-emerald-300 bg-emerald-50/60 rounded-2xl px-4 py-6 text-center hover:bg-emerald-100/50 cursor-pointer transition"
         @click="triggerFileUpload"
       >
         <svg
@@ -124,7 +124,9 @@
             d="M12 4v16m8-8H4"
           />
         </svg>
-        <p class="text-sm text-gray-700">Tap to upload {{ field.label }}</p>
+        <p class="text-sm text-gray-700">
+          Tap to upload {{ field.label }}
+        </p>
         <p v-if="model" class="text-xs text-gray-500 mt-2">
           Selected: <strong>{{ model }}</strong>
         </p>
@@ -152,13 +154,14 @@
       </div>
     </div>
 
+    <!-- NUMBER -->
     <div v-else-if="normalizedType === 'number'">
       <input
         type="number"
         class="fancy-input"
         v-model.number="model"
-        :placeholder="field.placeholder"
-        :required="field.required"
+        :placeholder="field.placeholder ?? ''"
+        :required="!!field.required"
         :min="field.options?.min ?? null"
         :max="field.options?.max ?? null"
         :step="field.options?.step ?? '1'"
@@ -183,41 +186,48 @@ interface Field {
   id: number
   label: string
   type: string
-  placeholder?: string
-  required?: boolean
+  placeholder?: string | null
+  required?: boolean | null
   options?: any
 }
 
 const props = defineProps<{ field: Field; modelValue: any }>()
-const emit = defineEmits(['update:modelValue'])
+const emit = defineEmits<{
+  (e: 'update:modelValue', value: any): void
+}>()
 
 const model = computed({
   get: () => props.modelValue,
-  set: (v) => emit('update:modelValue', v)
+  set: (v) => emit('update:modelValue', v),
 })
 
-const checkboxValue = computed({
+const checkboxValue = computed<string[]>({
   get() {
     // ensure array para sa checkboxes
     return Array.isArray(props.modelValue) ? props.modelValue : []
   },
-  set(val: string[]) {
+  set(val) {
     emit('update:modelValue', val)
   },
 })
 
-const normalizedType = computed(() => props.field.type.trim().toLowerCase())
+const normalizedType = computed(
+  () => props.field.type?.trim().toLowerCase() ?? ''
+)
 
 const options = computed(() => {
   const opt = props.field.options
-  if (!opt) return []
+  if (!opt) return [] as any[]
   if (Array.isArray(opt)) return opt
   if (typeof opt === 'object') return Object.values(opt)
   if (typeof opt === 'string') {
     try {
       return JSON.parse(opt)
     } catch {
-      return opt.split(',').map((o) => o.trim())
+      return opt
+        .split(',')
+        .map((o) => o.trim())
+        .filter(Boolean)
     }
   }
   return []
@@ -226,15 +236,22 @@ const options = computed(() => {
 const group = ref<Record<string, string>>({})
 const fileInput = ref<HTMLInputElement | null>(null)
 
-watch(group, (val) => emit('update:modelValue', val), { deep: true })
+watch(
+  group,
+  (val) => emit('update:modelValue', val),
+  { deep: true }
+)
 
 function triggerFileUpload() {
   fileInput.value?.click()
 }
 
 function handleFileUpload(e: Event) {
-  const file = (e.target as HTMLInputElement).files?.[0]
-  if (file) emit('update:modelValue', file.name)
+  const target = e.target as HTMLInputElement | null
+  const file = target?.files?.[0]
+  if (file) {
+    emit('update:modelValue', file.name)
+  }
 }
 </script>
 
