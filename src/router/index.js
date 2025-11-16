@@ -6,6 +6,7 @@ import { supabase } from '@/supabase/client'
 // Eager imports (stable)
 import Welcome from '@/views/Welcome.vue'
 import Login from '@/views/Login.vue'
+import LoginPhone from '@/views/LoginPhone.vue'
 import Signup from '@/views/Signup.vue'
 import OscaReview from '@/views/OSCA/ReviewPage.vue' 
 
@@ -79,6 +80,7 @@ const routes = [
   // Public
   { path: '/', component: Welcome },
   { path: '/login', component: Login, meta: { guestOnly: true } },
+  { path: '/loginviaphone', component: LoginPhone, meta: { guestOnly: true } },
   { path: '/signup', component: Signup, meta: { guestOnly: true} }, // ← bracket fix if you copy-paste
 
   // Debug / NA

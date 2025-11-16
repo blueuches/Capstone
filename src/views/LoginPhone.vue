@@ -97,6 +97,9 @@
       <p class="mt-6 text-sm text-red-600" v-if="errorMsg">{{ errorMsg }}</p>
 
       <p class="mt-8 text-lg text-gray-700 text-center">
+        <router-link to="/login">
+          <button class="text-emerald-700 font-bold underline"> Login using an email</button>
+        </router-link> <br></br>
         Don’t have an account? <br />
         <router-link to="/signup">
           <button class="text-emerald-700 font-bold underline">Register here</button>

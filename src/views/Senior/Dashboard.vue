@@ -140,7 +140,7 @@
 
       <!-- Announcements -->
       <section class="flex-1 flex flex-col min-h-0">
-        <h2 class="text-sm font-semibold text-emerald-800 mb-2 flex-none">OSCA Announcements</h2>
+        <h2 class="text-sm font-semibold text-emerald-800 mb-2 flex-none">Announcements</h2>
 
         <!-- Scrollable list -->
         <div class="flex-1 overflow-y-auto pr-1 sm:pr-2 relative rounded-lg">

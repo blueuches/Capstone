@@ -4,465 +4,709 @@
     <Sidebar role="brgy" />
 
     <!-- Main -->
-    <div class="flex-1 flex flex-col px-4 sm:px-6">
-
-      <header class="bg-white shadow-md p-5 flex items-center justify-between">
+    <main class="flex-1 flex flex-col px-4 sm:px-6 py-4 gap-4">
+      <!-- Header -->
+      <header
+        class="bg-white/90 backdrop-blur rounded-2xl shadow-sm px-5 py-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border border-emerald-100"
+      >
         <div>
-          <h1 class="text-2xl md:text-3xl font-extrabold text-emerald-700">Senior List</h1>
-          <p class="text-gray-600 text-sm md:text-base">Manage eligible seniors and submit to OSCA</p>
+          <h1 class="text-2xl md:text-3xl font-extrabold text-emerald-700 tracking-tight">
+            Senior Management
+          </h1>
+          <p class="text-xs sm:text-sm text-emerald-800/80">
+
+            · Manage senior list
+          </p>
+        </div>
+
+        <div class="flex items-center gap-3 mt-2 sm:mt-0">
+          <p class="hidden sm:block text-xs text-emerald-800/70">
+            Total seniors in system:
+            <span class="font-semibold text-emerald-900">{{ seniors.length }}</span>
+          </p>
+          <button
+            type="button"
+            class="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-100 hover:bg-emerald-100/80 transition"
+            @click="refreshSeniors"
+            :disabled="seniorsLoading || ctxLoading"
+          >
+            <svg class="h-4 w-4 animate-spin" v-if="seniorsLoading || ctxLoading" viewBox="0 0 24 24" fill="none">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+              <path
+                class="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 0 1 8-8v4l3-3-3-3v4a10 10 0 0 0-10 10h4z"
+              />
+            </svg>
+            <svg v-else class="h-4 w-4" viewBox="0 0 24 24" fill="none">
+              <path
+                d="M4 4v6h6M20 20v-6h-6M5 19a8 8 0 0 0 13.657-2M19 5A8 8 0 0 0 5.343 7"
+                stroke="currentColor"
+                stroke-width="1.7"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+            Refresh
+          </button>
         </div>
       </header>
 
-      <!-- Tables -->
-      <main class="p-4 md:p-6 space-y-6">
-        <!-- Registry -->
-        <section ref="registryRef" class="bg-white rounded-2xl shadow p-4 md:p-6">
-          <div class="flex items-center justify-between mb-4">
-            <h2 class="text-xl md:text-2xl font-bold text-emerald-700">Senior Registry</h2>
-            <span class="text-sm text-gray-500">{{ seniors.length }} total</span>
-          </div>
-
-          <div class="overflow-x-auto">
-            <table class="min-w-full border border-gray-200 rounded-xl overflow-hidden">
-              <thead class="bg-emerald-50 text-emerald-700 text-sm">
-                <tr>
-                  <th class="px-4 py-2 text-left font-semibold">Name</th>
-                  <th class="px-4 py-2 text-left font-semibold">Age</th>
-                  <th class="px-4 py-2 text-left font-semibold">Purok</th>
-                  <th class="px-4 py-2 text-left font-semibold">Status</th>
-                  <th class="px-4 py-2 text-center font-semibold">Actions</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-gray-100">
-                <tr
-                  v-for="s in seniors"
-                  :key="s.id"
-                  :class="{ 'bg-emerald-50/40': s.validated }"
-                >
-                  <td class="px-4 py-2 font-medium text-gray-800">{{ s.name }}</td>
-                  <td class="px-4 py-2">{{ s.age }}</td>
-                  <td class="px-4 py-2">{{ s.purok }}</td>
-                  <td class="px-4 py-2">
-                    <span
-                      v-if="s.validated"
-                      class="px-2 py-1 text-xs rounded-full bg-emerald-100 text-emerald-700"
-                    >Eligible</span>
-                    <span
-                      v-else
-                      class="px-2 py-1 text-xs rounded-full bg-amber-100 text-amber-700"
-                    >Ineligible</span>
-                  </td>
-                  <td class="px-4 py-2 flex justify-center gap-2">
-                    <button
-                      class="px-3 py-1.5 rounded-lg text-xs font-semibold text-emerald-700 border border-emerald-300 hover:bg-emerald-50"
-                      @click="toggleValidate(s.id)"
-                    >
-                      {{ s.validated ? 'Ineligible' : 'Eligible' }}
-                    </button>
-                    <button
-                      class="px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700"
-                      @click="selectForSubmit(s.id)"
-                    >
-                      Select
-                    </button>
-                  </td>
-                </tr>
-                <tr v-if="seniors.length === 0">
-                  <td colspan="5" class="px-4 py-4 text-center text-sm text-gray-500">No seniors found.</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        <!-- To Submit -->
-        <section ref="submitRef" class="bg-white rounded-2xl shadow p-4 md:p-6">
-          <div class="flex items-center justify-between mb-4">
-            <h2 class="text-xl md:text-2xl font-bold text-emerald-700">To Submit to OSCA</h2>
-            <span class="text-sm text-gray-500">{{ toSubmitList.length }} selected</span>
-          </div>
-
-          <div v-if="toSubmitList.length > 0" class="mt-4 flex justify-end">
-            <button
-              class="px-5 py-2 rounded-lg text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700"
-              @click="submitToOSCA"
-            >
-              Submit All
-            </button>
-          </div>
-
-               <div class="bg-white/90 backdrop-blur rounded-2xl shadow ring-1 ring-emerald-100 animate-pop">
-        <!-- Title -->
-        <div class="p-5 border-b flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div class="flex items-center gap-3">
-            <div
-              class="h-9 w-9 rounded-xl bg-emerald-600/10 text-emerald-700 grid place-items-center ring-1 ring-emerald-200"
-            >
-              <svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
-                <path
-                  d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5m0 2c-5.33 0-8 2.667-8 5v1h16v-1c0-2.333-2.67-5-8-5"
-                />
-              </svg>
-            </div>
+      <!-- Content -->
+      <div class="grid lg:grid-cols-3 gap-4 lg:gap-6 items-start">
+        <!-- Senior Registry -->
+        <section
+          class="lg:col-span-2 bg-white/95 backdrop-blur rounded-2xl shadow-sm border border-emerald-100 p-4 md:p-6 space-y-4"
+        >
+          <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
-              <h2 class="text-lg sm:text-xl font-extrabold text-emerald-700">View • Eligible Seniors</h2>
-              <p class="text-xs text-gray-500">Select eligible seniors to submit to OSCA</p>
-            </div>
-          </div>
-
-          <div class="flex items-center gap-3">
-            <div class="relative">
-              <input
-                v-model="search"
-                type="text"
-                placeholder="Search seniors…"
-                class="w-full sm:w-64 ps-9 pe-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              />
-              <svg
-                class="absolute left-3 top-2.5 h-4 w-4 text-gray-400"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-              >
-                <path
-                  fill-rule="evenodd"
-                  d="M8.5 3.5a5 5 0 1 1 0 10A5 5 0 0 1 8.5 3.5m6.793 9.207a.999.999 0 1 1-1.414 1.414l-2.086-2.086a6.5 6.5 0 1 1 1.414-1.414z"
-                  clip-rule="evenodd"
-                />
-              </svg>
-            </div>
-            <button
-              class="px-3 py-2 rounded-lg ring-1 ring-emerald-200 text-emerald-700 bg-white hover:bg-emerald-50"
-            >
-              Filter
-            </button>
-          </div>
-        </div>
-
-        <!-- Eligible list -->
-        <ul class="divide-y">
-          <li
-            v-for="(senior, index) in filteredSeniors"
-            :key="index"
-            class="px-4 py-3 hover:bg-emerald-50/40 transition"
-          >
-            <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-              <div class="flex items-center gap-3">
-                <input type="checkbox" class="h-4 w-4 text-emerald-600 rounded border-gray-300" />
-                <div>
-                  <div class="font-semibold text-gray-800 leading-tight">{{ senior.name }}</div>
-                  <div class="text-xs text-gray-500 flex items-center gap-2">
-                    Barangay {{ senior.barangay }} • Eligible
-                    <span
-                      class="inline-flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200"
-                      >SR-ID: {{ senior.srid }}</span
-                    >
-                  </div>
-                </div>
-              </div>
-              <div class="flex items-center gap-2">
-                <span
-                  :class="statusClass(senior)"
-                  class="text-[11px] px-2 py-0.5 rounded-full ring-1"
-                >
-                  {{ senior.statusLabel }}
-                </span>
-                <button
-                  class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-semibold text-emerald-700 bg-emerald-50 ring-1 ring-emerald-200 hover:bg-emerald-100"
-                  @click="openModal(senior)"
-                >
-                  View Requirements
-                  <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                    <path
-                      fill-rule="evenodd"
-                      d="M6 10a1 1 0 0 1 1-1h6.586l-2.293-2.293A1 1 0 0 1 12.707 5.293l4 4a1 1 0 0 1 0 1.414l-4 4a1 1 0 1 1-1.414-1.414L13.586 11H7a1 1 0 0 1-1-1z"
-                      clip-rule="evenodd"
-                    />
-                  </svg>
-                </button>
-              </div>
-            </div>
-          </li>
-        </ul>
-      </div>
-        </section>
-      </main>
-
-          <!-- Modal -->
-    <div
-      v-if="showModal"
-      class="fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto"
-    >
-      <div class="absolute inset-0 bg-black/30 backdrop-blur-sm" @click="closeModal"></div>
-
-      <div
-        class="relative max-w-3xl mx-auto mt-16 sm:mt-24 bg-white/90 backdrop-blur rounded-2xl shadow-2xl ring-1 ring-emerald-100 animate-pop"
-      >
-        <div class="px-5 py-4 border-b flex items-center justify-between">
-          <div class="flex items-center gap-3">
-            <div
-              class="h-9 w-9 rounded-xl bg-emerald-600/10 text-emerald-700 grid place-items-center ring-1 ring-emerald-200"
-            >
-              <svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
-                <path
-                  d="M9 11.5 7.5 10l-1 1 2.5 2.5L17 6.5l-1-1z"
-                />
-              </svg>
-            </div>
-            <div>
-              <h3 class="text-lg font-extrabold text-emerald-700">
-                Requirements — {{ activeSenior?.name }}
-              </h3>
-              <p class="text-xs text-gray-500">
-                SR-ID: {{ activeSenior?.srid }} • Barangay {{ activeSenior?.barangay }}
+              <h2 class="text-xl md:text-2xl font-bold text-emerald-800">Senior Registry</h2>
+              <p class="text-xs sm:text-sm text-emerald-800/70">
+                Seniors already registered in the system for this barangay.
               </p>
             </div>
-          </div>
-          <button class="p-2 rounded-lg text-emerald-700 hover:bg-emerald-50" @click="closeModal">
-            ✕
-          </button>
-        </div>
 
-        <!-- Body -->
-        <div class="p-5 grid grid-cols-1 md:grid-cols-3 gap-5">
-          <!-- Progress -->
-          <section class="md:col-span-1 rounded-xl border p-4 bg-white">
-            <h4 class="text-sm font-semibold text-emerald-700 mb-3">Completion</h4>
-            <div class="flex items-center gap-4">
-              <div
-                class="h-16 w-16 rounded-full ring-progress grid place-items-center"
-                :style="{ '--p': progress.pct }"
-              >
-                <div
-                  class="h-11 w-11 rounded-full bg-white grid place-items-center text-sm font-bold text-emerald-700"
+            <div class="flex items-center gap-2">
+              <div class="relative">
+                <input
+                  v-model="searchTerm"
+                  type="text"
+                  class="w-48 sm:w-60 rounded-xl border border-emerald-100 bg-emerald-50/40 px-3 py-2 pl-8 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400"
+                  placeholder="Search name or address…"
+                />
+                <svg
+                  class="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-emerald-500"
+                  viewBox="0 0 24 24"
+                  fill="none"
                 >
-                  {{ progress.pct }}%
-                </div>
-              </div>
-              <div class="text-sm text-gray-700">
-                <div>
-                  <span
-                    class="inline-block w-2 h-2 rounded-full bg-emerald-500 align-middle mr-2"
-                  ></span
-                  >OK
-                </div>
-                <div>
-                  <span
-                    class="inline-block w-2 h-2 rounded-full bg-yellow-400 align-middle mr-2"
-                  ></span
-                  >Pending
-                </div>
+                  <circle cx="11" cy="11" r="6" stroke="currentColor" stroke-width="1.7" />
+                  <path d="m16 16 3.5 3.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
+                </svg>
               </div>
             </div>
-            <div class="mt-3 text-xs text-gray-500">{{ progress.ok }} of {{ progress.total }} met</div>
-          </section>
+          </div>
 
-          <!-- Checklist -->
-          <section class="md:col-span-2 rounded-xl border p-4 bg-white">
-            <h4 class="text-sm font-semibold text-emerald-700 mb-3">Requirements Checklist</h4>
-            <ul class="space-y-2 text-sm text-gray-800">
-              <li
-                v-for="(req, i) in activeSenior.requirements"
-                :key="i"
-                class="flex items-start gap-3 p-2 rounded-lg border hover:bg-emerald-50/40"
-              >
-                <span
-                  class="mt-1 h-2 w-2 rounded-full"
-                  :class="req.status === 'ok' ? 'bg-emerald-500' : 'bg-yellow-400'"
-                ></span>
-                <div class="flex-1">{{ req.label }}</div>
-                <span class="shrink-0">
-                  <svg
-                    v-if="req.status === 'ok'"
-                    class="h-4 w-4 text-emerald-600"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path
-                      d="M16.707 5.293a1 1 0 0 1 0 1.414l-8 8a1 1 0 0 1-1.414 0l-4-4a1 1 0 1 1 1.414-1.414L8 12.586l7.293-7.293a1 1 0 0 1 1.414 0z"
-                    />
-                  </svg>
-                  <svg
-                    v-else
-                    class="h-4 w-4 text-yellow-600"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path
-                      d="M8.257 3.099c.765-1.36 2.721-1.36 3.486 0l6.518 11.6c.75 1.335-.213 3.001-1.743 3.001H3.482c-1.53 0-2.493-1.666-1.743-3.002l6.518-11.6zM11 14a1 1 0 10-2 0 1 1 0 002 0zm-1-2a1 1 0 01-1-1V7a1 1 0 112 0v4a1 1 0 01-1 1z"
-                    />
-                  </svg>
-                </span>
-              </li>
-            </ul>
-          </section>
-        </div>
+          <!-- Loading / error / empty -->
+          <div v-if="seniorsLoading || ctxLoading" class="py-10 flex items-center justify-center">
+            <p class="text-sm text-emerald-800/80">Loading seniors for your barangay…</p>
+          </div>
+          <div v-else-if="seniorsError" class="py-8 text-center">
+            <p class="text-sm text-red-600">{{ seniorsError }}</p>
+          </div>
+          <div
+            v-else-if="filteredSeniors.length === 0"
+            class="py-10 flex flex-col items-center justify-center gap-2 text-center"
+          >
+            <p class="text-sm font-medium text-emerald-800">No seniors found.</p>
+            <p class="text-xs text-emerald-800/70 max-w-sm">
+              Once seniors from your barangay register or are encoded in the system, they will appear in this list.
+            </p>
+          </div>
 
-        <!-- Footer -->
-        <div
-          class="px-5 py-4 border-t bg-white/80 rounded-b-2xl flex items-center justify-between"
+          <!-- Table -->
+          <div v-else class="rounded-2xl border border-emerald-100 overflow-hidden bg-emerald-50/40">
+            <div class="max-h-[420px] overflow-auto custom-scroll">
+              <table class="min-w-full text-xs sm:text-sm">
+                <thead class="bg-emerald-50/70 sticky top-0 z-10">
+                  <tr>
+                    <th class="px-4 py-2 text-left font-semibold text-emerald-900">Name</th>
+                    <th class="px-3 py-2 text-left font-semibold text-emerald-900">Age</th>
+                    <th class="px-3 py-2 text-left font-semibold text-emerald-900">Contact</th>
+                    <th class="px-3 py-2 text-center font-semibold text-emerald-900">Actions</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-emerald-100/70 bg-white">
+                  <tr
+                    v-for="senior in filteredSeniors"
+                    :key="senior.id"
+                    class="hover:bg-emerald-50/60 transition"
+                  >
+                    <td class="px-4 py-2 font-medium text-emerald-900">
+                      <div class="flex flex-col">
+                        <span>{{ senior.name || 'Unnamed Senior' }}</span>
+                        <span class="text-[11px] text-emerald-800/70">
+                          OSCA: {{ senior.osca_id || '—' }} · RRN: {{ senior.rrn || '—' }}
+                        </span>
+                      </div>
+                    </td>
+                    <td class="px-3 py-2 text-emerald-800">
+                      {{ senior.age ?? '—' }}
+                    </td>
+                    <td class="px-3 py-2 text-emerald-800/90">
+                      {{ formatAddress(senior) || '—' }}
+                    </td>
+                    <td class="px-3 py-2 text-emerald-800/90">
+                      {{ senior.phone || '—' }}
+                    </td>
+                    <td class="px-3 py-2 text-center">
+                      <button
+                        type="button"
+                        class="inline-flex items-center gap-1 rounded-xl px-3 py-1.5 text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-100 hover:bg-emerald-100 transition"
+                        @click="openRequirementsModal(senior)"
+                      >
+                        <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none">
+                          <path
+                            d="M4 12s2.5-5 8-5 8 5 8 5-2.5 5-8 5-8-5-8-5Z"
+                            stroke="currentColor"
+                            stroke-width="1.6"
+                          />
+                          <circle cx="12" cy="12" r="2.4" stroke="currentColor" stroke-width="1.6" />
+                        </svg>
+                        View Requirements
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- To Submit to OSCA (Manual List) -->
+        <section
+          class="lg:col-span-1 bg-white/95 backdrop-blur rounded-2xl shadow-sm border border-emerald-100 p-4 md:p-6 space-y-4"
         >
-          <div class="text-xs text-gray-500">Review the list before submission.</div>
-          <div class="flex items-center gap-2">
-            <button
-              class="px-3 py-2 rounded-lg ring-1 ring-emerald-200 text-emerald-700 bg-white hover:bg-emerald-50"
-              @click="window.print()"
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <h2 class="text-xl font-bold text-emerald-800">To Submit to OSCA</h2>
+              <p class="text-xs sm:text-sm text-emerald-800/75">
+                This is a
+                <span class="font-semibold">manual list</span> for seniors in your barangay
+                <span class="italic">with or without</span> a SeniorGo account.
+              </p>
+            </div>
+            <span
+              class="inline-flex items-center justify-center rounded-full bg-emerald-50 text-emerald-700 text-[11px] px-3 py-1 border border-emerald-100"
             >
-              Print
-            </button>
+              {{ manualList.length }} in list
+            </span>
+          </div>
+
+          <!-- Manual add form -->
+          <div class="rounded-2xl border border-emerald-100 bg-emerald-50/40 p-3 space-y-3">
+            <div class="grid grid-cols-1 gap-2">
+              <div class="space-y-1">
+                <label class="block text-[11px] font-semibold text-emerald-900">Senior name</label>
+                <input
+                  v-model="manualName"
+                  type="text"
+                  class="w-full rounded-xl border border-emerald-100 bg-white px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400"
+                  placeholder="e.g. Juan Dela Cruz"
+                />
+              </div>
+
+              <div class="space-y-1">
+                <label class="block text-[11px] font-semibold text-emerald-900">
+                  Notes / Reference (optional)
+                </label>
+                <input
+                  v-model="manualNotes"
+                  type="text"
+                  class="w-full rounded-xl border border-emerald-100 bg-white px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400"
+                  placeholder="e.g. Purok 3 · OSCA temp ID, etc."
+                />
+              </div>
+            </div>
+
             <button
-              class="px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700"
-              @click="closeModal"
+              type="button"
+              class="w-full inline-flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 text-white text-xs font-semibold py-2 hover:bg-emerald-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              @click="addManualEntry"
+              :disabled="!manualName.trim()"
             >
-              Close
+              <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M12 5v14M5 12h14"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                />
+              </svg>
+              Add to manual list
             </button>
           </div>
-        </div>
+
+          <!-- Manual list display -->
+          <div
+            v-if="manualList.length"
+            class="rounded-2xl border border-emerald-100 bg-emerald-50/40 p-3 space-y-3 max-h-[260px] overflow-auto custom-scroll"
+          >
+            <p class="text-[11px] text-emerald-800/80">
+              These names will be included in your next OSCA submission form.
+            </p>
+
+            <ul class="space-y-2">
+              <li
+                v-for="item in manualList"
+                :key="item.id"
+                class="flex items-start justify-between gap-2 rounded-xl bg-white px-3 py-2 border border-emerald-100"
+              >
+                <div class="flex-1">
+                  <p class="text-xs font-semibold text-emerald-900 leading-tight">
+                    {{ item.name }}
+                  </p>
+                  <p v-if="item.notes" class="text-[11px] text-emerald-800/75 mt-0.5">
+                    {{ item.notes }}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  class="mt-0.5 inline-flex items-center justify-center h-6 w-6 rounded-full text-[11px] text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-100"
+                  @click="removeManualEntry(item.id)"
+                >
+                  ✕
+                </button>
+              </li>
+            </ul>
+          </div>
+
+          <div v-else class="pt-2 text-[11px] text-emerald-800/70">
+            No names added yet. Use this section for seniors who are not yet in the system but are already
+            eligible.
+          </div>
+        </section>
       </div>
-    </div>
-    </div>
+
+      <!-- Requirements Modal -->
+      <transition name="fade-zoom">
+        <div
+          v-if="showRequirementsModal"
+          class="fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto"
+        >
+          <div
+            class="absolute inset-0 bg-black/30 backdrop-blur-sm"
+            @click="closeRequirementsModal"
+          ></div>
+
+          <div
+            class="relative max-w-3xl w-full mx-auto mt-16 sm:mt-20 mb-10 bg-white/95 backdrop-blur rounded-2xl shadow-2xl ring-1 ring-emerald-100 animate-pop"
+          >
+            <!-- Header -->
+            <div class="px-5 py-4 border-b flex items-center justify-between gap-3">
+              <div class="flex items-center gap-3">
+                <div
+                  class="h-9 w-9 rounded-xl bg-emerald-600/10 text-emerald-700 grid place-items-center ring-1 ring-emerald-200"
+                >
+                  <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none">
+                    <path
+                      d="M5 4h14v16H5z"
+                      stroke="currentColor"
+                      stroke-width="1.7"
+                      stroke-linejoin="round"
+                    />
+                    <path
+                      d="M9 8h6M9 12h6M9 16h3"
+                      stroke="currentColor"
+                      stroke-width="1.7"
+                      stroke-linecap="round"
+                    />
+                  </svg>
+                </div>
+                <div>
+                  <h3 class="text-base sm:text-lg font-extrabold text-emerald-800">
+                    Requirements —
+                    <span>{{ activeSenior?.name || 'Senior' }}</span>
+                  </h3>
+                  <p class="text-[11px] text-emerald-800/70">
+                    OSCA: {{ activeSenior?.osca_id || '—' }} · RRN: {{ activeSenior?.rrn || '—' }}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                class="p-2 rounded-lg text-emerald-700 hover:bg-emerald-50"
+                @click="closeRequirementsModal"
+              >
+                ✕
+              </button>
+            </div>
+
+            <!-- Body -->
+            <div class="p-5 grid grid-cols-1 md:grid-cols-3 gap-5">
+              <!-- Summary -->
+              <section class="md:col-span-1 rounded-xl border border-emerald-100 bg-emerald-50/40 p-4 space-y-3">
+                <h4 class="text-xs font-semibold text-emerald-900 tracking-wide uppercase">
+                  Latest Request
+                </h4>
+
+                <div v-if="requirementsLoading" class="py-6 text-xs text-emerald-800/80">
+                  Loading submitted requirements…
+                </div>
+
+                <div v-else-if="requirementsError" class="py-4 text-xs text-red-600">
+                  {{ requirementsError }}
+                </div>
+
+                <div v-else-if="!activeRequestSummary">
+                  <p class="text-xs text-emerald-800/80">
+                    No request found yet for this senior. Once they submit an application, their uploaded
+                    documents will appear here.
+                  </p>
+                </div>
+
+                <div v-else class="space-y-2 text-xs text-emerald-900">
+                  <p class="flex items-center justify-between">
+                    <span class="text-emerald-800/75">Request ID</span>
+                    <span class="font-semibold">{{ activeRequestSummary.id }}</span>
+                  </p>
+                  <p class="flex items-center justify-between">
+                    <span class="text-emerald-800/75">Status</span>
+                    <span
+                      class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                      :class="statusBadgeClass(activeRequestSummary.status)"
+                    >
+                      <span class="h-1.5 w-1.5 rounded-full bg-current"></span>
+                      {{ activeRequestSummary.status || '—' }}
+                    </span>
+                  </p>
+                  <p class="flex items-center justify-between">
+                    <span class="text-emerald-800/75">Submitted at</span>
+                    <span class="font-semibold">
+                      {{ formatDateTime(activeRequestSummary.submitted_at) || '—' }}
+                    </span>
+                  </p>
+                </div>
+              </section>
+
+              <!-- Requirements list -->
+              <section class="md:col-span-2 rounded-xl border border-emerald-100 bg-white p-4 space-y-3">
+                <div class="flex items-center justify-between gap-3">
+                  <h4 class="text-xs font-semibold text-emerald-900 tracking-wide uppercase">
+                    Uploaded Documents
+                  </h4>
+                </div>
+
+                <div v-if="requirementsLoading" class="py-6 text-xs text-emerald-800/80">
+                  Please wait…
+                </div>
+
+                <div
+                  v-else-if="!requirements.length && activeRequestSummary"
+                  class="py-6 text-xs text-emerald-800/80"
+                >
+                  No files uploaded yet for this request.
+                </div>
+
+                <div
+                  v-else-if="!requirements.length && !activeRequestSummary"
+                  class="py-6 text-xs text-emerald-800/80"
+                >
+                  No requirements found.
+                </div>
+
+                <ul v-else class="space-y-2 max-h-72 overflow-auto custom-scroll">
+                  <li
+                    v-for="doc in requirements"
+                    :key="doc.id"
+                    class="flex items-start justify-between gap-3 rounded-xl border border-emerald-100 bg-emerald-50/40 px-3 py-2.5"
+                  >
+                    <div class="flex items-start gap-2">
+                      <div
+                        class="h-7 w-7 rounded-lg bg-emerald-600/10 text-emerald-700 grid place-items-center ring-1 ring-emerald-200"
+                      >
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none">
+                          <path
+                            d="M7 4h7l4 4v12H7z"
+                            stroke="currentColor"
+                            stroke-width="1.6"
+                            stroke-linejoin="round"
+                          />
+                          <path
+                            d="M14 4v4h4"
+                            stroke="currentColor"
+                            stroke-width="1.6"
+                            stroke-linejoin="round"
+                          />
+                        </svg>
+                      </div>
+                      <div>
+                        <p class="text-xs font-semibold text-emerald-900">
+                          {{ doc.kind || 'Requirement' }}
+                        </p>
+                        <p class="text-[11px] text-emerald-800/75 break-all">
+                          {{ doc.file_path || '—' }}
+                        </p>
+                      </div>
+                    </div>
+                    <div class="text-right text-[11px] text-emerald-800/70">
+                      <p class="font-medium">
+                        {{ formatDateTime(doc.uploaded_at) || '—' }}
+                      </p>
+                    </div>
+                  </li>
+                </ul>
+              </section>
+            </div>
+          </div>
+        </div>
+      </transition>
+    </main>
   </div>
 </template>
 
-<script setup>
-import { ref, reactive, computed } from 'vue'
-import { useRoute, RouterLink } from 'vue-router'
+<script setup lang="ts">
+import { ref, computed, onMounted } from 'vue'
 import Sidebar from '@/components/Sidebar.vue'
+import { supabase } from '@/supabase/client'
+import { useBarangayContext } from '@/composables/useBarangayContext'
 
-/* Sidebar logic */
-const sidebarOpen = ref(false)
-const route = useRoute()
-const navActive = (path) => {
-  const isActive = route.path === path
-  return isActive
-    ? 'bg-emerald-50 text-emerald-900 font-extrabold relative before:content-[\'\'] before:absolute before:-left-1 before:h-6 before:w-1 before:rounded-full before:bg-emerald-500'
-    : ''
+type SeniorProfile = {
+  id: number
+  name: string | null
+  age: number | null
+  purok?: string | null
+  phone: string | null
+  osca_id: string | null
+  rrn: string | null
+  house_no: string | null
+  street: string | null
+  city: string | null
+  province: string | null
+  zip: string | null
+  _raw?: any
 }
 
-/* Barangay registry data */
-const seniors = ref([
-  { id: 1, name: 'Juan Dela Cruz', age: 72, purok: 'Purok 1', validated: true },
-  { id: 2, name: 'Maria Santos', age: 79, purok: 'Purok 5', validated: false },
-  { id: 3, name: 'Pedro Reyes', age: 81, purok: 'Purok 2', validated: true },
-  { id: 4, name: 'Carmen Lopez', age: 69, purok: 'Purok 7', validated: false },
-  { id: 5, name: 'Gregorio Tan', age: 74, purok: 'Purok 4', validated: false },
-  { id: 6, name: 'Luisa Manibo', age: 83, purok: 'Purok 6', validated: true }
-])
-let nextId = 7
-
-/* Reactive state */
-const toSubmit = reactive({})
-const toSubmitList = computed(() =>
-  Object.keys(toSubmit)
-    .map((id) => seniors.value.find((s) => s.id === Number(id)))
-    .filter(Boolean)
-)
-
-/* Registry actions */
-function toggleValidate(id) {
-  const s = seniors.value.find((x) => x.id === id)
-  if (s) s.validated = !s.validated
-}
-function selectForSubmit(id) {
-  if (!toSubmit[id]) toSubmit[id] = true
-}
-function submitToOSCA() {
-  alert(`Submitted ${toSubmitList.value.length} seniors to OSCA.`)
-  for (const id of Object.keys(toSubmit)) delete toSubmit[id]
+type RequestSummary = {
+  id: number
+  status: string | null
+  submitted_at: string | null
+  created_at?: string | null
 }
 
-/* Eligible seniors list (modal section) */
-const eligibleSeniors = ref([
-  {
-    name: 'Marry Bersabal',
-    srid: '24-001',
-    barangay: 'Ampayon',
-    statusLabel: 'Ready',
-    status: 'ok',
-    requirements: [
-      { label: 'Government-issued ID (valid)', status: 'ok' },
-      { label: 'Birth Certificate / PSA copy', status: 'ok' },
-      { label: 'OSCA Registration Form (pending signature)', status: 'pending' },
-      { label: '1×1 photo (recent)', status: 'ok' },
-      { label: 'Proof of Residency (Barangay Cert.)', status: 'ok' }
-    ]
-  },
-  {
-    name: 'Eden Bughao',
-    srid: '24-002',
-    barangay: 'Ampayon',
-    statusLabel: '1 pending',
-    status: 'pending',
-    requirements: [
-      { label: 'Government-issued ID (valid)', status: 'ok' },
-      { label: 'Birth Certificate / PSA copy', status: 'ok' },
-      { label: 'OSCA Registration Form', status: 'ok' },
-      { label: '1×1 photo (bring on submission day)', status: 'pending' },
-      { label: 'Proof of Residency (Barangay Cert.)', status: 'ok' }
-    ]
-  },
-  {
-    name: 'Ramon Cruz',
-    srid: '24-003',
-    barangay: 'Ampayon',
-    statusLabel: 'ID renew',
-    status: 'pending',
-    requirements: [
-      { label: 'Government-issued ID (renewal needed)', status: 'pending' },
-      { label: 'Birth Certificate / PSA copy', status: 'ok' },
-      { label: 'OSCA Registration Form', status: 'ok' },
-      { label: '1×1 photo (recent)', status: 'ok' },
-      { label: 'Proof of Residency (Barangay Cert.)', status: 'ok' }
-    ]
+type RequirementDoc = {
+  id: number
+  kind: string | null
+  file_path: string | null
+  uploaded_at: string | null
+}
+
+/* Barangay context */
+const { loading: ctxLoading, barangayId, barangayName, fetchContext } = useBarangayContext()
+
+/* Senior registry from Supabase */
+const seniors = ref<SeniorProfile[]>([])
+const seniorsLoading = ref(false)
+const seniorsError = ref<string | null>(null)
+
+const searchTerm = ref('')
+
+function calculateAge(birthdate: string | null): number | null {
+  if (!birthdate) return null
+  const d = new Date(birthdate)
+  if (Number.isNaN(d.getTime())) return null
+  const now = new Date()
+  let age = now.getFullYear() - d.getFullYear()
+  const m = now.getMonth() - d.getMonth()
+  if (m < 0 || (m === 0 && now.getDate() < d.getDate())) {
+    age--
   }
-])
+  return age
+}
 
-/* Modal logic */
-const search = ref('')
-const showModal = ref(false)
-const activeSenior = ref(null)
+async function loadSeniors() {
+  seniorsError.value = null
+  seniorsLoading.value = true
+  try {
+    if (!barangayId.value) {
+      const ctx = await fetchContext()
+      if (!ctx.barangayId) throw new Error('No barangay context found for this user.')
+    }
+
+    const { data, error } = await supabase
+      .from('SeniorProfiles_v1')
+      .select(
+        `
+        user_id,
+        full_name,
+        username,
+        phone,
+        senior_id,
+        osca_id,
+        rrn,
+        birthdate,
+        sex,
+        house_no,
+        street,
+        barangay_id,
+        city,
+        province,
+        zip,
+        senior_created_at,
+        age
+      `
+      )
+      .eq('barangay_id', barangayId.value)
+
+    if (error) throw error
+
+    seniors.value = (data || []).map((row: any) => ({
+      id: row.senior_id,
+      name: row.full_name,
+      age: row.age ?? calculateAge(row.birthdate),
+      purok: row.street || row.house_no || null,
+      phone: row.phone,
+      osca_id: row.osca_id,
+      rrn: row.rrn,
+      house_no: row.house_no,
+      street: row.street,
+      city: row.city,
+      province: row.province,
+      zip: row.zip,
+      _raw: row
+    }))
+  } catch (err: any) {
+    console.error(err)
+    seniorsError.value = err?.message || 'Failed to load seniors.'
+  } finally {
+    seniorsLoading.value = false
+  }
+}
 
 const filteredSeniors = computed(() => {
-  const q = search.value.trim().toLowerCase()
-  if (!q) return eligibleSeniors.value
-  return eligibleSeniors.value.filter((s) =>
-    s.name.toLowerCase().includes(q)
-  )
+  const term = searchTerm.value.trim().toLowerCase()
+  if (!term) return seniors.value
+  return seniors.value.filter(s => {
+    const name = (s.name || '').toLowerCase()
+    const addr = (formatAddress(s) || '').toLowerCase()
+    return name.includes(term) || addr.includes(term)
+  })
 })
 
-const progress = computed(() => {
-  if (!activeSenior.value) return { ok: 0, total: 0, pct: 0 }
-  const req = activeSenior.value.requirements
-  const ok = req.filter((r) => r.status === 'ok').length
-  const total = req.length
-  const pct = total ? Math.round((ok / total) * 100) : 0
-  return { ok, total, pct }
-})
+function formatAddress(s: SeniorProfile): string {
+  const parts = [s.house_no, s.street, s.city, s.province, s.zip].filter(Boolean)
+  return parts.join(', ')
+}
 
-function openModal(senior) {
+function refreshSeniors() {
+  loadSeniors()
+}
+
+/* Manual To Submit list */
+const manualName = ref('')
+const manualNotes = ref('')
+const manualList = ref<{ id: number; name: string; notes: string }[]>([])
+let manualIdCounter = 1
+
+function addManualEntry() {
+  if (!manualName.value.trim()) return
+  manualList.value.push({
+    id: manualIdCounter++,
+    name: manualName.value.trim(),
+    notes: manualNotes.value.trim()
+  })
+  manualName.value = ''
+  manualNotes.value = ''
+}
+
+function removeManualEntry(id: number) {
+  manualList.value = manualList.value.filter(item => item.id !== id)
+}
+
+/* Requirements modal */
+const showRequirementsModal = ref(false)
+const activeSenior = ref<(SeniorProfile & { osca_id?: string | null; rrn?: string | null }) | null>(null)
+const activeRequestSummary = ref<RequestSummary | null>(null)
+const requirements = ref<RequirementDoc[]>([])
+const requirementsLoading = ref(false)
+const requirementsError = ref<string | null>(null)
+
+async function openRequirementsModal(senior: SeniorProfile) {
   activeSenior.value = senior
-  showModal.value = true
+  showRequirementsModal.value = true
+  requirementsLoading.value = true
+  requirementsError.value = null
+  activeRequestSummary.value = null
+  requirements.value = []
+
+  try {
+    // 1) Get latest request for this senior
+    const { data: reqs, error: rErr } = await supabase
+      .from('requests')
+      .select('id, status, submitted_at, created_at')
+      .eq('senior_id', senior.id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+
+    if (rErr) throw rErr
+
+    const req = reqs && reqs.length > 0 ? (reqs[0] as RequestSummary) : null
+    activeRequestSummary.value = req
+
+    if (!req) {
+      requirements.value = []
+      return
+    }
+
+    // 2) Get documents for that request
+    const { data: docs, error: dErr } = await supabase
+      .from('request_documents')
+      .select('id, kind, file_path, uploaded_at')
+      .eq('request_id', req.id)
+
+    if (dErr) throw dErr
+
+    requirements.value = (docs || []) as RequirementDoc[]
+  } catch (err: any) {
+    console.error(err)
+    requirementsError.value = err?.message || 'Failed to load requirements.'
+  } finally {
+    requirementsLoading.value = false
+  }
 }
-function closeModal() {
-  showModal.value = false
+
+function closeRequirementsModal() {
+  showRequirementsModal.value = false
 }
-function statusClass(senior) {
-  return senior.status === 'ok'
-    ? 'bg-emerald-600/10 text-emerald-700 ring-emerald-200'
-    : 'bg-yellow-400/20 text-yellow-700 ring-yellow-200'
+
+function formatDateTime(value: string | null): string | null {
+  if (!value) return null
+  const d = new Date(value)
+  if (Number.isNaN(d.getTime())) return null
+  return d.toLocaleString(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
 }
+
+function statusBadgeClass(status: string | null) {
+  const s = (status || '').toLowerCase()
+  if (s === 'approved' || s === 'ok') {
+    return 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+  }
+  if (s === 'pending' || s === 'submitted') {
+    return 'bg-amber-50 text-amber-700 border border-amber-200'
+  }
+  if (s === 'rejected' || s === 'returned') {
+    return 'bg-rose-50 text-rose-700 border border-rose-200'
+  }
+  return 'bg-slate-50 text-slate-700 border border-slate-200'
+}
+
+onMounted(loadSeniors)
 </script>
 
-
 <style scoped>
-@keyframes flash {
-  0% { box-shadow: 0 0 0 0 rgba(16,185,129,.45); }
-  100% { box-shadow: 0 0 0 16px rgba(16,185,129,0); }
+.custom-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(16, 185, 129, 0.6) transparent;
 }
-.flash-row { animation: flash 1s ease-out 2; }
+.custom-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+.custom-scroll::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(16, 185, 129, 0.6);
+}
+.custom-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
 
 @keyframes pop-in {
   0% {
-    transform: translateY(12px) scale(0.98);
+    transform: translateY(8px) scale(0.96);
     opacity: 0;
   }
   100% {
@@ -473,8 +717,14 @@ function statusClass(senior) {
 .animate-pop {
   animation: pop-in 0.18s ease-out both;
 }
-.ring-progress {
-  --p: 0;
-  background: conic-gradient(rgb(16 185 129) calc(var(--p) * 1%), #e7f5ef 0);
+
+.fade-zoom-enter-active,
+.fade-zoom-leave-active {
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+.fade-zoom-enter-from,
+.fade-zoom-leave-to {
+  opacity: 0;
+  transform: translateY(8px) scale(0.98);
 }
 </style>

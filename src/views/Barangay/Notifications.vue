@@ -23,22 +23,6 @@
           </button>
         </div>
 
-        <!-- Optional search -->
-        <div class="mt-4">
-          <label class="relative block">
-            <span class="sr-only">Search</span>
-            <svg class="pointer-events-none absolute left-3 top-2.5 h-5 w-5 text-emerald-900/70" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="11" cy="11" r="8"></circle><path d="m21 21-3.5-3.5"></path>
-            </svg>
-            <input
-              v-model="q"
-              type="search"
-              placeholder="Search title or content"
-              class="w-full rounded-xl pl-10 pr-3 py-2 text-[15px] placeholder:opacity-70
-                     bg-white/95 text-emerald-950 ring-1 ring-emerald-200 focus:ring-2 focus:ring-yellow-300 outline-none"
-            />
-          </label>
-        </div>
       </div>
 
       <!-- List -->
@@ -103,12 +87,6 @@
         </ul>
       </div>
 
-      <!-- Back -->
-      <div class="mt-10">
-        <RouterLink to="/barangay/dashboard" class="text-emerald-700 font-bold underline text-lg">
-          ← Back to Dashboard
-        </RouterLink>
-      </div>
     </main>
   </div>
 </template>

@@ -5,10 +5,10 @@
      <main class="flex-1 p-7 md:ml-100">
       <div class="max-w-4xl mx-auto bg-white border rounded-2xl shadow-md p-6">
         <h1 class="text-2xl font-extrabold text-emerald-700 mb-2">
-          Post an Announcement to OSCA or Seniors
+          Post an Announcement to Seniors
         </h1>
         <p class="text-gray-600 mb-6">
-          Barangay staff can send official notices to the OSCA Office or senior citizens registered in your barangay.
+          Barangay staff can send official notices to senior citizens registered in your barangay.
         </p>
 
         <form class="space-y-6" @submit.prevent="onSubmit">
@@ -32,11 +32,6 @@
           <div>
             <label class="block font-semibold text-sm text-gray-700 mb-2">Recipient (pick one)</label>
             <div class="grid gap-2 md:grid-cols-3">
-              <label class="flex items-center gap-2 p-3 rounded-lg border cursor-pointer hover:bg-emerald-50"
-                     :class="recipient==='osca' ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200'">
-                <input type="radio" class="accent-emerald-600" value="osca" v-model="recipient" />
-                <span class="font-medium">OSCA Office</span>
-              </label>
               <label class="flex items-center gap-2 p-3 rounded-lg border cursor-pointer hover:bg-emerald-50"
                      :class="recipient==='all_seniors' ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200'">
                 <input type="radio" class="accent-emerald-600" value="all_seniors" v-model="recipient" />
@@ -102,7 +97,7 @@
         </form>
 
         <p class="text-xs text-gray-500 mt-4">
-          Notes: “All seniors” resolves seniors in your barangay. “OSCA Office” resolves all OSCA staff users.
+          Notes: “All seniors” resolves seniors in your barangay. 
         </p>
       </div>
     </main>

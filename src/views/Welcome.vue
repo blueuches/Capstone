@@ -67,30 +67,20 @@
     <div class="blob bottom-0 right-0"></div>
 
     <!-- Hero -->
-    <section class="relative min-h-[92vh] flex flex-col md:flex-row items-center justify-between px-6 sm:px-10 pt-28 pb-16">
-      <div class="md:w-1/2 space-y-6 text-center md:text-left z-10">
+<section class="relative min-h-[92vh] flex flex-col items-center justify-center px-6 sm:px-10 pt-28 pb-16">
+    <div class="md:w-1/2 space-y-6 text-center z-10">
         <h2 class="text-4xl md:text-6xl font-extrabold text-emerald-700 leading-tight drop-shadow">
-          Welcome to <span class="text-emerald-600">SeniorGo</span>
+            Welcome to <span class="text-emerald-600">SeniorGo</span>
         </h2>
-        <p class="text-lg md:text-xl text-gray-700 max-w-xl mx-auto md:mx-0">
-          A digital companion for Butuan’s beloved seniors. Access support programs with just your voice and a smile.
+        <p class="text-lg md:text-xl text-gray-700 max-w-xl mx-auto">
+            A digital companion for Butuan’s beloved seniors. Access support programs with just your voice and a smile.
         </p>
-        <div class="flex justify-center md:justify-start gap-4 flex-wrap pt-2">
-          <router-link to="/login" class="px-6 py-3 bg-emerald-600 text-white text-lg rounded-xl font-semibold shadow hover:bg-emerald-700 transition">Log In</router-link>
-          <router-link to="/signup" class="px-6 py-3 border border-emerald-600 text-emerald-700 text-lg rounded-xl font-semibold shadow hover:bg-emerald-100 transition">Sign Up</router-link>
+        <div class="flex justify-center gap-4 flex-wrap pt-2">
+            <router-link to="/login" class="px-6 py-3 bg-emerald-600 text-white text-lg rounded-xl font-semibold shadow hover:bg-emerald-700 transition">Log In</router-link>
+            <router-link to="/signup" class="px-6 py-3 border border-emerald-600 text-emerald-700 text-lg rounded-xl font-semibold shadow hover:bg-emerald-100 transition">Sign Up</router-link>
         </div>
-
-      </div>
-
-      <div class="md:w-1/2 mt-10 md:mt-0 flex justify-center z-10">
-        <img
-              src="/cover1.png"
-    alt="SeniorGo Cover Image"
-          class="w-full max-w-3xl h-auto rounded-2xl shadow-2xl object-cover ring-4 ring-emerald-300 transition-transform duration-500 hover:scale-105"
-          loading="lazy"
-        />
-      </div>
-    </section>
+    </div>
+</section>
 
     <!-- Features -->
     <section id="features" class="px-6 sm:px-10 py-20 bg-white relative" :style="scaledFontStyle">
