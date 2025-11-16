@@ -192,6 +192,16 @@ const model = computed({
   set: (v) => emit('update:modelValue', v)
 })
 
+const checkboxValue = computed({
+  get() {
+    // ensure array para sa checkboxes
+    return Array.isArray(props.modelValue) ? props.modelValue : []
+  },
+  set(val: string[]) {
+    emit('update:modelValue', val)
+  },
+})
+
 const normalizedType = computed(() => props.field.type.trim().toLowerCase())
 
 const options = computed(() => {

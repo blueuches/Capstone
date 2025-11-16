@@ -287,7 +287,6 @@ const isListening = computed(() => stt.listening?.value ?? false)
 const isAwaitingAnswer = ref(false)
 const hasProcessedCurrentAnswer = ref(false)
 
-
 const currentFieldIndex = ref(0)
 const voiceFields = computed<Field[]>(() => stepGroups.value.flat())
 const currentVoiceField = computed<Field | null>(
@@ -296,6 +295,54 @@ const currentVoiceField = computed<Field | null>(
 const voiceProgress = computed(() =>
   voiceFields.value.length ? ((currentFieldIndex.value + 1) / voiceFields.value.length) * 100 : 0,
 )
+
+type VoiceField = {
+  id: number
+  label: string
+  type: string
+  options?: any
+  // ...whatever you already have
+}
+
+const voiceFillTypes = ['text', 'textarea', 'number'] // STT will fill these
+const manualFillTypes = ['dropdown', 'radio', 'checkbox', 'file', 'group', 'date']
+
+function isVoiceFillable(field: VoiceField | null | undefined) {
+  if (!field) return false
+  return voiceFillTypes.includes(field.type)
+}
+
+function isManualFill(field: VoiceField | null | undefined) {
+  if (!field) return false
+  return manualFillTypes.includes(field.type)
+}
+
+function buildSpokenPrompt(field: VoiceField): string {
+  const base = field.label
+
+  // For select-type fields, read the options
+  if (['dropdown', 'radio', 'checkbox'].includes(field.type) && Array.isArray(field.options)) {
+    const optionsList = field.options.join(', ')
+    return `${base}. Please tap and choose one of the options: ${optionsList}.`
+  }
+
+  if (field.type === 'file') {
+    return `${base}. Please tap the upload button to add the required picture or signature.`
+  }
+
+  if (field.type === 'date') {
+    return `${base}. Please tap to pick the date from the calendar.`
+  }
+
+  if (field.type === 'group') {
+    return `${base}. This question has several boxes. Please tap and fill them on the screen.`
+  }
+
+  // default for text-like fields
+  return base
+}
+
+
 
 const statusClass = computed(() => {
   if (isListening.value) return 'text-[11px] mt-1 text-emerald-600 font-semibold'
@@ -369,9 +416,27 @@ async function loadForm() {
       return
     }
 
+    // Fetch all barangays so we can populate the Barangay dropdown
+    const { data: barangays, error: barangayError } = await supabase
+      .from('Barangays')
+      .select('id, name')
+      .order('name', { ascending: true })
+
+    if (barangayError) {
+      console.error('Error fetching barangays', barangayError)
+    }
+
+    const barangayOptions =
+      !barangayError && barangays
+        ? barangays.map((b: any) => b.name)
+        : []
+
+
     const mapped: Field[] = (fields || []).map((f: any) => {
       const t = (f.type || '').toLowerCase()
-      const opts = isChoiceType(t)
+
+      // original options logic
+      let opts = isChoiceType(t)
         ? (Array.isArray(f.options)
             ? f.options
             : f.options
@@ -379,12 +444,19 @@ async function loadForm() {
             : [])
         : f.options ?? null
 
+      // If this is the Barangay dropdown, override options with the list from the DB
+      const labelNorm = String(f.label ?? '').trim().toLowerCase()
+      if (t === 'dropdown' && labelNorm === 'barangay' && barangayOptions.length) {
+        opts = barangayOptions
+      }
+
       return {
         ...f,
         section_norm: normalizeSection(f.section),
         options: opts,
       } as Field
     })
+
 
     formFields.value = mapped
 
@@ -669,13 +741,42 @@ async function askCurrentQuestion() {
   const field = currentVoiceField.value
   if (!field) return
 
-  statusText.value = `Asking: ${field.label}`
-  const question = field.label // you can later replace with Cebuano question from options
-  await speakText(question)
+  // reset state for the new field
+  transcript.value = ''
+  interimTranscript.value = ''
+  isAwaitingAnswer.value = false
+  hasProcessedCurrentAnswer.value = false
 
-  await new Promise((resolve) => setTimeout(resolve, 400))
-  startListening()
+  // highlight field in the UI (whatever you already do there)
+  statusText.value = `Question: ${field.label}`
+  addLog(`Asking: ${field.label}`)
+
+  // TTS: speak a friendly prompt (with options if any)
+  const prompt = buildSpokenPrompt(field)
+  await speakText(prompt)
+
+  // Decide if we use STT or manual tap
+  if (isVoiceFillable(field)) {
+    // normal voice flow (text/textarea/number)
+    isAwaitingAnswer.value = true
+    startListening()
+  } else if (isManualFill(field)) {
+    // Manual fields: no mic, just wait for user interaction
+    addLog(`Waiting for manual input for ${field.label}`)
+    statusText.value = `Please tap on ${field.label} and choose or upload as needed.`
+
+    waitForManualAnswer(field)
+  } else {
+    // fallback: just move on
+    addLog(`Skipping unsupported field type: ${field.type}`)
+    if (currentFieldIndex.value < voiceFields.value.length - 1) {
+      currentFieldIndex.value++
+      await new Promise((resolve) => setTimeout(resolve, 500))
+      await askCurrentQuestion()
+    }
+  }
 }
+
 
 /* ---------- Submit & Draft ---------- */
 function onSubmit() {
@@ -726,6 +827,60 @@ watch(
   },
   { immediate: true },
 )
+
+function waitForManualAnswer(field: VoiceField) {
+  const fieldId = field.id
+
+  // If it already has a value (e.g. prefilled), skip waiting
+  if (formValues.value[fieldId]) {
+    handleManualAnswer(field, formValues.value[fieldId])
+    return
+  }
+
+  const stopWatch = watch(
+    () => formValues.value[fieldId],
+    (newVal, oldVal) => {
+      // ignore empty or unchanged
+      if (newVal == null || newVal === '' || JSON.stringify(newVal) === JSON.stringify(oldVal)) {
+        return
+      }
+
+      stopWatch()
+      handleManualAnswer(field, newVal)
+    },
+    { deep: true, immediate: false }
+  )
+}
+
+async function handleManualAnswer(field: VoiceField, value: any) {
+  // Simple text for logs – for checkbox/group it might be an array
+  let valueForLog = ''
+  if (Array.isArray(value)) {
+    valueForLog = value.join(', ')
+  } else if (typeof value === 'object' && value !== null) {
+    valueForLog = JSON.stringify(value)
+  } else {
+    valueForLog = String(value)
+  }
+
+  addLog(`Manual answer for ${field.label}: ${valueForLog}`)
+  statusText.value = `Recorded answer for ${field.label}.`
+
+  // Move to next field, same as in processAnswer()
+  if (currentFieldIndex.value < voiceFields.value.length - 1) {
+    currentFieldIndex.value++
+    transcript.value = ''
+    interimTranscript.value = ''
+    await new Promise((resolve) => setTimeout(resolve, 700))
+    await askCurrentQuestion()
+  } else {
+    isFormComplete.value = true
+    statusText.value = 'Form completed.'
+    await speakText('Salamat! Kompleto na ang imong mga tubag.')
+    addLog('Form completed (with some manual answers).')
+  }
+}
+
 
 /* ---------- Mount ---------- */
 onMounted(async () => {
