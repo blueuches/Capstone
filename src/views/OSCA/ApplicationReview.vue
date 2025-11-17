@@ -5,192 +5,235 @@
 
     <!-- MAIN CONTENT -->
     <main class="flex-1 p-7 md:ml-100 space-y-6">
-      <!-- PROGRAMS GRID (STEP 1) -->
+      <!-- STEP 1: CHOOSE PROGRAM -->
       <section v-if="!selectedProgram">
         <header class="flex items-center justify-between mb-4">
           <div>
             <h1 class="text-2xl font-extrabold text-emerald-700">Application Review</h1>
             <p class="text-sm text-emerald-900/70 mt-1">
-              Choose a program to see all senior applications submitted city-wide.
+              Choose a program to see all senior applications submitted across Butuan.
             </p>
           </div>
         </header>
 
-        <div
-          v-if="programs.length === 0 && !loadingPrograms"
-          class="mt-8 text-sm text-slate-500"
-        >
-          No programs found. Please check your BAAS configuration.
-        </div>
+        <div class="bg-white rounded-2xl shadow border border-emerald-100 p-4 md:p-6">
+          <div class="flex items-center justify-between mb-4 gap-3">
+            <h2 class="text-base font-semibold text-emerald-800">
+              Available Programs
+            </h2>
+            <span
+              v-if="loadingPrograms"
+              class="inline-flex items-center gap-2 text-xs text-emerald-700"
+            >
+              <span class="w-3 h-3 rounded-full border-2 border-emerald-400 border-t-transparent animate-spin" />
+              Loading programs…
+            </span>
+          </div>
 
-        <div
-          v-else
-          class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
-        >
-          <button
-            v-for="program in programs"
-            :key="program.id"
-            type="button"
-            @click="selectProgram(program)"
-            class="bg-white border border-emerald-100 p-5 rounded-2xl shadow-sm hover:shadow-md hover:border-emerald-300 hover:bg-emerald-50 cursor-pointer transition-all text-left flex flex-col justify-between min-h-[140px]"
+          <!-- Empty + loading states -->
+          <div v-if="!loadingPrograms && !programs.length" class="py-10 text-center text-sm text-emerald-900/70">
+            No programs configured yet. Please coordinate with the system admin.
+          </div>
+
+          <!-- Programs grid -->
+          <div
+            v-else
+            class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
           >
-            <div>
-              <p class="text-[11px] uppercase tracking-wide text-emerald-500 font-semibold mb-1">
-                {{ program.code }}
-              </p>
-              <h2 class="text-lg font-bold text-emerald-700 line-clamp-2">
-                {{ program.name }}
-              </h2>
-              <p class="text-gray-600 text-sm mt-2 line-clamp-3">
-                {{ program.description || 'No description provided.' }}
-              </p>
-            </div>
-            <div class="mt-3 flex items-center justify-between text-[11px] text-emerald-900/70">
-              <span class="inline-flex items-center gap-1">
-                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                Ready for review
-              </span>
-            </div>
-          </button>
+            <button
+              v-for="program in programs"
+              :key="program.id"
+              type="button"
+              @click="selectProgram(program)"
+              class="bg-white border border-emerald-100 hover:border-emerald-300 hover:shadow-lg transition-all text-left flex flex-col justify-between rounded-2xl p-5 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-1"
+            >
+              <div>
+                <p class="text-[11px] uppercase tracking-wide text-emerald-500 font-semibold mb-1">
+                  {{ program.code }}
+                </p>
+                <h3 class="text-sm font-bold text-emerald-900 line-clamp-2">
+                  {{ program.name }}
+                </h3>
+                <p class="mt-2 text-xs text-emerald-900/70 line-clamp-3">
+                  {{ program.description || 'No description provided.' }}
+                </p>
+              </div>
+
+              <div class="mt-4 flex items-center justify-between text-[11px] text-emerald-900/70">
+                <span class="inline-flex items-center gap-1">
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                  Click to view applicants
+                </span>
+                <span class="inline-flex items-center gap-1">
+                  <span class="text-xs">Open</span>
+                  <span class="text-base leading-none">→</span>
+                </span>
+              </div>
+            </button>
+          </div>
         </div>
       </section>
 
-      <!-- APPLICANTS LIST (STEP 2) -->
-      <section v-else>
-        <!-- Header + Filters -->
-        <header class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
-          <div class="flex items-start gap-3">
+      <!-- STEP 2: VIEW APPLICANTS FOR SELECTED PROGRAM -->
+      <section v-else class="space-y-4">
+        <header class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+          <div class="space-y-1">
             <button
               type="button"
+              class="inline-flex items-center gap-2 text-xs text-emerald-700 hover:text-emerald-900 font-medium"
               @click="resetProgram"
-              class="mt-1 inline-flex items-center gap-2 bg-white border border-emerald-200 text-emerald-700 px-3 py-1.5 rounded-full text-sm hover:bg-emerald-50 shadow-sm"
             >
-              <span class="text-lg leading-none">←</span>
-              Back to Programs
+              <span class="text-base leading-none">←</span>
+              Back to all programs
             </button>
             <div>
-              <p class="text-xs uppercase tracking-wide text-emerald-500 font-semibold">
-                Program
-              </p>
-              <h2 class="text-xl md:text-2xl font-extrabold text-emerald-800">
-                {{ selectedProgram?.name }}
-              </h2>
-              <p class="text-xs md:text-sm text-emerald-900/70 mt-1">
-                Showing
-                <span class="font-semibold">{{ filteredApplicants.length }}</span>
-                application<span v-if="filteredApplicants.length !== 1">s</span>
-                from all barangays.
+              <h1 class="text-2xl font-extrabold text-emerald-700">
+                {{ selectedProgram.name }}
+              </h1>
+              <p class="text-xs text-emerald-900/70 mt-1">
+                Reviewing senior applications for
+                <span class="font-semibold">{{ selectedProgram.code }}</span>.
               </p>
             </div>
           </div>
 
-          <div class="flex flex-col sm:flex-row gap-3 sm:items-center">
+          <div class="flex flex-col items-start md:items-end gap-1 text-xs text-emerald-900/70">
+            <span class="font-semibold">
+              Total loaded: {{ applicants.length }} application<span v-if="applicants.length !== 1">s</span>
+            </span>
+            <span v-if="search || statusFilter !== 'all'">
+              Showing {{ filteredApplicants.length }} after filters
+            </span>
+          </div>
+        </header>
+
+        <div class="bg-white rounded-2xl shadow border border-emerald-100 p-4 md:p-6 space-y-4">
+          <!-- Filters -->
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
             <!-- Search -->
-            <div class="relative">
+            <div class="relative w-full md:max-w-xs">
+              <span class="absolute left-3 top-2.5 text-emerald-500">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="h-4 w-4"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <circle cx="11" cy="11" r="6" />
+                  <path d="m20 20-3.5-3.5" />
+                </svg>
+              </span>
               <input
                 v-model="search"
                 type="text"
                 placeholder="Search by name or Request ID"
-                class="w-full sm:w-64 pl-9 pr-3 py-2 rounded-full border border-emerald-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400 bg-white shadow-sm"
+                class="w-full pl-9 pr-3 py-2 rounded-full border border-emerald-100 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400 bg-white shadow-sm text-sm"
               />
-              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-500">
-                🔍
-              </span>
             </div>
 
-            <!-- Status filter (client-side) -->
-            <select
-              v-model="statusFilter"
-              class="w-full sm:w-40 border border-emerald-200 rounded-full py-2 px-3 text-sm bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400"
-            >
-              <option value="all">All statuses</option>
-              <option value="draft">Draft</option>
-              <option value="submitted">Submitted</option>
-              <option value="in_review">In review</option>
-              <option value="reviewed">Reviewed</option>
-              <option value="approved">Approved</option>
-              <option value="needs_correction">Needs correction</option>
-              <option value="rejected">Rejected</option>
-            </select>
-          </div>
-        </header>
-
-        <!-- Loading / Empty states -->
-        <div v-if="loadingApplicants" class="mt-6 text-sm text-slate-500 flex items-center gap-2">
-          <span class="inline-block w-3 h-3 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin"></span>
-          Loading applications…
-        </div>
-
-        <div
-          v-else-if="filteredApplicants.length === 0"
-          class="mt-8 text-sm text-slate-500 bg-white/70 border border-dashed border-emerald-200 rounded-2xl p-6 text-center"
-        >
-          <p class="font-semibold text-emerald-800 mb-1">No applications found</p>
-          <p>
-            There are no requests for this program
-            <span v-if="search">matching your search and filters.</span>
-            <span v-else>yet.</span>
-          </p>
-        </div>
-
-        <!-- Applicants list -->
-        <div v-else class="mt-4 space-y-3">
-          <div
-            v-for="app in filteredApplicants"
-            :key="app.request_id"
-            class="bg-white rounded-2xl shadow-sm border border-emerald-100 px-4 py-3 md:px-5 md:py-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3"
-          >
-            <!-- Left: avatar + basic info -->
-            <div class="flex items-start gap-3">
-              <div
-                class="w-10 h-10 md:w-11 md:h-11 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-800 font-bold text-sm md:text-base shrink-0"
+            <!-- Status filter -->
+            <div class="flex items-center gap-2 text-xs">
+              <span class="text-emerald-900/80 font-medium">Status:</span>
+              <select
+                v-model="statusFilter"
+                class="text-xs rounded-full border border-emerald-100 px-3 py-1 bg-emerald-50/60 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400"
               >
-                {{ app.full_name ? app.full_name[0] : '?' }}
-              </div>
-              <div>
-                <div class="flex flex-wrap items-center gap-2">
-                  <p class="font-semibold text-emerald-900 text-sm md:text-base">
+                <option value="all">All</option>
+                <option value="draft">Draft</option>
+                <option value="submitted">Submitted</option>
+                <option value="in_review">In review</option>
+                <option value="reviewed">Reviewed</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Loading state -->
+          <div v-if="loadingApplicants" class="space-y-3">
+            <div
+              v-for="n in 3"
+              :key="n"
+              class="animate-pulse rounded-2xl border border-emerald-50 bg-emerald-50/60 h-20"
+            />
+          </div>
+
+          <!-- Empty state: no applicants at all -->
+          <div
+            v-else-if="!hasAnyApplicants"
+            class="py-10 text-center text-sm text-emerald-900/70"
+          >
+            No submitted applications yet for this program.
+          </div>
+
+          <!-- Empty state: filters hide everything -->
+          <div
+            v-else-if="hasAnyApplicants && !filteredApplicants.length"
+            class="py-10 text-center text-sm text-emerald-900/70"
+          >
+            No applications match your search or status filter.
+          </div>
+
+          <!-- Applicants list -->
+          <div v-else class="space-y-3">
+            <div
+              v-for="app in filteredApplicants"
+              :key="app.request_id"
+              class="border border-emerald-100 rounded-2xl px-4 py-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between bg-emerald-50/40 hover:bg-emerald-50 transition-colors"
+            >
+              <div class="space-y-1">
+                <div class="flex items-center gap-2">
+                  <p class="font-semibold text-sm text-emerald-900">
                     {{ app.full_name || 'Unnamed senior' }}
                   </p>
-                  <span class="text-[11px] text-slate-500">
-                    #{{ app.request_id }}
+                  <span
+                    v-if="app.barangay_name"
+                    class="inline-flex items-center rounded-full bg-white/80 border border-emerald-100 px-2 py-0.5 text-[11px] text-emerald-800"
+                  >
+                    {{ app.barangay_name }}
                   </span>
                 </div>
-                <p class="text-xs text-slate-600 mt-0.5">
-                  Barangay:
-                  <span class="font-medium text-emerald-800">
-                    {{ app.barangay_name || 'Not set' }}
+
+                <p class="text-[11px] text-emerald-900/70">
+                  Request ID:
+                  <span class="font-mono font-semibold text-emerald-800">
+                    #{{ app.request_id }}
                   </span>
                 </p>
-                <p class="text-xs text-slate-500 mt-0.5">
-                  Submitted:
-                  <span v-if="app.submitted_at">
-                    {{ formatDate(app.submitted_at) }}
+
+                <div class="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-emerald-900/70">
+                  <span>
+                    Submitted:
+                    <span class="font-medium">
+                      {{ formatDateTime(app.submitted_at || app.created_at) }}
+                    </span>
                   </span>
-                  <span v-else>
-                    {{ formatDate(app.created_at) }} (not yet submitted)
+                  <span v-if="app.submitted_at && app.created_at">
+                    Created:
+                    <span class="font-medium">
+                      {{ formatDateTime(app.created_at) }}
+                    </span>
                   </span>
-                </p>
+                </div>
               </div>
-            </div>
 
-            <!-- Right: status + action -->
-            <div class="flex items-end md:items-center justify-between gap-3 md:gap-4">
-              <span
-                class="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold uppercase tracking-wide"
-                :class="statusChipClass(app.status)"
-              >
-                {{ prettyStatus(app.status) }}
-              </span>
+              <div class="flex flex-row md:flex-col items-end gap-2">
+                <span
+                  class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold capitalize"
+                  :class="getStatusBadgeClass(app.status)"
+                >
+                  {{ app.status || 'Unknown' }}
+                </span>
 
-              <button
-                type="button"
-                @click="goToReview(app)"
-                class="inline-flex items-center gap-2 bg-emerald-600 text-white text-xs md:text-sm font-semibold px-3 md:px-4 py-1.5 md:py-2 rounded-full shadow hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-1"
-              >
-                <span>View Application</span>
-                <span class="text-base leading-none">→</span>
-              </button>
+                <button
+                  type="button"
+                  @click="goToReview(app)"
+                  class="inline-flex items-center gap-1 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3 py-1 shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-1"
+                >
+                  <span>View Application</span>
+                  <span class="text-base leading-none">→</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -207,35 +250,41 @@ import Sidebar from '@/components/Sidebar.vue'
 
 const router = useRouter()
 
+/* Programs */
 const programs = ref([])
 const loadingPrograms = ref(false)
 
+/* Selected program + applicants */
 const selectedProgram = ref(null)
 
-// applicants = normalized objects:
-// { request_id, program_id, senior_id, status, submitted_at, created_at, full_name, barangay_name }
-const applicants = ref([])
+const applicants = ref([]) // rows from osca_list_submitted_applicants
 const loadingApplicants = ref(false)
 
-// filters
+/* Filters */
 const search = ref('')
 const statusFilter = ref('all')
 
-/* 1) Load programs */
-onMounted(async () => {
-  loadingPrograms.value = true
-  const { data, error } = await supabase
-    .from('Programs')
-    .select('id, code, name, description')
-    .order('name', { ascending: true })
+/* 1) Load programs on mount */
+onMounted(loadPrograms)
 
-  if (error) {
-    console.error('Error loading programs:', error)
-  } else {
-    programs.value = data || []
+async function loadPrograms() {
+  loadingPrograms.value = true
+  try {
+    const { data, error } = await supabase
+      .from('programs') // use the lowercase view
+      .select('id, code, name, description')
+      .order('name', { ascending: true })
+
+    if (error) {
+      console.error('Error loading programs:', error)
+      programs.value = []
+    } else {
+      programs.value = data || []
+    }
+  } finally {
+    loadingPrograms.value = false
   }
-  loadingPrograms.value = false
-})
+}
 
 function resetProgram() {
   selectedProgram.value = null
@@ -244,9 +293,7 @@ function resetProgram() {
   statusFilter.value = 'all'
 }
 
-/* 2) Load applicants per program
-   Simpler + more reliable: use Requests table directly.
-*/
+/* 2) Load applicants – get ALL, then filter by program_id in Vue */
 async function fetchApplicants() {
   if (!selectedProgram.value) return
 
@@ -254,75 +301,36 @@ async function fetchApplicants() {
   applicants.value = []
 
   try {
+    const { data, error } = await supabase.rpc('osca_list_submitted_applicants', {
+      p_program_id: null,      // ← let SQL return all programs
+      p_barangay_id: null,
+      p_query: null
+    })
+
+    if (error) {
+      console.error('Error loading applicants via osca_list_submitted_applicants:', error)
+      return
+    }
+
+    console.log('RPC raw data:', data)
+
     const programId = Number(selectedProgram.value.id)
 
-    // Basic requests for this program (OSCA has osca_read_request policy)
-    const { data: reqs, error: reqErr } = await supabase
-      .from('Requests')
-      .select('id, program_id, senior_id, status, submitted_at, created_at')
-      .eq('program_id', programId)
-      .order('submitted_at', { ascending: false })
-
-    if (reqErr) {
-      console.error('Error loading Requests:', reqErr)
-      loadingApplicants.value = false
-      return
-    }
-
-    const rows = reqs || []
-    if (!rows.length) {
-      loadingApplicants.value = false
-      return
-    }
-
-    // Try to enrich with senior name + barangay using SeniorProfiles_v1 view.
-    // If something fails, we still show the list (with "Unnamed senior").
-    const seniorIds = Array.from(
-      new Set(
-        rows
-          .map(r => r.senior_id)
-          .filter(id => id !== null && id !== undefined)
-      )
-    )
-
-    const profilesBySeniorId = {}
-
-    if (seniorIds.length > 0) {
-      try {
-        const { data: profiles, error: profErr } = await supabase
-          .from('SeniorProfiles_v1')
-          // BAAS shows this view exists; we assume it exposes senior_id + barangay_name + full_name.
-          .select('senior_id, full_name, barangay_name')
-          .in('senior_id', seniorIds)
-
-        if (profErr) {
-          console.error('Error loading SeniorProfiles_v1:', profErr)
-        } else if (profiles) {
-          for (const p of profiles) {
-            profilesBySeniorId[p.senior_id] = p
-          }
-        }
-      } catch (err) {
-        console.error('SeniorProfiles_v1 lookup failed, falling back to minimal data:', err)
-      }
-    }
-
-    applicants.value = rows.map(r => {
-      const prof = profilesBySeniorId[r.senior_id] || {}
-      return {
-        request_id: r.id,
-        program_id: r.program_id,
-        senior_id: r.senior_id,
-        status: r.status,
-        submitted_at: r.submitted_at,
-        created_at: r.created_at,
-        full_name: prof.full_name || null,
-        barangay_name: prof.barangay_name || null
-      }
-    })
+    // Filter by program here
+    applicants.value = (data || [])
+      .filter(row => Number(row.program_id) === programId)
+      .map(row => ({
+        request_id: row.request_id,
+        program_id: row.program_id,
+        senior_id: row.senior_id,
+        status: row.status,
+        submitted_at: row.submitted_at,
+        created_at: row.created_at,
+        full_name: row.full_name,
+        barangay_name: row.barangay_name
+      }))
   } catch (err) {
-    console.error('Error loading applicants:', err)
-    applicants.value = []
+    console.error('Unexpected error loading applicants:', err)
   } finally {
     loadingApplicants.value = false
   }
@@ -356,55 +364,38 @@ const filteredApplicants = computed(() => {
   return items
 })
 
-/* 4) Helpers */
-function formatDate(value) {
-  if (!value) return '—'
-  try {
-    const d = new Date(value)
-    return d.toLocaleDateString(undefined, {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    })
-  } catch {
-    return value
-  }
-}
+const hasAnyApplicants = computed(() => applicants.value.length > 0)
 
-function prettyStatus(status) {
-  if (!status) return 'Unknown'
-  const s = status.toLowerCase()
-  if (s === 'draft') return 'Draft'
-  if (s === 'submitted') return 'Submitted'
-  if (s === 'in_review') return 'In review'
-  if (s === 'reviewed') return 'Reviewed'
-  if (s === 'approved') return 'Approved'
-  if (s === 'needs_correction') return 'Needs correction'
-  if (s === 'rejected') return 'Rejected'
-  return status
-}
-
-function statusChipClass(status) {
+/* Helpers */
+function getStatusBadgeClass(status) {
   const s = (status || '').toLowerCase()
-  if (s === 'approved') {
-    return 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+
+  if (s === 'draft') {
+    return 'bg-slate-100 text-slate-800 border border-slate-200'
   }
   if (s === 'submitted') {
-    return 'bg-sky-100 text-sky-800 border border-sky-300'
+    return 'bg-amber-100 text-amber-800 border border-amber-200'
   }
   if (s === 'in_review') {
-    return 'bg-amber-100 text-amber-800 border border-amber-300'
+    return 'bg-blue-100 text-blue-800 border border-blue-200'
   }
-  if (s === 'needs_correction') {
-    return 'bg-orange-100 text-orange-800 border border-orange-300'
-  }
-  if (s === 'rejected') {
-    return 'bg-rose-100 text-rose-800 border border-rose-300'
-  }
-  if (s === 'draft') {
-    return 'bg-slate-100 text-slate-700 border border-slate-300'
+  if (s === 'reviewed') {
+    return 'bg-emerald-100 text-emerald-800 border border-emerald-200'
   }
   return 'bg-slate-100 text-slate-700 border border-slate-300'
+}
+
+function formatDateTime(value) {
+  if (!value) return '—'
+  const d = new Date(value)
+  if (Number.isNaN(d.getTime())) return '—'
+  return d.toLocaleString('en-PH', {
+    year: 'numeric',
+    month: 'short',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
 }
 
 function goToReview(app) {
