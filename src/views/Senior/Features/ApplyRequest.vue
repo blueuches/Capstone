@@ -16,27 +16,7 @@
         <p class="text-gray-700 text-sm leading-relaxed">{{ program?.description }}</p>
       </section>
 
-      <!-- Process Section -->
-      <section
-        v-if="program?.process"
-        class="bg-white rounded-2xl shadow p-5 ring-1 ring-emerald-100"
-      >
-        <h3 class="text-lg font-semibold text-emerald-800 mb-3">📋 Process</h3>
-        <div class="space-y-4">
-          <div
-            v-for="(step, i) in (program?.process || '').split('\\n').filter(Boolean)"
-            :key="i"
-            class="flex items-start gap-3 p-3 bg-emerald-50 rounded-xl border border-emerald-100"
-          >
-            <div
-              class="flex-shrink-0 w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold"
-            >
-              {{ i + 1 }}
-            </div>
-            <p class="text-sm text-gray-800 leading-snug flex-1">{{ step }}</p>
-          </div>
-        </div>
-      </section>
+ 
 
       <!-- Requirements Section -->
       <section class="bg-white rounded-2xl shadow p-5 ring-1 ring-emerald-100">

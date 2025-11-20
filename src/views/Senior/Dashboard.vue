@@ -94,8 +94,8 @@
       <section class="mb-4">
         <div class="rounded-xl bg-emerald-100/70 border border-emerald-200 px-4 py-3">
           <p class="text-sm text-emerald-900">
-            <span class="font-semibold">Maayong Buntag,</span>
-            <span class="font-bold text-emerald-700"> Tatay Juan!</span>
+            <span class="font-semibold">{{ getGreeting1() }}, </span>
+            <span class="font-bold text-emerald-700"> {{ fullName || 'Tatay' }}</span>
           </p>
         </div>
       </section>
@@ -220,7 +220,7 @@ function toggleMic() {
 }
 
 // Get the speak() function from our composable
-const { speak } = useUnifiedTTS()
+//const { speak } = useUnifiedTTS()
 
 // Function to determine greeting
 function getGreeting() {
@@ -230,15 +230,39 @@ function getGreeting() {
   return 'Maayong ga-be-i!'
 }
 
+function getGreeting1(){
+    const hour = new Date().getHours()
+  if (hour < 12) return 'Maayong Buntag'
+  if (hour < 18) return 'Maayong Hapon'
+  return 'Maayong Gabie'
+}
+
 // Run TTS when the user opens dashboard (after login)
 onMounted(() => {
   const greeting = getGreeting()
+  const greeting1 = getGreeting1()
 
   // Give a short delay so the page finishes loading
   setTimeout(() => {
     speak(greeting)
   }, 800)
 })
+
+const fullName = ref('') 
+
+async function loadFullName() {
+  if (!user.value?.id) return
+
+  const { data, error } = await supabase
+    .from('Users')
+    .select('full_name')
+    .eq('user_id', user.value.id)
+    .single()
+
+  if (!error && data?.full_name) {
+    fullName.value = data.full_name
+  }
+}
 
 /* ===== Apply flow state ===== */
 const applyOpen = ref(false)
@@ -379,12 +403,11 @@ function subscribeAnnouncements() {
     .subscribe()
 }
 
-onMounted(() => { loadAnnouncements(); subscribeAnnouncements() })
+onMounted(() => { loadAnnouncements(); subscribeAnnouncements();  loadFullName() })
 onBeforeUnmount(() => { if (notifChannel) supabase.removeChannel(notifChannel) })
 
 const notifCount = ref(2)
 </script>
-
 
 <style scoped>
 /* Make long text nicely clipped without extra height */

@@ -35,20 +35,37 @@
           >
             –
           </button>
-                  <button
-          @click="$emit('mic')"
-          :class="[ 'relative w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 shadow-lg',
-                    micActive ? 'bg-emerald-500 text-white ring-4 ring-emerald-300 animate-pulse-glow'
-                              : 'bg-emerald-600 text-white']"
-          aria-label="Voice"
-        >
-          <span v-if="micActive" class="absolute inset-0 rounded-full bg-emerald-400 opacity-30 animate-ping"></span>
-          <svg viewBox="0 0 24 24" class="w-6 h-6 relative z-10" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 14a3 3 0 0 0 3-3V7a3 3 0 1 0-6 0v4a3 3 0 0 0 3 3Z" />
-            <path d="M19 11a7 7 0 0 1-14 0" />
-            <path d="M12 18v4" />
-          </svg>
-        </button>
+<router-link
+  to="/senior/dashboard"
+  :class="[
+    'relative w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 shadow-lg',
+    micActive
+      ? 'bg-emerald-500 text-white ring-4 ring-emerald-300 animate-pulse-glow'
+      : 'bg-emerald-600 text-white'
+  ]"
+  aria-label="Home"
+>
+  <span
+    v-if="micActive"
+    class="absolute inset-0 rounded-full bg-emerald-400 opacity-30 animate-ping"
+  ></span>
+
+  <!-- HOME ICON -->
+  <svg
+    viewBox="0 0 24 24"
+    class="w-6 h-6 relative z-10"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  >
+    <path d="M3 10.5 12 3l9 7.5" />
+    <path d="M5 10v10h14V10" />
+    <path d="M10 20v-6h4v6" />
+  </svg>
+</router-link>
+
           <button
             type="button"
             @click="increaseFont"
