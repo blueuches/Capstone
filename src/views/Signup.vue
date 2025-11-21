@@ -39,26 +39,6 @@
           />
         </div>
 
-        <!-- Phone (optional, normalized to +63 format if provided) -->
-        <div class="relative">
-          <label for="phone" class="sr-only">Phone</label>
-          <span class="absolute left-4 top-3 text-emerald-500">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.95.684l1.518 4.553a1 1 0 01-.502 1.21l-2.26 1.13a11.042 11.042 0 005.516 5.516l1.13-2.26a1 1 0 011.21-.502l4.553 1.518a1 1 0 01.684.95V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
-            </svg>
-          </span>
-          <input
-            id="phone"
-            type="tel"
-            placeholder="Phone (e.g., +63 912 345 6789)"
-            v-model.trim="form.phone"
-            class="w-full pl-12 pr-4 py-3 text-lg border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-400 focus:outline-none text-gray-700"
-            autocomplete="tel"
-            inputmode="tel"
-          />
-          <p v-if="phoneHint" class="mt-1 text-xs text-gray-500">{{ phoneHint }}</p>
-        </div>
-
         <!-- Email -->
         <div class="relative">
           <label for="email" class="sr-only">Email</label>
