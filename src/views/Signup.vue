@@ -278,7 +278,14 @@ async function handleSignup() {
       .insert({ user_id: user.id })
     if (scErr) throw scErr
 
-    // 4) Ensure JWT carries active_role (optional refresh)
+    // 4) 🔹 Call the welcome-announcement RPC here
+    const { error: welcomeErr } = await supabase.rpc('seed_welcome_announcement')
+    if (welcomeErr) {
+      // optional: just log it so signup still succeeds
+      console.error('Failed to seed welcome announcement:', welcomeErr)
+    }
+
+    // 5) Ensure JWT carries active_role (optional refresh)
     await supabase.auth.updateUser({ data: { active_role: 'senior' } })
 
     successMsg.value = 'Account created successfully.'
