@@ -133,14 +133,15 @@ onMounted(init)
 
 const { speak } = useTTS()
 
-onMounted(() => {
-  // Short delay to avoid interrupting other page audio
-  setTimeout(() => {
-    speak(
-      "Diri mag-pasa ug ma nga rekwayerments para maka-aplay. Paki-basa ko sa proseso og tuploka lang ang 'Upload' kung mag-pasa naka sa imo ma nga papeles.",
-    )
-  }, 1500)
-})
+
+// onMounted(() => {
+//   // Short delay to avoid interrupting other page audio
+//   setTimeout(() => {
+//     speak(
+//       "Diri mag-pasa ug ma nga rekwayerments para maka-aplay. Paki-basa ko sa proseso og tuploka lang ang 'Upload' kung mag-pasa naka sa imo ma nga papeles.",
+//     )
+//   }, 1500)
+// })
 
 async function init() {
   loading.value = true
@@ -173,9 +174,11 @@ async function init() {
   }
 
   // Get or create draft request (unchanged)
-  const { data: reqId, error } = await supabase.rpc('ensure_draft_request', {
-    p_program_id: programId,
-  })
+const { data: reqId, error } = await supabase.rpc('ensure_draft_request', {
+  p_program_id: programId,
+  p_variant_id: variantId || null,
+})
+
   if (error) {
     alert(error.message)
     loading.value = false
@@ -276,7 +279,7 @@ async function onUpload(reqLabel: string, file?: File) {
 
     // 6) Local UI state + TTS hint
     uploads.value[reqLabel] = fullPath
-    speak(`${reqLabel} kay na-upload na.`)
+    //speak(`${reqLabel} kay na-upload na.`)
   } catch (e: any) {
     alert(e.message || String(e))
   } finally {

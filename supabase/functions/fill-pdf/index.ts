@@ -1,17 +1,57 @@
 // supabase/functions/fill-pdf/index.ts
 
-import { serve } from "https://deno.land/std/http/server.ts";
+import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { PDFDocument, StandardFonts } from "https://esm.sh/pdf-lib@1.17.1";
-import { OSCA_PDF_COORDS } from "./oscaPdfCoords.ts";
+import { TEXT_COORDS, OPTION_COORDS } from "./oscaPdfCoords.ts";
 
 interface RequestBody {
   request_id: number;
 }
 
+// CORS headers so your Vue app (localhost:5173) can call this function
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
+// Helper: parse checkbox / multi-select answers
+function parseOptions(raw: string | null | undefined): string[] {
+  if (!raw) return [];
+  const trimmed = String(raw).trim();
+  if (!trimmed) return [];
+
+  // Try JSON array first: '["SSS","GSIS"]'
+  try {
+    const parsed = JSON.parse(trimmed);
+    if (Array.isArray(parsed)) {
+      return parsed.map((v) => String(v));
+    }
+  } catch {
+    // ignore JSON error
+  }
+
+  // Fallback: comma-separated string: "SSS, GSIS"
+  return trimmed
+    .split(",")
+    .map((s) => s.trim())
+    .filter((s) => !!s);
+}
+
 serve(async (req: Request) => {
+  // 1. Handle preflight OPTIONS
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
+
+  // 2. Only allow POST
   if (req.method !== "POST") {
-    return new Response("Method not allowed", { status: 405 });
+    return new Response("Method not allowed", {
+      status: 405,
+      headers: corsHeaders,
+    });
   }
 
   try {
@@ -22,65 +62,87 @@ serve(async (req: Request) => {
         JSON.stringify({ error: "request_id is required" }),
         {
           status: 400,
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", ...corsHeaders },
         },
       );
     }
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    // --------------------------------------------------
+    // 3. Supabase client (use PROJECT_URL + SERVICE_ROLE_KEY secrets)
+    // --------------------------------------------------
+    const supabaseUrl = Deno.env.get("PROJECT_URL");
+    const supabaseServiceKey = Deno.env.get("SERVICE_ROLE_KEY");
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+      throw new Error(
+        "Missing PROJECT_URL or SERVICE_ROLE_KEY environment variables",
+      );
+    }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // ------------------------------------------------------------
-    // 1. FETCH ANSWERS FOR THIS REQUEST
-    // ------------------------------------------------------------
-    // ⚠️ IMPORTANT:
-    // You must shape this query so that you end up with
-    // a map like { [field_key: string]: string } where field_key
-    // matches keys in OSCA_PDF_COORDS (e.g. "first_name", "age", etc.)
-    //
-    // Example A: if RequestAnswers has field_key directly:
-    //
-    //   .select("field_key, value")
-    //
-    // Example B: if RequestAnswers joins FormFields:
-    //
-    //   .select("value, FormFields(field_key)")
-    //
-    // Adjust as needed to match your actual schema.
-    // ------------------------------------------------------------
-
-    const { data: answersRows, error: answersError } = await supabase
+    // --------------------------------------------------
+    // 4. Fetch RequestAnswers for this request_id
+    //    (no join here to avoid stack depth issues)
+    // --------------------------------------------------
+    const { data: ansRows, error: ansErr } = await supabase
       .from("RequestAnswers")
-      .select("field_key, value") // adjust this to your schema
+      .select("field_id, value")
       .eq("request_id", request_id);
 
-    if (answersError) {
-      console.error("Error fetching RequestAnswers:", answersError);
-      throw answersError;
+    if (ansErr) {
+      console.error("Error fetching RequestAnswers:", ansErr);
+      throw ansErr;
     }
 
-    // Build: field_key -> answer value
-    const answersByKey = new Map<string, string>();
-
-    for (const row of answersRows ?? []) {
-      const key = (row as any).field_key as string | undefined;
-      const value = (row as any).value as string | null;
-      if (!key) continue;
-      answersByKey.set(key, value ?? "");
+    const answers = ansRows ?? [];
+    if (!answers.length) {
+      console.warn("No RequestAnswers found for request_id", request_id);
     }
 
-    // ------------------------------------------------------------
-    // 2. DOWNLOAD PDF TEMPLATE FROM STORAGE
-    // ------------------------------------------------------------
-    // Bucket: pdf-templates
-    // File: osca-application-form-softcopy.pdf (as you described)
-    // ------------------------------------------------------------
+    // Collect unique field_ids
+    const fieldIds = [...new Set(answers.map((r) => r.field_id))];
 
+    // --------------------------------------------------
+    // 5. Fetch FormFields metadata (id → label)
+    // --------------------------------------------------
+    const labelByFieldId = new Map<number, string>();
+
+    if (fieldIds.length) {
+      const { data: fieldRows, error: fieldErr } = await supabase
+        .from("FormFields")
+        .select("id, label")
+        .in("id", fieldIds);
+
+      if (fieldErr) {
+        console.error("Error fetching FormFields:", fieldErr);
+        throw fieldErr;
+      }
+
+      for (const f of fieldRows ?? []) {
+        labelByFieldId.set(f.id as number, f.label as string);
+      }
+    }
+
+    // Build label → value map
+    const answersByLabel = new Map<string, string>();
+
+    for (const row of answers) {
+      const label = labelByFieldId.get(row.field_id as number);
+      if (!label) continue;
+      const value = row.value ?? "";
+      if (!value) continue;
+      answersByLabel.set(label, value);
+    }
+
+    // --------------------------------------------------
+    // 6. Download PDF template from Storage
+    //    Bucket: pdf-templates
+    //    Path:   templates/osca-application-form-softcopy.pdf
+    // --------------------------------------------------
     const { data: templateFile, error: templateError } = await supabase.storage
       .from("pdf-templates")
-      .download("osca-application-form-softcopy.pdf");
+      .download("templates/osca_id_application_form_complete softcopy.pdf");
 
     if (templateError || !templateFile) {
       console.error("Error downloading template:", templateError);
@@ -89,18 +151,17 @@ serve(async (req: Request) => {
 
     const templateBytes = await templateFile.arrayBuffer();
 
-    // ------------------------------------------------------------
-    // 3. LOAD PDF, DRAW TEXT AT COORDINATES
-    // ------------------------------------------------------------
-
+    // --------------------------------------------------
+    // 7. Load PDF and draw answers
+    // --------------------------------------------------
     const pdfDoc = await PDFDocument.load(templateBytes);
     const pages = pdfDoc.getPages();
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
 
-    // We loop through all coords and see if we have an answer for that key.
-    for (const [fieldKey, coord] of Object.entries(OSCA_PDF_COORDS)) {
-      const value = answersByKey.get(fieldKey);
-      if (!value) continue; // skip if no answer for this field
+    // 7a. Text fields
+    for (const [label, coord] of Object.entries(TEXT_COORDS)) {
+      const value = answersByLabel.get(label);
+      if (!value) continue;
 
       const page = pages[coord.page];
       if (!page) continue;
@@ -113,16 +174,38 @@ serve(async (req: Request) => {
       });
     }
 
-    const filledBytes = await pdfDoc.save();
+    // 7b. Radio / checkbox fields (draw "✓")
+    for (const [label, optionMap] of Object.entries(OPTION_COORDS)) {
+      const raw = answersByLabel.get(label);
+      if (!raw) continue;
 
-    // ------------------------------------------------------------
-    // 4. UPLOAD FILLED PDF TO STORAGE
-    // ------------------------------------------------------------
-    // Bucket suggestion: "filled-pdfs" (create this bucket in Supabase)
-    // Path: "requests/<request_id>/osca-application-<request_id>.pdf"
-    // ------------------------------------------------------------
+      const selectedOptions = parseOptions(raw);
+      if (!selectedOptions.length) continue;
 
-    const outputBucket = "filled-pdfs"; // adjust if you use a different bucket
+      for (const opt of selectedOptions) {
+        const coord = optionMap[opt];
+        if (!coord) continue;
+
+        const page = pages[coord.page];
+        if (!page) continue;
+
+        page.drawText("✓", {
+          x: coord.x,
+          y: coord.y,
+          size: coord.fontSize ?? 10,
+          font,
+        });
+      }
+    }
+
+    const filledBytes = await pdfDoc.save(); // Uint8Array
+
+    // --------------------------------------------------
+    // 8. Upload filled PDF to Storage
+    //    Bucket: filled-pdfs
+    //    Path:   requests/<request_id>/osca-application-<request_id>.pdf
+    // --------------------------------------------------
+    const outputBucket = "filled-pdfs";
     const outputPath = `requests/${request_id}/osca-application-${request_id}.pdf`;
 
     const { error: uploadError } = await supabase.storage
@@ -137,26 +220,24 @@ serve(async (req: Request) => {
       throw uploadError;
     }
 
-    // Get public URL (or you can generate a signed URL if you want it private)
+    // --------------------------------------------------
+    // 9. Get public URL for the filled PDF
+    // --------------------------------------------------
     const { data: publicUrlData } = supabase.storage
       .from(outputBucket)
       .getPublicUrl(outputPath);
 
-    const publicUrl = publicUrlData.publicUrl;
+    const url = publicUrlData.publicUrl;
 
-    // ------------------------------------------------------------
-    // 5. RETURN URL
-    // ------------------------------------------------------------
-
-    return new Response(JSON.stringify({ url: publicUrl }), {
+    return new Response(JSON.stringify({ url }), {
       status: 200,
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...corsHeaders },
     });
   } catch (err) {
     console.error("fill-pdf error:", err);
     return new Response(JSON.stringify({ error: String(err) }), {
       status: 500,
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...corsHeaders },
     });
   }
 });

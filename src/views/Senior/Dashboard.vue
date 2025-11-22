@@ -243,9 +243,9 @@ onMounted(() => {
   const greeting1 = getGreeting1()
 
   // Give a short delay so the page finishes loading
-  setTimeout(() => {
-    speak(greeting)
-  }, 800)
+  // setTimeout(() => {
+  //   speak(greeting)
+  // }, 800)
 })
 
 const fullName = ref('') 
