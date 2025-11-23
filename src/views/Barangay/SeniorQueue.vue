@@ -168,7 +168,7 @@
         >
           <div class="flex items-start justify-between gap-3">
             <div>
-              <h2 class="text-xl font-bold text-emerald-800">To Submit to OSCA</h2>
+              <h2 class="text-xl font-bold text-emerald-800">Senior List</h2>
               <p class="text-xs sm:text-sm text-emerald-800/75">
                 This is a
                 <span class="font-semibold">manual list</span> for seniors in your barangay

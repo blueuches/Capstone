@@ -27,26 +27,34 @@
       <!-- TITLE & STEP PROGRESS -->
       <header class="mt-2 mb-6 space-y-3">
         <div class="flex items-center justify-between gap-3">
-          <div>
-            <h1 class="text-xl font-bold text-emerald-900">{{ formTitle }}</h1>
-            <p class="text-xs text-gray-600">
-              Voice-guided form: questions will be read aloud and your answers will be filled automatically.
-            </p>
-          </div>
+<div>
+  <h1 class="text-xl font-bold text-emerald-900">{{ formTitle }}</h1>
 
-          <!-- Lang selector + status -->
-          <div class="text-right space-y-1">
-            <select
-              v-model="voiceLang"
-              class="px-3 py-1.5 border rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-emerald-400"
-              :disabled="isListening || isSpeaking"
-            >
-              <option value="ceb-PH">Cebuano</option>
-              <option value="fil-PH">Filipino</option>
-              <option value="en-US">English (US)</option>
-            </select>
-            <p :class="statusClass">{{ statusText }}</p>
-          </div>
+  <!-- Voice subtitle only for seniors -->
+  <p v-if="showVoice" class="text-xs text-gray-600">
+    Voice-guided form: questions will be read aloud and your answers will be filled automatically.
+  </p>
+
+  <!-- Simple description on OSCA side -->
+  <p v-else class="text-xs text-gray-600">
+    Review and complete the application details below.
+  </p>
+</div>
+
+<!-- Lang selector + status: seniors only -->
+<div v-if="showVoice" class="text-right space-y-1">
+  <select
+    v-model="voiceLang"
+    class="px-3 py-1.5 border rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-emerald-400"
+    :disabled="isListening || isSpeaking"
+  >
+    <option value="ceb-PH">Cebuano</option>
+    <option value="fil-PH">Filipino</option>
+    <option value="en-US">English (US)</option>
+  </select>
+  <p :class="statusClass">{{ statusText }}</p>
+</div>
+
         </div>
 
         <!-- Step progress bar -->
@@ -64,7 +72,8 @@
         </div>
 
         <!-- Voice-sequential progress (like Test.vue) -->
-        <div v-if="voiceFields.length > 0" class="mt-3 bg-emerald-50/70 border border-emerald-100 rounded-xl p-3">
+        <div   v-if="showVoice && voiceFields.length > 0"
+  class="mt-3 bg-emerald-50/70 border border-emerald-100 rounded-xl p-3">
           <div class="flex justify-between text-xs text-gray-700 mb-1">
             <span>Voice Progress</span>
             <span>{{ currentFieldIndex + 1 }} of {{ voiceFields.length }}</span>
@@ -91,7 +100,7 @@
       </p>
 
       <!-- VOICE CONTROLS (like Test.vue) -->
-      <section class="mb-4 bg-emerald-50/70 border border-emerald-100 rounded-xl p-4 space-y-3">
+      <section   v-if="showVoice" class="mb-4 bg-emerald-50/70 border border-emerald-100 rounded-xl p-4 space-y-3">
         <div class="flex items-center justify-between">
           <h2 class="text-sm font-semibold text-emerald-900">Voice Assistant</h2>
           <div class="flex gap-2">
@@ -218,6 +227,7 @@ import DynamicField from '@/components/DynamicField.vue'
 import { supabase } from '@/supabase/client'
 import { useUnifiedTTS } from '@/composables/useUnifiedTTS'
 import { useWebSpeechStt } from '@/composables/useWebSpeechStt'
+import { useUnifiedSTT } from '@/composables/useUnifiedSTT'
 
 type Mode = 'senior' | 'osca'
 
@@ -263,6 +273,8 @@ const MAX_FIELDS_PER_STEP = computed(() => props.maxPerStep ?? 4)
 
 const isSenior = computed(() => props.mode === 'senior')
 const isOsca = computed(() => props.mode === 'osca')
+const showVoice = computed(() => isSenior.value && !props.readOnly)
+
 const totalSteps = computed(() => stepGroups.value.length)
 const progressWidth = computed(() =>
   totalSteps.value ? `${(currentStep.value / totalSteps.value) * 100}%` : '0%',

@@ -83,7 +83,7 @@
 </section>
 
     <!-- Features -->
-    <section id="features" class="px-6 sm:px-10 py-20 bg-white relative" :style="scaledFontStyle">
+    <!-- <section id="features" class="px-6 sm:px-10 py-20 bg-white relative" :style="scaledFontStyle">
       <h3 class="text-3xl font-bold text-emerald-700 text-center mb-12">Why Seniors Love SeniorGo</h3>
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-10 max-w-6xl mx-auto">
@@ -97,7 +97,7 @@
           <p class="text-sm text-gray-700 mt-2">{{ card.text }}</p>
         </div>
       </div>
-    </section>
+    </section> -->
 
     <!-- Testimonials -->
     <section id="testimonials" class="px-6 sm:px-10 py-20 bg-emerald-50 relative" :style="scaledFontStyle">
