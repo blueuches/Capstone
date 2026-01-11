@@ -5,12 +5,15 @@
     role="navigation"
   >
     <ul class="flex items-center justify-around px-6">
+      <!-- 🔠 Font size controls -->
+
       <li>
         <router-link
           to="/senior/notifications"
           class="relative w-12 h-12 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center"
           aria-label="Notifications"
         >
+          <!-- bell -->
           <svg viewBox="0 0 24 24" class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M6 8a6 6 0 1 1 12 0c0 7 3 5 3 9H3c0-4 3-2 3-9"/><path d="M10 21a2 2 0 0 0 4 0"/>
           </svg>
@@ -22,20 +25,57 @@
       </li>
 
       <li>
-        <button
-          @click="$emit('mic')"
-          :class="[ 'relative w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 shadow-lg',
-                    micActive ? 'bg-emerald-500 text-white ring-4 ring-emerald-300 animate-pulse-glow'
-                              : 'bg-emerald-600 text-white']"
-          aria-label="Voice"
-        >
-          <span v-if="micActive" class="absolute inset-0 rounded-full bg-emerald-400 opacity-30 animate-ping"></span>
-          <svg viewBox="0 0 24 24" class="w-6 h-6 relative z-10" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 14a3 3 0 0 0 3-3V7a3 3 0 1 0-6 0v4a3 3 0 0 0 3 3Z" />
-            <path d="M19 11a7 7 0 0 1-14 0" />
-            <path d="M12 18v4" />
-          </svg>
-        </button>
+        <div class="flex items-center gap-1">
+          <button
+            type="button"
+            @click="decreaseFont"
+            class="w-9 h-9 rounded-full border border-emerald-200 flex items-center justify-center
+                   text-base font-bold text-emerald-700 hover:bg-emerald-50 active:scale-95"
+            aria-label="Smaller text"
+          >
+            –
+          </button>
+<router-link
+  to="/senior/dashboard"
+  :class="[
+    'relative w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 shadow-lg',
+    micActive
+      ? 'bg-emerald-500 text-white ring-4 ring-emerald-300 animate-pulse-glow'
+      : 'bg-emerald-600 text-white'
+  ]"
+  aria-label="Home"
+>
+  <span
+    v-if="micActive"
+    class="absolute inset-0 rounded-full bg-emerald-400 opacity-30 animate-ping"
+  ></span>
+
+  <!-- HOME ICON -->
+  <svg
+    viewBox="0 0 24 24"
+    class="w-6 h-6 relative z-10"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  >
+    <path d="M3 10.5 12 3l9 7.5" />
+    <path d="M5 10v10h14V10" />
+    <path d="M10 20v-6h4v6" />
+  </svg>
+</router-link>
+
+          <button
+            type="button"
+            @click="increaseFont"
+            class="w-9 h-9 rounded-full border border-emerald-200 flex items-center justify-center
+                   text-base font-bold text-emerald-700 hover:bg-emerald-50 active:scale-95"
+            aria-label="Larger text"
+          >
+            +
+          </button>
+        </div>
       </li>
 
       <li>
@@ -54,9 +94,19 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-const notifCount = ref(2)
+import { computed, ref } from 'vue'
+import { useNotifications } from '@/composables/useNotifications'
+import { useSeniorFontSize } from '@/composables/useSeniorFontSize'
+
+/** Live unread count from Supabase (updates in real time) */
+const { unreadCount } = useNotifications(100)
+const notifCount = computed(() => unreadCount.value)
+
+/** Mic UI state (unchanged) */
 const micActive = ref(false)
+
+/** 🔠 Global font size controls */
+const { increaseFont, decreaseFont } = useSeniorFontSize()
 </script>
 
 <style scoped>

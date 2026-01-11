@@ -1,0 +1,87 @@
+version: "3.1"
+
+nlu:
+
+# --- GREETING & SMALL TALK ---
+- intent: greet
+  examples: |
+    - Maayong buntag
+    - Maayong hapon
+    - Hello
+    - Hi
+    - Kumusta
+    - Good morning
+
+- intent: goodbye
+  examples: |
+    - Salamat
+    - Bye
+    - Adios
+    - See you
+    - Gikan nako
+    - Gawas ko
+
+# --- PROGRAM APPLICATION ---
+- intent: apply_program
+  examples: |
+    - Mag apply ko sa [PhilHealth](program_name)
+    - I want to apply for [Geriacare](program_name)
+    - Gusto ko mag-apply sa [SPP](program_name)
+    - Apply ko sa [MAP](program_name)
+    - Open [PhilHealth](program_name)
+    - I want to start my [ONCB](program_name) form
+
+# --- FORM FIELD FILLING ---
+- intent: fill_field
+  examples: |
+    - Ako si [Maria Santos](value)
+    - [Pedro Dela Cruz](value) akong pangalan
+    - My name is [Maria Santos](value)
+    - Akong birthday kay [March 5, 1945](value)
+    - My address is [Doongan, Butuan City](value)
+    - [Doongan](value) akong address
+
+# --- UPDATE FIELD ---
+- intent: update_field
+  examples: |
+    - Usba akong address sa [Ampayon](value)
+    - Change my address to [Villa Kananga](value)
+    - Update my phone number to [09987654321](value)
+
+# --- STATUS CHECK ---
+- intent: check_status
+  examples: |
+    - Unsa na ang status sa akong application
+    - What is the status of my request
+    - Tan-awa ang status sa akong form
+
+# --- CONFIRMATION ---
+- intent: confirm_submission
+  examples: |
+    - Oo, isubmit na
+    - Yes, submit
+    - Proceed
+    - Padayona
+
+# --- CANCEL / STOP ---
+- intent: cancel
+  examples: |
+    - Ayaw na
+    - Cancel
+    - Stop
+    - Hunong
+
+# --- HELP ---
+- intent: ask_help
+  examples: |
+    - Tabangi ko ani nga form
+    - I need help
+    - Unsaon ni
+    - Help me fill this out
+
+# --- REPEAT ---
+- intent: repeat_last
+  examples: |
+    - Usba daw
+    - Repeat please
+    - Pwede nimo balikun

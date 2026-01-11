@@ -1,30 +1,9 @@
 <template>
-  <div class="bg-gradient-to-b from-emerald-50 to-white h-dvh flex flex-col overflow-hidden">
+  <div class="senior-font-root bg-gradient-to-b from-emerald-50 to-white h-dvh flex flex-col overflow-hidden">
     <!-- Sticky Top Bar -->
     <SeniorHeader @toggle-sidebar="toggleSidebar" />
 
-    <transition name="fade">
-      <div
-        v-if="sidebarOpen"
-        class="absolute top-0 left-0 w-56 h-screen bg-white text-emerald-800 z-50 shadow-xl"
-      >
-        <div class="p-4 border-b border-emerald-100 flex justify-between items-center">
-          <h2 class="font-semibold text-emerald-700">More</h2>
-          <button @click="sidebarOpen = false" class="text-emerald-700">✕</button>
-        </div>
-        <nav class="p-4 flex flex-col space-y-3">
-          <router-link to="#" class="text-emerald-700">Settings</router-link>
-          <router-link to="#" class="text-emerald-700">About</router-link>
-          <router-link to="#" class="text-emerald-700">Complain</router-link>
-          <router-link
-            to="/logout"
-            @click="sidebarOpen = false"
-            class="text-left text-red-600 font-medium"
-            >Log out</router-link
-          >
-        </nav>
-      </div>
-    </transition>
+  <SeniorSidebar :open="sidebarOpen" @close="sidebarOpen = false" />
 
     <!-- APPLY SHEET (bottom modal) -->
     <transition name="fade">
@@ -55,7 +34,6 @@
             <button class="text-emerald-700 text-sm" @click="closeApply">Close</button>
           </div>
 
-          <!-- Body -->
           <!-- Body -->
           <div class="px-5 mt-3 overflow-y-auto" style="max-height: calc(80dvh - 90px)">
             <label class="relative block mb-3">
@@ -116,10 +94,9 @@
       <section class="mb-4">
         <div class="rounded-xl bg-emerald-100/70 border border-emerald-200 px-4 py-3">
           <p class="text-sm text-emerald-900">
-            <span class="font-semibold">Maayong Buntag,</span>
-            <span class="font-bold text-emerald-700"> Tatay Juan!</span>
+            <span class="font-semibold">{{ getGreeting1() }}, </span>
+            <span class="font-bold text-emerald-700"> {{ fullName || 'Tatay' }}</span>
           </p>
-          <p class="text-xs text-emerald-900/80 mt-0.5">Senior Citizen ID: N/A</p>
         </div>
       </section>
 
@@ -162,7 +139,7 @@
 
       <!-- Announcements -->
       <section class="flex-1 flex flex-col min-h-0">
-        <h2 class="text-sm font-semibold text-emerald-800 mb-2 flex-none">OSCA Announcements</h2>
+        <h2 class="text-sm font-semibold text-emerald-800 mb-2 flex-none">Announcements</h2>
 
         <!-- Scrollable list -->
         <div class="flex-1 overflow-y-auto pr-1 sm:pr-2 relative rounded-lg">
@@ -171,12 +148,11 @@
             :key="i"
             class="bg-white rounded-xl ring-1 ring-emerald-100 shadow-sm p-3 mb-2.5"
           >
-            <router-link
-              :to="a.to"
+            <p
               class="text-emerald-700 font-semibold text-[15px] leading-tight hover:underline line-clamp-1"
             >
               {{ a.title }}
-            </router-link>
+            </p>
             <p class="text-[13px] text-gray-600 mt-0.5 line-clamp-2">
               {{ a.subtitle }}
             </p>
@@ -203,6 +179,9 @@ import { supabase } from '@/supabase/client'
 import { useAuth } from '@/composables/useAuth'
 import SeniorHeader from '@/components/SeniorHeader.vue'
 import SeniorNav from '@/components/SeniorNav.vue'
+import SeniorSidebar from '@/components/SeniorSidebar.vue'
+import { useTTS } from '@/composables/useTTS'
+import { useUnifiedTTS } from '@/composables/useUnifiedTTS';
 
 const router = useRouter()
 const { user } = useAuth()
@@ -238,6 +217,51 @@ const micActive = ref(false)
 function toggleMic() {
   micActive.value = true
   setTimeout(() => { micActive.value = false }, 3000)
+}
+
+// Get the speak() function from our composable
+//const { speak } = useUnifiedTTS()
+
+// Function to determine greeting
+function getGreeting() {
+  const hour = new Date().getHours()
+  if (hour < 12) return 'Maayong buntag!'
+  if (hour < 18) return 'Maayong hapon!'
+  return 'Maayong ga-be-i!'
+}
+
+function getGreeting1(){
+    const hour = new Date().getHours()
+  if (hour < 12) return 'Maayong Buntag'
+  if (hour < 18) return 'Maayong Hapon'
+  return 'Maayong Gabie'
+}
+
+// Run TTS when the user opens dashboard (after login)
+onMounted(() => {
+  const greeting = getGreeting()
+  const greeting1 = getGreeting1()
+
+  // Give a short delay so the page finishes loading
+  // setTimeout(() => {
+  //   speak(greeting)
+  // }, 800)
+})
+
+const fullName = ref('') 
+
+async function loadFullName() {
+  if (!user.value?.id) return
+
+  const { data, error } = await supabase
+    .from('Users')
+    .select('full_name')
+    .eq('user_id', user.value.id)
+    .single()
+
+  if (!error && data?.full_name) {
+    fullName.value = data.full_name
+  }
 }
 
 /* ===== Apply flow state ===== */
@@ -346,7 +370,6 @@ async function loadAnnouncements() {
       title: ann.title || 'Announcement',
       subtitle: summarize(ann.content || ''),
       meta: fmtDate(ann.created_at || row.created_at),
-      to: `/senior/announcements/${ann.id}`,
     }
   })
 }
@@ -374,19 +397,17 @@ function subscribeAnnouncements() {
           title: ann.title || 'Announcement',
           subtitle: summarize(ann.content || ''),
           meta: fmtDate(ann.created_at || data.created_at),
-          to: `/senior/announcements/${ann.id}`,
         })
       }
     )
     .subscribe()
 }
 
-onMounted(() => { loadAnnouncements(); subscribeAnnouncements() })
+onMounted(() => { loadAnnouncements(); subscribeAnnouncements();  loadFullName() })
 onBeforeUnmount(() => { if (notifChannel) supabase.removeChannel(notifChannel) })
 
 const notifCount = ref(2)
 </script>
-
 
 <style scoped>
 /* Make long text nicely clipped without extra height */

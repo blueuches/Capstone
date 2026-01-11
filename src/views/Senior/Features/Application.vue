@@ -1,270 +1,348 @@
 <template>
-  <div class="flex flex-col h-dvh bg-gradient-to-b from-emerald-50 via-white to-emerald-50/40 overflow-hidden">
+  <div
+    class="senior-font-root flex flex-col h-dvh bg-gradient-to-b from-emerald-50 via-white to-emerald-50/40 overflow-hidden"
+  >
     <!-- Sticky Header -->
-    <header class="flex-none bg-emerald-600 text-white shadow-md z-40">
-      <div class="px-4 py-3 flex items-center gap-3">
-        <!-- Menu -->
-        <button
-          aria-label="Menu"
-          @click="sidebarOpen = !sidebarOpen"
-          class="p-2 rounded-full hover:bg-emerald-700/40"
-        >
-          <svg viewBox="0 0 24 24" class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M4 6h16M4 12h16M4 18h16" />
-          </svg>
-        </button>
-
-        <h1 class="flex-1 text-lg font-semibold tracking-wide text-center -ml-8">SeniorGo</h1>
-
-        <router-link to="/senior/profile" aria-label="Profile" class="shrink-0">
-          <img
-            :src="avatarUrl"
-            @error="useInlineAvatar"
-            class="w-8 h-8 rounded-full border border-white/70 object-cover"
-            alt="Profile"
-          />
-        </router-link>
-      </div>
-    </header>
-
-    <!-- Sidebar Overlay -->
-    <transition name="fade">
-      <div v-if="sidebarOpen" class="fixed inset-0 z-50 flex">
-        <div class="w-56 bg-white text-emerald-800 shadow-xl h-full flex flex-col">
-          <div class="p-4 border-b border-emerald-100 flex justify-between items-center">
-            <h2 class="font-semibold text-emerald-700">More</h2>
-            <button @click="sidebarOpen = false" class="text-emerald-700">✕</button>
-          </div>
-          <nav class="p-4 flex flex-col space-y-3 flex-1">
-            <router-link to="#" class="hover:text-emerald-600">Settings</router-link>
-            <router-link to="#" class="hover:text-emerald-600">About</router-link>
-            <router-link to="#" class="hover:text-emerald-600">Complain</router-link>
-          </nav>
-          <button
-            @click="sidebarOpen = false"
-            class="text-left text-red-600 font-medium p-4 border-t border-emerald-100"
-          >
-            Log out
-          </button>
-        </div>
-        <div class="flex-1 bg-black/40" @click="sidebarOpen = false"></div>
-      </div>
-    </transition>
+    <SeniorHeader @toggle-sidebar="toggleSidebar" />
+    <SeniorSidebar :open="sidebarOpen" @close="sidebarOpen = false" />
 
     <!-- Main Content -->
     <main class="flex-1 overflow-y-auto px-4 pt-4 pb-[88px]">
       <!-- Breadcrumb -->
-      <nav class="text-sm text-emerald-700 mb-4" aria-label="Breadcrumb">
+      <nav class="text-sm text-emerald-700 mb-3" aria-label="Breadcrumb">
         <ol class="flex items-center space-x-2">
           <li>
-            <router-link to="/senior/dashboard" class="hover:underline font-medium">Dashboard</router-link>
+            <router-link
+              to="/senior/dashboard"
+              class="hover:underline font-medium"
+            >
+              Dashboard
+            </router-link>
           </li>
           <li class="text-emerald-500">›</li>
           <li class="font-semibold text-emerald-700">My Applications</li>
         </ol>
       </nav>
 
-      <!-- Applications List -->
-      <div class="space-y-4">
-        <div
-          v-for="(app, i) in applications"
-          :key="i"
-          class="relative bg-white rounded-2xl shadow-sm hover:shadow-md ring-1 ring-emerald-100 p-4 transition duration-200"
-        >
-          <!-- Program Header -->
-          <div class="flex justify-between items-center mb-1">
-            <div class="flex items-center gap-2">
-              <div class="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700">
-                <svg
-                  v-if="app.status === 'Approved'"
-                  xmlns="http://www.w3.org/2000/svg"
-                  class="w-5 h-5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  stroke-width="2"
-                >
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
-                <svg
-                  v-else-if="app.status === 'Pending'"
-                  xmlns="http://www.w3.org/2000/svg"
-                  class="w-5 h-5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  stroke-width="2"
-                >
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <svg
-                  v-else
-                  xmlns="http://www.w3.org/2000/svg"
-                  class="w-5 h-5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  stroke-width="2"
-                >
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </div>
-              <h3 class="text-[15px] font-semibold text-emerald-800 leading-tight">
-                {{ app.program }}
-              </h3>
-            </div>
+      <!-- Page header -->
+      <section class="mb-4">
+        <h1 class="text-2xl font-bold text-emerald-900 leading-snug">
+          My Applications
+        </h1>
+        <p class="text-[15px] text-emerald-800 mt-1">
+          See the status of your requests sent to OSCA and any remarks from
+          their staff.
+        </p>
+      </section>
 
-            <span
-              :class="statusColor(app.status)"
-              class="text-[11px] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wide"
-            >
-              {{ app.status }}
+      <!-- Summary chips -->
+      <section v-if="applications.length" class="mb-4">
+        <div class="grid grid-cols-3 gap-2 text-[13px]">
+          <div
+            class="bg-white/80 rounded-2xl p-3 shadow-sm ring-1 ring-emerald-100 flex flex-col items-center"
+          >
+            <span class="text-xs text-gray-500 mb-1">Total</span>
+            <span class="text-lg font-semibold text-emerald-800">
+              {{ totalCount }}
             </span>
           </div>
 
-          <!-- Details -->
-          <p class="text-[14px] text-gray-700 mb-1">{{ app.note }}</p>
-          <p class="text-[12px] text-gray-500 italic">{{ app.updated_at }}</p>
+          <div
+            class="bg-emerald-50 rounded-2xl p-3 shadow-sm ring-1 ring-emerald-100 flex flex-col items-center"
+          >
+            <span class="text-xs text-gray-500 mb-1">Waiting for OSCA</span>
+            <span class="text-lg font-semibold text-emerald-800">
+              {{ waitingCount }}
+            </span>
+          </div>
 
-          <!-- Progress Bar -->
+          <div
+            class="bg-amber-50 rounded-2xl p-3 shadow-sm ring-1 ring-amber-100 flex flex-col items-center"
+          >
+            <span class="text-xs text-gray-500 mb-1">With remarks</span>
+            <span class="text-lg font-semibold text-amber-800">
+              {{ withRemarksCount }}
+            </span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Empty state (design only) -->
+      <section
+        v-if="applications.length === 0"
+        class="mt-10 flex flex-col items-center text-center"
+      >
+        <div
+          class="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mb-3"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-9 w-9 text-emerald-600"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            stroke-width="1.6"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M12 4v16m8-8H4"
+            />
+          </svg>
+        </div>
+        <p class="text-[15px] text-emerald-900 font-semibold mb-1">
+          You have no applications yet.
+        </p>
+        <p class="text-[14px] text-gray-600 mb-4 px-4">
+          When you apply for an OSCA ID or other programs, you can track the
+          progress here.
+        </p>
+        <router-link
+          to="/senior/programs"
+          class="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-emerald-600 text-white text-[15px] font-semibold shadow-sm active:scale-[0.99]"
+        >
+          Apply for a program
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="w-4 h-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            stroke-width="1.8"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M9 5l7 7-7 7"
+            />
+          </svg>
+        </router-link>
+      </section>
+
+      <!-- Applications list (design preview with mock data) -->
+      <section v-else class="space-y-4 mt-4">
+        <article
+          v-for="app in applications"
+          :key="app.id"
+          class="bg-white rounded-3xl shadow-sm hover:shadow-md ring-1 ring-emerald-100 px-4 py-4 transition duration-200"
+        >
+          <!-- Header: Program & status -->
+          <div class="flex items-start justify-between gap-3 mb-2">
+            <div class="flex items-start gap-3">
+              <div
+                class="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="w-6 h-6 text-emerald-600"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M12 6v12m6-6H6"
+                  />
+                </svg>
+              </div>
+              <div>
+                <p class="text-[12px] text-gray-500 mb-0.5">
+                  Request #{{ app.id }}
+                </p>
+                <h2
+                  class="text-[16px] font-semibold text-emerald-900 leading-snug"
+                >
+                  {{ app.programName }}
+                </h2>
+                <p
+                  v-if="app.programCode"
+                  class="text-[12px] text-gray-500 mt-0.5"
+                >
+                  {{ app.programCode }}
+                </p>
+              </div>
+            </div>
+
+            <span
+              class="px-2.5 py-1 rounded-full text-[11px] font-semibold uppercase tracking-wide whitespace-nowrap"
+              :class="statusPillClass(app.status)"
+            >
+              {{ app.statusLabel }}
+            </span>
+          </div>
+
+          <!-- Status explanation -->
+          <p class="text-[14px] text-gray-700 mb-1">
+            {{ app.statusDescription }}
+          </p>
+          <p class="text-[12px] text-gray-500">
+            Last update:
+            <span class="font-medium text-gray-700">
+              {{ app.updatedAt }}
+            </span>
+          </p>
+
+          <!-- Progress bar -->
           <div class="mt-3">
-            <div class="h-2 bg-emerald-100 rounded-full overflow-hidden">
+            <div class="flex justify-between text-[11px] text-gray-500 mb-1">
+              <span>Progress</span>
+              <span>{{ app.progress }}% complete</span>
+            </div>
+            <div class="h-2.5 bg-emerald-50 rounded-full overflow-hidden">
               <div
                 class="h-full rounded-full bg-gradient-to-r from-emerald-500 to-emerald-600 transition-all duration-500"
                 :style="{ width: app.progress + '%' }"
               ></div>
             </div>
-            <p class="text-right text-[11px] text-gray-500 mt-1">{{ app.progress }}% complete</p>
+            <div
+              class="flex justify-between text-[11px] text-gray-500 mt-1.5 px-0.5"
+            >
+              <span>Draft</span>
+              <span>Submitted</span>
+              <span>In review</span>
+              <span>Reviewed</span>
+            </div>
           </div>
-        </div>
-      </div>
+
+          <!-- OSCA remark -->
+          <div
+            v-if="app.note"
+            class="mt-3 rounded-2xl bg-emerald-50/60 border border-emerald-100 px-3 py-2.5"
+          >
+            <div class="flex items-start gap-2">
+              <div class="pt-0.5">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="w-4 h-4 text-emerald-700"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M9 12h3.75M9 15h3.75M9 9h.008M5.25 5.25h13.5v9.75L15 18.75H5.25z"
+                  />
+                </svg>
+              </div>
+              <div class="flex-1">
+                <div class="flex items-center gap-2 mb-0.5">
+                  <p
+                    class="text-[13px] font-semibold text-emerald-900 leading-snug"
+                  >
+                    Latest note about this request
+                  </p>
+                  <span
+                    v-if="app.hasOscaRemark"
+                    class="text-[10px] font-semibold uppercase tracking-wide bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full"
+                  >
+                    From OSCA
+                  </span>
+                </div>
+                <p class="text-[13px] text-emerald-900 leading-snug">
+                  “{{ app.note }}”
+                </p>
+              </div>
+            </div>
+          </div>
+        </article>
+      </section>
     </main>
 
     <!-- Bottom Navigation -->
-    <nav
-      class="flex-none fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur border-t border-emerald-100 pt-2 pb-[calc(env(safe-area-inset-bottom)+10px)]"
-      role="navigation"
-    >
-      <ul class="flex items-center justify-around px-6">
-        <li>
-          <router-link
-            to="/senior/notifications"
-            class="relative w-12 h-12 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center"
-            aria-label="Notifications"
-          >
-            <svg viewBox="0 0 24 24" class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M6 8a6 6 0 1 1 12 0c0 7 3 5 3 9H3c0-4 3-2 3-9" />
-              <path d="M10 21a2 2 0 0 0 4 0" />
-            </svg>
-            <span
-              v-if="notifCount"
-              class="absolute -top-0.5 -right-0.5 text-[10px] leading-none bg-red-500 text-white px-1.5 py-0.5 rounded-full"
-              >{{ notifCount }}</span
-            >
-          </router-link>
-        </li>
-
-        <li>
-          <button
-            class="w-12 h-12 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-lg"
-            aria-label="Voice"
-          >
-            <svg viewBox="0 0 24 24" class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M12 14a3 3 0 0 0 3-3V7a3 3 0 1 0-6 0v4a3 3 0 0 0 3 3Z" />
-              <path d="M19 11a7 7 0 0 1-14 0" />
-              <path d="M12 18v4" />
-            </svg>
-          </button>
-        </li>
-
-        <li>
-          <router-link
-            to="/senior/dashboard"
-            class="w-12 h-12 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center"
-            aria-label="Home"
-          >
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <polyline points="15 18 9 12 15 6"></polyline>
-            </svg>
-          </router-link>
-        </li>
-      </ul>
-    </nav>
+    <SeniorNav />
   </div>
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { ref, computed } from "vue";
+import SeniorNav from "@/components/SeniorNav.vue";
+import SeniorSidebar from "@/components/SeniorSidebar.vue";
+import SeniorHeader from "@/components/SeniorHeader.vue";
 
 const sidebarOpen = ref(false);
-const notifCount = ref(2);
-
-const avatarUrl = ref("https://via.placeholder.com/60");
-function useInlineAvatar() {
-  avatarUrl.value =
-    "data:image/svg+xml;utf8," +
-    encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="60" height="60">
-      <rect width="100%" height="100%" fill="#ecfdf5"/>
-      <circle cx="30" cy="22" r="12" fill="#10b981" fill-opacity="0.5"/>
-      <rect x="14" y="38" width="32" height="14" rx="7" fill="#10b981" fill-opacity="0.35"/>
-    </svg>`);
+function toggleSidebar() {
+  sidebarOpen.value = !sidebarOpen.value;
 }
 
-const applications = [
+// ─── MOCK DATA FOR DESIGN PREVIEW ──────────────────────────────
+const applications = ref([
   {
-    program: "Social Pension Program",
-    status: "Pending",
-    note: "Waiting for OSCA validation.",
-    progress: 40,
-    updated_at: "2 days ago",
+    id: "REQ-00123",
+    programName: "OSCA ID Issuance",
+    programCode: "OSCA-01",
+    status: "submitted",
+    statusLabel: "Submitted",
+    statusDescription:
+      "Your application has been sent and is waiting for OSCA to review.",
+    progress: 50,
+    updatedAt: "Aug 10, 2025 · 2:15 PM",
+    note: "Please upload a clearer copy of your barangay certificate.",
+    hasOscaRemark: true,
   },
   {
-    program: "Medical Assistance",
-    status: "Approved",
-    note: "For release next week.",
+    id: "REQ-00107",
+    programName: "Social Pension Program",
+    programCode: "DSS-02",
+    status: "in_review",
+    statusLabel: "In review",
+    statusDescription: "OSCA staff is currently checking your application.",
+    progress: 75,
+    updatedAt: "Aug 8, 2025 · 10:40 AM",
+    note: "",
+    hasOscaRemark: false,
+  },
+  {
+    id: "REQ-00088",
+    programName: "Medical Assistance",
+    programCode: "MED-05",
+    status: "reviewed",
+    statusLabel: "Reviewed",
+    statusDescription:
+      "OSCA has reviewed your application. Please check the note for instructions on the next steps.",
     progress: 100,
-    updated_at: "1 week ago",
+    updatedAt: "Aug 3, 2025 · 3:05 PM",
+    note: "Your documents are complete. Please visit the OSCA office on your scheduled date for releasing.",
+    hasOscaRemark: true,
   },
-  {
-    program: "Centenarian Gift",
-    status: "Declined",
-    note: "Verification incomplete.",
-    progress: 20,
-    updated_at: "5 days ago",
-  },
-];
+]);
 
-function statusColor(status) {
-  switch (status) {
-    case "Approved":
-      return "bg-green-100 text-green-700";
-    case "Pending":
-      return "bg-yellow-100 text-yellow-700";
-    case "Declined":
-      return "bg-red-100 text-red-700";
-    default:
-      return "bg-gray-100 text-gray-700";
+// ─── HELPERS ───────────────────────────────────────────────────
+
+function statusPillClass(status) {
+  const s = (status || "").toLowerCase();
+  if (s === "reviewed" || s === "approved") {
+    return "bg-emerald-100 text-emerald-800";
   }
+  if (s === "submitted" || s === "in_review") {
+    return "bg-amber-100 text-amber-800";
+  }
+  if (s === "needs_correction" || s === "rejected") {
+    return "bg-red-100 text-red-700";
+  }
+  if (s === "draft") {
+    return "bg-gray-100 text-gray-700";
+  }
+  return "bg-gray-100 text-gray-700";
 }
+
+const totalCount = computed(() => applications.value.length);
+
+const waitingCount = computed(() =>
+  applications.value.filter((a) =>
+    ["submitted", "in_review"].includes((a.status || "").toLowerCase())
+  ).length
+);
+
+const withRemarksCount = computed(() =>
+  applications.value.filter((a) => a.hasOscaRemark).length
+);
 </script>
 
 <style scoped>
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.2s ease;
-}
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-}
-
 /* Smooth scroll within main content */
 main {
   -webkit-overflow-scrolling: touch;

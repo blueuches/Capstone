@@ -18,22 +18,6 @@
       <p class="text-gray-600 text-center mb-6">Create your staff account for OSCA or Barangay access.</p>
 
       <form class="grid grid-cols-1 gap-5" @submit.prevent="handleSignup" novalidate>
-        <!-- Invite Token (optional, paste if you received one) -->
-        <div>
-          <label for="token" class="block text-sm font-semibold text-gray-700 mb-1">Invite Token (optional)</label>
-          <input
-            id="token"
-            type="text"
-            placeholder="Paste token if you received an invite"
-            v-model.trim="form.token"
-            @blur="form.token && fetchInvite()"
-            class="w-full px-4 py-3 text-lg border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-400 focus:outline-none text-gray-700"
-          />
-          <p v-if="inviteStatus" class="mt-1 text-sm" :class="inviteStatus.ok ? 'text-emerald-700' : 'text-red-600'">
-            {{ inviteStatus.msg }}
-          </p>
-        </div>
-
         <!-- Full Name -->
         <div>
           <label for="name" class="block text-sm font-semibold text-gray-700 mb-1">Full name</label>
@@ -50,11 +34,11 @@
 
         <!-- Email -->
         <div>
-          <label for="email" class="block text-sm font-semibold text-gray-700 mb-1">Work email</label>
+          <label for="email" class="block text-sm font-semibold text-gray-700 mb-1">Email</label>
           <input
             id="email"
             type="email"
-            placeholder="you@agency.gov.ph"
+            placeholder="Email"
             v-model.trim="form.email"
             required
             class="w-full px-4 py-3 text-lg border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-400 focus:outline-none text-gray-700"

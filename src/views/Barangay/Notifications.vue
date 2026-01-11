@@ -4,109 +4,140 @@
     <Sidebar role="brgy" />
 
     <!-- Main Content -->
-    <main class="flex-1 flex flex-col items-center px-6 py-10">
+   <main class="flex-1 flex flex-col items-center px-4 sm:px-6 py-8 ml-4 sm:ml-6">
+
       <!-- Header -->
-      <div class="w-full max-w-2xl bg-white rounded-3xl shadow-lg p-6 mb-6 text-center">
-        <h1 class="text-3xl font-extrabold text-emerald-700">Barangay Notifications</h1>
-        <p class="text-gray-600 mt-2 text-lg">Updates from OSCA and the system</p>
-      </div>
-
-      <!-- Notification List -->
-      <div class="w-full max-w-2xl flex flex-col gap-4">
-        <div
-          v-for="(n, i) in notifications"
-          :key="i"
-          class="flex items-start gap-4 bg-white rounded-xl shadow p-5 hover:shadow-md hover:bg-emerald-50 transition duration-200"
-        >
-          <div class="text-emerald-600">
-            <svg v-if="n.type === 'success'" xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-            </svg>
-            <svg v-else-if="n.type === 'pending'" xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-            </svg>
-            <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-            </svg>
+      <div class="w-full max-w-3xl bg-white rounded-3xl shadow-lg p-6 mb-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <h1 class="text-2xl font-extrabold text-emerald-700">Barangay Notifications</h1>
+            <p class="text-gray-600 mt-1">Updates from OSCA and the system</p>
           </div>
 
-          <div class="flex-1">
-            <div class="flex items-center justify-between">
-              <h2 class="font-bold text-xl text-emerald-700">{{ n.title }}</h2>
-              <span class="px-3 py-1 text-sm font-semibold rounded-full" :class="badgeClass(n.type)">
-                {{ capitalize(n.type) }}
-              </span>
-            </div>
-            <p class="text-gray-700 mt-2">{{ n.message }}</p>
-            <p class="text-sm text-gray-500 mt-1">{{ n.time }}</p>
-          </div>
+          <button
+            class="text-sm px-3 py-1.5 rounded-lg bg-emerald-100 text-emerald-800 hover:bg-emerald-200 disabled:opacity-50"
+            @click="markAllRead"
+            :disabled="loading || !notifications.length"
+          >
+            Mark all as read
+          </button>
         </div>
+
       </div>
 
-      <!-- Back -->
-      <div class="mt-10">
-        <RouterLink to="/barangay/dashboard">
-          <p class="text-emerald-700 font-bold underline text-lg">← Back to Dashboard</p>
-        </RouterLink>
+      <!-- List -->
+      <div class="w-full max-w-3xl">
+        <div v-if="loading" class="space-y-3">
+          <div class="h-16 bg-emerald-100/40 animate-pulse rounded-xl"></div>
+          <div class="h-16 bg-emerald-100/40 animate-pulse rounded-xl"></div>
+        </div>
+
+        <p v-else-if="error" class="text-sm text-red-600">{{ error }}</p>
+
+        <p v-else-if="!filtered.length" class="text-sm text-gray-600">
+          You have no notifications yet.
+        </p>
+
+        <ul v-else class="space-y-3">
+          <li
+            v-for="n in filtered"
+            :key="n.id"
+            class="p-4 rounded-lg border-l-4"
+            :class="[n.is_read ? 'bg-white border-emerald-300' : 'bg-emerald-50 border-emerald-500']"
+          >
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0">
+                <div class="font-semibold text-emerald-900 line-clamp-1">
+                  {{ n.announcement?.title ?? 'Announcement' }}
+                </div>
+
+                <div class="text-[15px] text-emerald-800 whitespace-pre-line mt-0.5">
+                  {{ n.announcement?.content ?? '' }}
+                </div>
+
+                <div v-if="n.announcement?.attachment_url" class="mt-2">
+                  <a
+                    class="inline-flex items-center text-sm text-emerald-700 underline hover:text-emerald-900"
+                    :href="n.announcement.attachment_url" target="_blank" rel="noopener"
+                  >
+                    View attachment
+                    <svg class="w-4 h-4 ml-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M7 17L17 7M7 7h10v10" />
+                    </svg>
+                  </a>
+                </div>
+
+                <div class="text-xs text-gray-500 mt-1">
+                  {{ formatTimeAgo(n.created_at) }}
+                  <span v-if="n.announcement?.sender_role" class="text-gray-400">
+                    • from {{ n.announcement?.sender_role }}
+                  </span>
+                </div>
+              </div>
+
+              <button
+                v-if="!n.is_read"
+                class="text-xs px-2 py-1 shrink-0 rounded-lg border border-emerald-300 hover:bg-emerald-100"
+                @click="markOneRead(n.id)"
+              >
+                Mark read
+              </button>
+            </div>
+          </li>
+        </ul>
       </div>
+
     </main>
   </div>
 </template>
 
-<script setup>
-import { ref } from 'vue'
-import { useRoute, RouterLink } from 'vue-router'
+<script setup lang="ts">
+import { ref, computed } from 'vue'
 import Sidebar from '@/components/Sidebar.vue'
+import { useNotifications } from '@/composables/useNotifications'
 
 defineOptions({ name: 'BarangayNotifications' })
 
-// Demo notifications (replace later with Supabase or API data)
-const notifications = ref([
-  {
-    title: 'Applications Sent to OSCA',
-    message: 'All applications submitted by your barangay have been forwarded to OSCA for review.',
-    time: '1 hour ago',
-    type: 'success'
-  },
-  {
-    title: 'OSCA Validation Update',
-    message: 'OSCA has validated 8 out of 12 applications from your barangay. Check the list for details.',
-    time: 'Today',
-    type: 'pending'
-  },
-  {
-    title: 'System Maintenance',
-    message: 'The SeniorGo portal will undergo maintenance tomorrow at 9:00 AM. Access may be temporarily unavailable.',
-    time: 'Yesterday',
-    type: 'alert'
-  }
-])
-
-const badgeMap = {
-  success: 'bg-green-100 text-green-700',
-  pending: 'bg-yellow-100 text-yellow-700',
-  alert: 'bg-red-100 text-red-700'
+/** --- Types to satisfy TS --- */
+type Ann = {
+  id: number
+  title: string | null
+  content: string | null
+  attachment_url?: string | null
+  sender_role?: string | null
 }
-const badgeClass = (type) => badgeMap[type] ?? badgeMap.alert
-const capitalize = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : '')
-
-const sidebarOpen = ref(false)
-const route = useRoute()
-
-const navActive = (path) => {
-  const isActive = route.path === path
-  return isActive
-    ? 'bg-emerald-50 text-emerald-900 font-extrabold relative before:content-[\'\'] before:absolute before:-left-1 before:h-6 before:w-1 before:rounded-full before:bg-emerald-500'
-    : ''
+type Notif = {
+  id: number
+  is_read: boolean
+  created_at: string
+  announcement?: Ann | null
 }
+
+/** Pull notifications (same composable as senior page) */
+const { notifications, unreadCount, loading, error, formatTimeAgo, markOneRead, markAllRead } =
+  useNotifications(100)
+
+/** Cast to a typed array so TS recognizes `attachment_url` */
+const items = computed<Notif[]>(() => notifications.value as unknown as Notif[])
+
+/** Optional search */
+const q = ref('')
+const filtered = computed(() => {
+  const term = q.value.trim().toLowerCase()
+  if (!term) return items.value
+  return items.value.filter(n =>
+    (n.announcement?.title || '').toLowerCase().includes(term) ||
+    (n.announcement?.content || '').toLowerCase().includes(term)
+  )
+})
+
+/** If you need a bell badge somewhere else, call useNotifications() there
+ * instead of trying to `export` from <script setup>.
+ * Example in your navbar: const { unreadCount } = useNotifications(10)
+ */
 </script>
 
+
 <style scoped>
-/* Tailwind animation + focus helpers */
-@keyframes float-in {
-  0% { transform: translateY(10px); opacity: 0; }
-  100% { transform: translateY(0); opacity: 1; }
-}
-.animate-float { animation: float-in .2s ease-out both; }
-.focus-ring:focus { outline: none; box-shadow: 0 0 0 3px rgba(16,185,129,.35); }
+.line-clamp-1 { display:-webkit-box; -webkit-line-clamp:1; -webkit-box-orient:vertical; overflow:hidden; }
 </style>

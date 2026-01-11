@@ -7,7 +7,7 @@
         <div class="flex items-center gap-3 mb-6">
           <div class="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow overflow-hidden">
             <img 
-              src="/logo.png" 
+              src="/icon.png" 
               alt="OSCA Logo" 
               class="w-8 h-8 object-contain"
             />
@@ -21,7 +21,7 @@
           <router-link to="/admin/programconfig" class="block px-3 py-2 rounded-lg text-emerald-100 hover:bg-emerald-600 transition">Programs</router-link>
           <router-link to="/admin/formbuilder" class="block px-3 py-2 rounded-lg text-emerald-100 hover:bg-emerald-600 transition">Application Forms</router-link>
           <router-link to="/admin/usermanagement" class="block px-3 py-2 rounded-lg text-emerald-100 hover:bg-emerald-600 transition">Users</router-link>
-          <router-link to="/admin/complaints" class="block px-3 py-2 rounded-lg text-emerald-100 hover:bg-emerald-600 transition">Complaints</router-link>
+          <router-link to="/logout" class="block px-3 py-2 rounded-lg text-emerald-100 hover:bg-emerald-600 transition">Logout</router-link>
         </nav>
       </div>
 

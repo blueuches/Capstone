@@ -6,7 +6,9 @@ import { supabase } from '@/supabase/client'
 // Eager imports (stable)
 import Welcome from '@/views/Welcome.vue'
 import Login from '@/views/Login.vue'
+import LoginPhone from '@/views/LoginPhone.vue'
 import Signup from '@/views/Signup.vue'
+import OscaReview from '@/views/OSCA/ReviewPage.vue' 
 
 // ──────────────────────────────
 // Utility: robust role fetch (RPC-first)
@@ -78,6 +80,7 @@ const routes = [
   // Public
   { path: '/', component: Welcome },
   { path: '/login', component: Login, meta: { guestOnly: true } },
+  { path: '/loginviaphone', component: LoginPhone, meta: { guestOnly: true } },
   { path: '/signup', component: Signup, meta: { guestOnly: true} }, // ← bracket fix if you copy-paste
 
   // Debug / NA
@@ -106,7 +109,10 @@ const routes = [
   { path: '/senior/help', component: () => import('@/views/Senior/Features/Help.vue'), meta: { requiresAuth: true, roles: ['senior'] } },
   { path: '/senior/apply/:programId/:variantId?', name: 'apply-request', component: () => import('@/views/Senior/Features/ApplyRequest.vue') },
   { path: '/senior/apply/:programId', name: 'variant-picker', component: () => import('@/views/Senior/Features/VariantPicker.vue') },
+  { path: '/senior/settings', component: () => import('@/views/Senior/Features/Settings.vue'), meta: { requiresAuth: true, roles: ['senior'] } },
+  { path: '/senior/about', component: () => import('@/views/Senior/Features/About.vue'), meta: { requiresAuth: true, roles: ['senior'] } },
   { path: '/senior/testvoice', component: () => import('@/views/Test.vue') }, //sample test
+  { path: '/senior/testvoiceweb', component: () => import('@/views/Test1.vue') }, //sample test
 
   // OSCA
   { path: '/osca/dashboard', component: () => import('@/views/OSCA/Dashboard.vue'), meta: { requiresAuth: true, roles: ['osca_staff'] } },
@@ -115,6 +121,12 @@ const routes = [
   { path: '/osca/applications', component: () => import('@/views/OSCA/ApplicationReview.vue'), meta: { requiresAuth: true, roles: ['osca_staff'] } },
   { path: '/osca/review', component: () => import('@/views/OSCA/Review.vue'), meta: { requiresAuth: true, roles: ['osca_staff'] } },
   { path: '/osca/review/:programId/:requestId?', name: 'OscaReview', component: () => import('@/views/OSCA/ReviewPage.vue'), props: true, meta: { requiresAuth: true, roles: ['osca_staff'] } },
+      {path: '/osca/review/:programId/:requestId?',
+      name: 'OscaReview',
+      component: OscaReview,                           
+      props: true,
+      meta: { requiresAuth: true, roles: ['osca_staff'] }},
+  { path: '/osca/notifications', component: () => import('@/views/OSCA/Notifications.vue'), meta: { requiresAuth: true, roles: ['osca_staff'] } },
 
   // Barangay
   { path: '/barangay/dashboard', component: () => import('@/views/Barangay/Dashboard.vue'), meta: { requiresAuth: true, roles: ['brgy_staff'] } },
@@ -128,7 +140,7 @@ const routes = [
 
 export const router = createRouter({
   history: createWebHistory(),
-  routes,
+    routes,
 })
 
 // ──────────────────────────────

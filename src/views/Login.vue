@@ -27,7 +27,7 @@
       </router-link>
 
       <h1 class="text-4xl font-extrabold text-emerald-700 text-center mb-2">Login</h1>
-      <p class="text-gray-600 text-center mb-8 text-lg">Welcome! Please sign in to continue.</p>
+      <p class="text-gray-600 text-center mb-8 text-lg">Welcome! Please log in to continue.</p>
 
       <form class="w-full flex flex-col gap-6" @submit="handleLogin">
         <div class="relative">

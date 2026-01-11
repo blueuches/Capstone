@@ -1,12 +1,22 @@
 <template>
   <div class="text-gray-800 gradient-bg overflow-x-hidden" id="top">
     <!-- Navbar -->
-    <header
-      class="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur shadow-md"
-      :class="{'border-b': isScrolled}"
-    >
-      <div class="mx-auto max-w-7xl flex items-center justify-between px-4 sm:px-6 py-4">
-        <h1 class="text-2xl font-bold text-emerald-600">SeniorGo</h1>
+<header
+  class="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur shadow-md"
+  :class="{'border-b': isScrolled}"
+>
+  <div class="mx-auto max-w-7xl flex items-center justify-between px-4 sm:px-6 py-2">
+    <!-- Logo: big icon on the far left -->
+    <div class="flex items-center gap-2">
+      <img
+        src="/icon.png"
+        alt="SeniorGo logo"
+        class="h-10 w-auto md:h-12 object-contain flex-shrink-0"
+      />
+      <h1 class="text-base md:text-lg font-bold text-emerald-600">
+        SeniorGo
+      </h1>
+    </div>
 
         <!-- Desktop Nav -->
         <nav class="hidden md:flex items-center gap-6 text-sm font-medium">
@@ -57,33 +67,23 @@
     <div class="blob bottom-0 right-0"></div>
 
     <!-- Hero -->
-    <section class="relative min-h-[92vh] flex flex-col md:flex-row items-center justify-between px-6 sm:px-10 pt-28 pb-16">
-      <div class="md:w-1/2 space-y-6 text-center md:text-left z-10">
+<section class="relative min-h-[92vh] flex flex-col items-center justify-center px-6 sm:px-10 pt-28 pb-16">
+    <div class="md:w-1/2 space-y-6 text-center z-10">
         <h2 class="text-4xl md:text-6xl font-extrabold text-emerald-700 leading-tight drop-shadow">
-          Welcome to <span class="text-emerald-600">SeniorGo</span>
+            Welcome to <span class="text-emerald-600">SeniorGo</span>
         </h2>
-        <p class="text-lg md:text-xl text-gray-700 max-w-xl mx-auto md:mx-0">
-          A digital companion for Butuan’s beloved seniors. Access support programs with just your voice and a smile.
+        <p class="text-lg md:text-xl text-gray-700 max-w-xl mx-auto">
+            A digital companion for Butuan’s beloved seniors. Access support programs with just your voice and a smile.
         </p>
-        <div class="flex justify-center md:justify-start gap-4 flex-wrap pt-2">
-          <router-link to="/login" class="px-6 py-3 bg-emerald-600 text-white text-lg rounded-xl font-semibold shadow hover:bg-emerald-700 transition">Log In</router-link>
-          <router-link to="/signup" class="px-6 py-3 border border-emerald-600 text-emerald-700 text-lg rounded-xl font-semibold shadow hover:bg-emerald-100 transition">Sign Up</router-link>
+        <div class="flex justify-center gap-4 flex-wrap pt-2">
+            <router-link to="/login" class="px-6 py-3 bg-emerald-600 text-white text-lg rounded-xl font-semibold shadow hover:bg-emerald-700 transition">Log In</router-link>
+            <router-link to="/signup" class="px-6 py-3 border border-emerald-600 text-emerald-700 text-lg rounded-xl font-semibold shadow hover:bg-emerald-100 transition">Sign Up</router-link>
         </div>
-
-      </div>
-
-      <div class="md:w-1/2 mt-10 md:mt-0 flex justify-center z-10">
-        <img
-          src="https://pressone.ph/wp-content/uploads/2020/04/seniors.jpg"
-          alt="Senior citizens in the Philippines"
-          class="w-full max-w-3xl h-auto rounded-2xl shadow-2xl object-cover ring-4 ring-emerald-300 transition-transform duration-500 hover:scale-105"
-          loading="lazy"
-        />
-      </div>
-    </section>
+    </div>
+</section>
 
     <!-- Features -->
-    <section id="features" class="px-6 sm:px-10 py-20 bg-white relative" :style="scaledFontStyle">
+    <!-- <section id="features" class="px-6 sm:px-10 py-20 bg-white relative" :style="scaledFontStyle">
       <h3 class="text-3xl font-bold text-emerald-700 text-center mb-12">Why Seniors Love SeniorGo</h3>
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-10 max-w-6xl mx-auto">
@@ -97,7 +97,7 @@
           <p class="text-sm text-gray-700 mt-2">{{ card.text }}</p>
         </div>
       </div>
-    </section>
+    </section> -->
 
     <!-- Testimonials -->
     <section id="testimonials" class="px-6 sm:px-10 py-20 bg-emerald-50 relative" :style="scaledFontStyle">

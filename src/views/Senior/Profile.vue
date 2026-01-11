@@ -1,6 +1,6 @@
 <!-- SeniorProfile.vue (polished to match mock) -->
 <template>
-  <div class="min-h-screen bg-gradient-to-b from-emerald-50 to-white flex flex-col">
+  <div class="senior-font-root min-h-screen bg-gradient-to-b from-emerald-50 to-white flex flex-col">
     <!-- Top bar -->
     <header class="sticky top-0 z-30 bg-emerald-600 text-white shadow">
       <div class="px-4 py-3 flex items-center justify-between">
@@ -36,9 +36,6 @@
           <h1 class="mt-4 text-xl sm:text-2xl font-extrabold text-emerald-800 leading-tight">
             {{ profile.fullName }}
           </h1>
-          <p class="text-xs text-gray-500 mt-1">
-            Senior Citizen ID: <span class="font-medium text-gray-600">{{ profile.oscaId }}</span>
-          </p>
 
           <button
             type="button"
@@ -67,10 +64,6 @@
             <span>Gender:</span>
             <span>{{ profile.sex }}</span>
           </div>
-          <div class="kv-row">
-            <span>Civil Status:</span>
-            <span>{{ profile.civilStatus }}</span>
-          </div>
         </div>
       </section>
 
@@ -79,7 +72,7 @@
         <h2 class="section-title">CONTACT INFORMATION</h2>
         <div class="kv-card">
           <div class="kv-row">
-            <span>Address:</span>
+            <span>Barangay:</span>
             <span class="text-right">{{ profile.address }}</span>
           </div>
           <div class="kv-row">
