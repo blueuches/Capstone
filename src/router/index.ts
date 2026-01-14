@@ -1,5 +1,5 @@
-// src/router/index.js
-import { createRouter, createWebHistory } from 'vue-router'
+// src/router/index.ts
+import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
 import { supabase } from '@/supabase/client'
 
@@ -8,39 +8,50 @@ import Welcome from '@/views/Welcome.vue'
 import Login from '@/views/Login.vue'
 import LoginPhone from '@/views/LoginPhone.vue'
 import Signup from '@/views/Signup.vue'
-import OscaReview from '@/views/OSCA/ReviewPage.vue' 
+import OscaReview from '@/views/OSCA/ReviewPage.vue'
+
+// ──────────────────────────────
+// Types & Interfaces
+// ──────────────────────────────
+type RoleCode = 'admin' | 'osca_staff' | 'brgy_staff' | 'senior'
+
+interface CacheEntry {
+  roles: string[]
+  ts: number
+}
 
 // ──────────────────────────────
 // Utility: robust role fetch (RPC-first)
 // ──────────────────────────────
-const roleCache = new Map()
+const roleCache = new Map<string, CacheEntry>()
 const CACHE_TTL_MS = 5 * 60 * 1000
 
-const DASH = {
+const DASH: Record<RoleCode, string> = {
   admin: '/admin/dashboard',
   osca_staff: '/osca/dashboard',
   brgy_staff: '/barangay/dashboard',
   senior: '/senior/dashboard',
 }
-function pickHome(roles = []) {
-  const priority = ['admin', 'osca_staff', 'brgy_staff', 'senior']
+
+function pickHome(roles: string[] = []) {
+  const priority: RoleCode[] = ['admin', 'osca_staff', 'brgy_staff', 'senior']
   const found = priority.find(r => roles.includes(r))
   return found ? (DASH[found] || '/') : '/'
 }
 
 // Fetch roles via RPC first (best for RLS), fallback to join
-async function fetchRoleCodes(userId) {
+async function fetchRoleCodes(userId: string | null | undefined): Promise<string[]> {
   if (!userId) return []
 
   const hit = roleCache.get(userId)
-  if (hit && (Date.now() - hit.ts) < CACHE_TTL_MS) return hit.roles
+  if (hit && Date.now() - hit.ts < CACHE_TTL_MS) return hit.roles
 
   // 1) RPC (security definer) — create it as shown below
   try {
     const { data: rpcRoles, error: rpcErr } = await supabase.rpc('get_my_roles')
     if (!rpcErr && Array.isArray(rpcRoles)) {
-      roleCache.set(userId, { roles: rpcRoles, ts: Date.now() })
-      return rpcRoles
+      roleCache.set(userId, { roles: rpcRoles as string[], ts: Date.now() })
+      return rpcRoles as string[]
     }
   } catch (e) {
     console.warn('get_my_roles RPC failed:', e)
@@ -55,7 +66,9 @@ async function fetchRoleCodes(userId) {
       .eq('status', 'active')
 
     if (!error && Array.isArray(data)) {
-      const codes = data.map(r => r.Roles?.code).filter(Boolean)
+      const codes = (data as any[])
+        .map(r => r.Roles?.code)
+        .filter(Boolean) as string[]
       roleCache.set(userId, { roles: codes, ts: Date.now() })
       return codes
     }
@@ -67,7 +80,7 @@ async function fetchRoleCodes(userId) {
   return []
 }
 
-function isAllowed(routeRoles = [], userRoles = []) {
+function isAllowed(routeRoles: string[] = [], userRoles: string[] = []) {
   if (!routeRoles.length) return true
   if (userRoles.includes('admin')) return true // keep admin escape if desired
   return routeRoles.some(r => userRoles.includes(r))
@@ -76,12 +89,12 @@ function isAllowed(routeRoles = [], userRoles = []) {
 // ──────────────────────────────
 // Routes (add debug + NA routes)
 // ──────────────────────────────
-const routes = [
+const routes: RouteRecordRaw[] = [
   // Public
   { path: '/', component: Welcome },
   { path: '/login', component: Login, meta: { guestOnly: true } },
   { path: '/loginviaphone', component: LoginPhone, meta: { guestOnly: true } },
-  { path: '/signup', component: Signup, meta: { guestOnly: true} }, // ← bracket fix if you copy-paste
+  { path: '/signup', component: Signup, meta: { guestOnly: true } }, // ← bracket fix if you copy-paste
 
   // Debug / NA
   { path: '/not-authorized', component: () => import('@/views/NotAuthorized.vue') },
@@ -121,11 +134,13 @@ const routes = [
   { path: '/osca/applications', component: () => import('@/views/OSCA/ApplicationReview.vue'), meta: { requiresAuth: true, roles: ['osca_staff'] } },
   { path: '/osca/review', component: () => import('@/views/OSCA/Review.vue'), meta: { requiresAuth: true, roles: ['osca_staff'] } },
   { path: '/osca/review/:programId/:requestId?', name: 'OscaReview', component: () => import('@/views/OSCA/ReviewPage.vue'), props: true, meta: { requiresAuth: true, roles: ['osca_staff'] } },
-      {path: '/osca/review/:programId/:requestId?',
-      name: 'OscaReview',
-      component: OscaReview,                           
-      props: true,
-      meta: { requiresAuth: true, roles: ['osca_staff'] }},
+  {
+    path: '/osca/review/:programId/:requestId?',
+    name: 'OscaReview',
+    component: OscaReview,
+    props: true,
+    meta: { requiresAuth: true, roles: ['osca_staff'] },
+  },
   { path: '/osca/notifications', component: () => import('@/views/OSCA/Notifications.vue'), meta: { requiresAuth: true, roles: ['osca_staff'] } },
 
   // Barangay
@@ -140,7 +155,7 @@ const routes = [
 
 export const router = createRouter({
   history: createWebHistory(),
-    routes,
+  routes,
 })
 
 // ──────────────────────────────
@@ -165,14 +180,14 @@ router.beforeEach(async (to) => {
   if (to.path === '/' || to.path === '/auth-debug' || to.path === '/not-authorized') return true
 
   // logout
-  if (to.meta?.logout) {
+  if ((to.meta as any)?.logout) {
     try { await auth.signOut() } catch {}
     roleCache.clear()
     return '/'
   }
 
   const signedIn = auth.isSignedIn.value
-  const userId   = signedIn ? auth.user.value?.id : null
+  const userId = signedIn ? (auth.user.value as any)?.id : null
 
   // Avoid redirect storms: if we redirected very recently multiple times → go to /auth-debug
   const now = Date.now()
@@ -187,7 +202,7 @@ router.beforeEach(async (to) => {
   }
 
   // guest-only pages must remain accessible if roles are unresolved
-  if (to.meta?.guestOnly) {
+  if ((to.meta as any)?.guestOnly) {
     if (!signedIn) return true // ok
     // If signed in but roles not resolved or empty, allow Login/Signup to render
     try {
@@ -201,17 +216,16 @@ router.beforeEach(async (to) => {
   }
 
   // requires auth
-  if (to.meta?.requiresAuth) {
-    if (!signedIn) return { path: '/login', query: { redirect: to.fullPath } }
+  if ((to.meta as any)?.requiresAuth) {
+    if (!signedIn) return { path: '/login', query: { redirect: (to as any).fullPath } }
 
     // Role-gate
-    if (to.meta?.roles?.length) {
+    if (((to.meta as any)?.roles as string[] | undefined)?.length) {
       try {
-        const userRole = auth.role.value
-        if (to.meta?.roles?.length && !to.meta.roles.includes(userRole)) {
+        const userRole = (auth as any).role.value
+        if (((to.meta as any)?.roles as string[] | undefined)?.length && !(to.meta as any).roles.includes(userRole)) {
           return '/not-authorized'
         }
-
       } catch {
         return '/auth-debug'
       }

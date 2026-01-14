@@ -1,29 +1,29 @@
-// src/composables/useAuth.js
+// src/composables/useAuth.ts
 import { ref, computed } from 'vue'
 import { supabase } from '@/supabase/client'
 
 // ─────────────────────────────────────────────
 // Reactive singletons (one instance app-wide)
 // ─────────────────────────────────────────────
-const session = ref(null) // Supabase session object
-const user = ref(null) // Supabase user object
+const session = ref<any | null>(null) // Supabase session object
+const user = ref<any | null>(null) // Supabase user object
 
 // Optional identity/role context (loaded lazily)
-const role = ref(null) // 'senior' | 'brgy_staff' | 'osca_staff' | null
-const seniorId = ref(null) // bigint when role === 'senior'
-const orgId = ref(null) // active organization_id for staff
-const loading = ref(false) // for UI spinners during sign in, etc.
+const role = ref<'senior' | 'brgy_staff' | 'osca_staff' | 'admin' | null>(null) // 'senior' | 'brgy_staff' | 'osca_staff' | null
+const seniorId = ref<any | null>(null) // bigint when role === 'senior'
+const orgId = ref<any | null>(null) // active organization_id for staff
+const loading = ref<boolean>(false) // for UI spinners during sign in, etc.
 
 // Internal flags
 let _initialized = false
-let _unsubAuth = null
+let _unsubAuth: any | null = null
 
 // ─────────────────────────────────────────────
 // FAST role discovery (does NOT block init())
 // Run only when a valid session exists.
 // Uses your existing RPCs, with a safe fallback.
 // ─────────────────────────────────────────────
-async function loadIdentity() {
+async function loadIdentity(): Promise<void> {
   if (!session.value?.user) {
     role.value = null
     seniorId.value = null
@@ -40,10 +40,10 @@ async function loadIdentity() {
       supabase.rpc('is_admin'),
     ])
 
-    const isSenior = sr.status === 'fulfilled' && !!sr.value?.data
-    const isBrgy = br.status === 'fulfilled' && !!br.value?.data
-    const isOsca = os.status === 'fulfilled' && !!os.value?.data
-    const isAdmin = ad.status === 'fulfilled' && !!ad.value?.data
+    const isSenior = sr.status === 'fulfilled' && !!(sr as any).value?.data
+    const isBrgy = br.status === 'fulfilled' && !!(br as any).value?.data
+    const isOsca = os.status === 'fulfilled' && !!(os as any).value?.data
+    const isAdmin = ad.status === 'fulfilled' && !!(ad as any).value?.data
 
     // Prioritize staff over senior if both return true accidentally
     role.value = isAdmin
@@ -65,7 +65,7 @@ async function loadIdentity() {
       // Senior identity
       const { data, error } = await supabase.rpc('my_senior_id')
       if (!error) {
-        seniorId.value = data ?? null
+        seniorId.value = (data as any) ?? null
       } else {
         seniorId.value = null
       }
@@ -80,7 +80,7 @@ async function loadIdentity() {
         .limit(1)
         .maybeSingle()
 
-      orgId.value = membership?.organization_id ?? null
+      orgId.value = (membership as any)?.organization_id ?? null
       seniorId.value = null
     } else {
       // No role
@@ -97,14 +97,14 @@ async function loadIdentity() {
 }
 
 // Optionally exposed if a page wants to force a refresh
-async function refreshIdentity() {
+async function refreshIdentity(): Promise<void> {
   await loadIdentity()
 }
 
 // ─────────────────────────────────────────────
 // Auth lifecycle
 // ─────────────────────────────────────────────
-async function init() {
+async function init(): Promise<void> {
   if (_initialized) return
   _initialized = true
 
@@ -112,14 +112,14 @@ async function init() {
   const { data, error } = await supabase.auth.getSession()
   if (error) console.warn('getSession error:', error)
 
-  session.value = data?.session ?? null
-  user.value = data?.session?.user ?? null
+  session.value = (data as any)?.session ?? null
+  user.value = (data as any)?.session?.user ?? null
 
   // 2) Fire-and-forget role discovery (do not await)
   if (session.value) await loadIdentity()
 
   // 3) Subscribe once to auth changes
-  const { data: sub } = supabase.auth.onAuthStateChange(async (_event, sess) => {
+  const { data: sub } = supabase.auth.onAuthStateChange(async (_event: any, sess: any) => {
     session.value = sess ?? null
     user.value = sess?.user ?? null
 
@@ -134,22 +134,22 @@ async function init() {
     }
   })
 
-  _unsubAuth = sub?.subscription ?? null
+  _unsubAuth = (sub as any)?.subscription ?? null
 }
 
 // Some legacy code may still call this; keep it lightweight
-async function loadUser() {
+async function loadUser(): Promise<void> {
   const { data } = await supabase.auth.getUser()
-  user.value = data?.user ?? null
+  user.value = (data as any)?.user ?? null
 
   // Ensure session is present if someone calls loadUser before init
   if (!session.value) {
     const { data: s } = await supabase.auth.getSession()
-    session.value = s?.session ?? null
+    session.value = (s as any)?.session ?? null
   }
 }
 
-async function signInWithPassword(email, password) {
+async function signInWithPassword(email: string, password: string): Promise<void> {
   loading.value = true
   try {
     const { error } = await supabase.auth.signInWithPassword({ email, password })
@@ -161,7 +161,7 @@ async function signInWithPassword(email, password) {
   }
 }
 
-async function signOut() {
+async function signOut(): Promise<void> {
   try {
     await supabase.auth.signOut()
   } finally {

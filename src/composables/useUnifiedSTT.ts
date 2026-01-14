@@ -1,4 +1,4 @@
-// src/composables/useUnifiedSTT.js
+// src/composables/useUnifiedSTT.ts
 import { Capacitor } from '@capacitor/core'
 import { useWebSpeechStt } from './useWebSpeechStt'
 import { useNativeSpeechStt } from './useNativeSpeechStt'
