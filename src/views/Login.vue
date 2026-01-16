@@ -29,7 +29,7 @@
       <h1 class="text-4xl font-extrabold text-emerald-700 text-center mb-2">Login</h1>
       <p class="text-gray-600 text-center mb-8 text-lg">Welcome! Please log in to continue.</p>
 
-      <form class="w-full flex flex-col gap-6" @submit="handleLogin">
+      <form class="w-full flex flex-col gap-6">
         <div class="relative">
           <span class="absolute left-4 top-3 text-emerald-500">
             <svg
@@ -85,6 +85,7 @@
         </div>
 
         <button
+          @click="submit"
           type="submit"
           :disabled="loading"
           class="w-full bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white py-3 text-xl rounded-xl font-bold shadow-md transition-all disabled:opacity-60"
@@ -107,76 +108,20 @@
 </template>
 
 <script setup lang="ts">
-// If you already added src/types/useAuth.d.ts (Option A earlier), this import will be typed.
-// If not, you can temporarily add `// @ts-ignore` on the next line.
-// @ts-ignore
+import { ref } from 'vue'
 import { useAuth } from '@/composables/useAuth'
-import { useRouter, useRoute } from 'vue-router'
-import { handleLoginRedirect } from '@/utils/auth' // ✅ add this line
-
-import { ref, onMounted } from 'vue'
-
-const router = useRouter()
-const route = useRoute()
-const auth = useAuth()
 
 const email = ref('')
 const password = ref('')
-const loading = ref(false)
-const errorMsg = ref<string | null>(null)
+const errorMsg = ref('')
+const { login, loading } = useAuth()
 
-const DASH = {
-  senior: '/senior/dashboard',
-  brgy_staff: '/barangay/dashboard',
-  osca_staff: '/osca/dashboard',
-  admin: '/admin/dashboard',
-} as const
-
-onMounted(async () => {
-  // Ensure session listener is attached (safe if called multiple times)
-  await auth.init()
-})
-
-async function handleLogin(e: Event) {
-  e.preventDefault()
-  errorMsg.value = null
-
-  // simple client-side checks
-  if (!email.value || !password.value) {
-    errorMsg.value = 'Please enter both email and password.'
-    return
-  }
-  if (!email.value.includes('@')) {
-    errorMsg.value = 'Email must be valid (e.g., name@example.com).'
-    return
-  }
-
+const submit = async () => {
+  errorMsg.value = ''
   try {
-    loading.value = true
-    await auth.signInWithPassword(email.value, password.value)
-    await handleLoginRedirect()
+    await login(email.value, password.value)
   } catch (err: any) {
-    loading.value = false
-    errorMsg.value = 'Login failed: ' + (err?.message || 'Unknown error')
-    return
-  } finally {
-    loading.value = false
+    errorMsg.value = err.message
   }
-
-  // If the router guard set ?redirect earlier, honor it
-  const redirect = (route.query.redirect as string | undefined) || null
-  if (redirect) {
-    router.replace(redirect)
-    return
-  }
-
-  // Route by role (resolved via your DB RPCs in useAuth)
-  if (auth.isSenior.value) return router.replace(DASH.senior)
-  if (auth.isBrgy.value) return router.replace(DASH.brgy_staff)
-  if (auth.isOsca.value) return router.replace(DASH.osca_staff)
-  if (auth.isAdmin.value) return router.replace(DASH.admin)
-
-  // No recognized role
-  errorMsg.value = 'Your account has no assigned role yet.'
 }
 </script>

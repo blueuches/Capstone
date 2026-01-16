@@ -1,37 +1,21 @@
 // src/utils/auth.ts
-import { router } from '@/router'
-import { useAuth } from '@/composables/useAuth'
+import { supabase } from '@/supabase/client'
 
-/**
- * After a successful login, send the user to the right dashboard.
- * Uses the unified auth composable (session + role from RPCs).
- */
-export async function handleLoginRedirect(): Promise<void> {
-  const auth = useAuth()
-  await auth.init()
+export async function signIn(email: string, password: string) {
+  return supabase.auth.signInWithPassword({
+    email,
+    password
+  })
+}
 
-  if (!auth.isSignedIn.value) {
-    await router.push('/login')
-    return
-  }
+export async function signUp(email: string, password: string) {
+  return supabase.auth.signUp({ email, password })
+}
 
-  if (auth.isOsca.value) {
-    await router.push('/osca/dashboard')
-    return
-  }
-  if (auth.isBrgy.value) {
-    await router.push('/barangay/dashboard')
-    return
-  }
-  if (auth.isSenior.value) {
-    await router.push('/senior/dashboard')
-    return
-  }
-  if (auth.isAdmin.value) {
-    await router.push('/admin/dashboard')
-    return
-  }
+export async function signOut() {
+  return supabase.auth.signOut()
+}
 
-  // Fallback when no recognized role
-  await router.push('/')
+export async function getSession() {
+  return supabase.auth.getSession()
 }
