@@ -1,13 +1,21 @@
 <template>
-  <div>
-    <h1> Dashboard</h1>
+  <div class="min-h-screen bg-gray-50 font-poppins pb-16 flex flex-col">
+    <Header @toggle-menu="open = true" />
+    <SideBurger :open="open" @close="open = false" />
+
+
+    <BottomNav />
   </div>
 </template>
 
 <script setup lang="ts">
-/* script goes here */
-</script>
+import { ref, computed } from 'vue'
+import Header from '@/components/Senior/Header.vue'
+import SideBurger from '@/components/Senior/SideBurger.vue'
+import BottomNav from '@/components/Senior/BottomNav.vue'
+import { useAuth } from '@/composables/useAuth'
 
-<style scoped>
-/* CSS goes here */
-</style>
+const { profile } = useAuth()
+const open = ref(false)
+
+</script>
