@@ -17,7 +17,6 @@ import SeniorDashboard from '@/views/Senior/Dashboard.vue'
 import About from '@/views/Senior/About.vue'
 import ApplyPage from '@/views/Senior/ApplyPage.vue'
 import ApplyPageForm from '@/views/Senior/ApplyPageForm.vue'
-//import ApplyPageFormFinish from '@/views/Senior/ApplyPageFinish.vue'
 import ApplyPageSubmit from '@/views/Senior/ApplyPageSubmit.vue'
 import Help from '@/views/Senior/Help.vue'
 import IssuancePage from '@/views/Senior/IssuancePage.vue'
@@ -29,7 +28,6 @@ import RequirementsPageList from '@/views/Senior/RequirementsPageList.vue'
 import RequirementsPageView from '@/views/Senior/RequirementsPageView.vue'
 import Settings from '@/views/Senior/Settings.vue'
 import StatusPage from '@/views/Senior/StatusPage.vue'
-import StatusPageInfo from '@/views/Senior/StatusPageInfo.vue'
 import StatusPageUpdate from '@/views/Senior/StatusPageUpdate.vue'
 import Notification from '@/views/Senior/Notification.vue'
 
@@ -62,6 +60,7 @@ const routes = [
   { path: '/barangay/dashboard', component: BarangayDashboard, meta: { requiresAuth: true, role: 'barangay_staff' }},
   { path: '/senior/dashboard', component: SeniorDashboard, meta: { requiresAuth: true, role: 'senior' }},
 
+  //Senior dashboard
   { path: '/senior/dashboard/mystatus', component: StatusPage, meta: { requiresAuth: true, role: 'senior' }},
   { path: '/senior/dashboard/myrequirements', component: RequirementsPage, meta: { requiresAuth: true, role: 'senior' }},
   { path: '/senior/dashboard/apply', component: ApplyPage, meta: { requiresAuth: true, role: 'senior' }},
@@ -70,7 +69,15 @@ const routes = [
   { path: '/senior/dashboard/help', component: Help, meta: { requiresAuth: true, role: 'senior' }},
   { path: '/senior/notifications', component: Notification, meta: { requiresAuth: true, role: 'senior' }},
   { path: '/senior/profile', component: ProfilePage, meta: { requiresAuth: true, role: 'senior' }},
+  { path: '/senior/about', component: About, meta: { requiresAuth: true, role: 'senior' }},
+  { path: '/senior/settings', component: Settings, meta: { requiresAuth: true, role: 'senior' }},
 
+  //senior functions
+  { path: '/senior/dashboard/mystatus/updates', component: StatusPageUpdate, meta: { requiresAuth: true, role: 'senior' }},
+  { path: '/senior/dashboard/myrequirements/list', component: RequirementsPageList, meta: { requiresAuth: true, role: 'senior' }},
+  { path: '/senior/dashboard/apply/submitlist', component: ApplyPageSubmit, meta: { requiresAuth: true, role: 'senior' }},
+  { path: '/senior/dashboard/apply/form', component: ApplyPageForm, meta: { requiresAuth: true, role: 'senior' }},
+  { path: '/senior/dashboard/applications/info', component: IssuancePageInfo, meta: { requiresAuth: true, role: 'senior' }},
 
 ]
 

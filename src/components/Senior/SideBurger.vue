@@ -10,12 +10,27 @@
     <aside
       class="absolute left-0 top-0 h-full w-64 bg-white shadow-lg p-4 flex flex-col"
     >
-      <h2 class="text-lg font-semibold mb-6">Menu</h2>
+      <h2 class="text-lg font-semibold mb-6">Others</h2>
 
-      <nav class="flex-1 space-y-4">
-        <button class="menu-item">About</button>
-        <button class="menu-item">Settings</button>
-      </nav>
+<nav class="flex flex-col gap-2">
+  <RouterLink
+    to="/senior/about"
+    class="menu-row"
+  >
+    <span class="menu-icon"></span>
+    <span>About</span>
+  </RouterLink>
+
+  <RouterLink
+    to="/senior/settings"
+    class="menu-row"
+  >
+    <span class="menu-icon"></span>
+    <span>Settings</span>
+  </RouterLink>
+</nav>
+
+
 
       <button
         @click="handleLogout"
@@ -41,7 +56,24 @@ const handleLogout = async () => {
 </script>
 
 <style scoped>
-.menu-item {
-  @apply text-left w-full py-2 px-2 rounded hover:bg-gray-100;
+.menu-row {
+  @apply flex items-center gap-3
+         w-full
+         px-3 py-3
+         rounded-xl
+         text-sm font-medium text-gray-700
+         bg-white
+         ring-1 ring-gray-200
+         hover:bg-yellow-50 hover:text-yellow-800 hover:ring-yellow-200
+         transition;
 }
+
+.menu-icon {
+  @apply text-base;
+}
+
+.router-link-active.menu-row {
+  @apply bg-yellow-50 text-yellow-800 ring-yellow-300;
+}
+
 </style>

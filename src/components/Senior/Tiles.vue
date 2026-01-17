@@ -38,7 +38,7 @@ const tiles = [
   { label: 'Apply', route: '/senior/dashboard/apply', icon: ApplyIcon },
   { label: 'Applications', route: '/senior/dashboard/applications', icon: ApplicationsIcon },
   { label: 'Location', route: '/senior/dashboard/location', icon: LocationIcon },
-  { label: 'Help', route: '/senior/dashboard/help', icon: HelpIcon },
+  { label: 'FAQ', route: '/senior/dashboard/help', icon: HelpIcon },
 ]
 </script>
 

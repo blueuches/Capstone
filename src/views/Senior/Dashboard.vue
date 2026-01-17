@@ -34,7 +34,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import Header from '@/components/Senior/Header.vue'
 import SideBurger from '@/components/Senior/SideBurger.vue'
 import Tiles from '@/components/Senior/Tiles.vue'
@@ -44,12 +44,26 @@ import { useAuth } from '@/composables/useAuth'
 const { profile } = useAuth()
 const open = ref(false)
 
-const greeting = computed(() => {
-  const hour = new Date().getHours()
+const now = ref<Date>(new Date())
+let timer: number
 
-  // Simple Cebuano time greeting
+onMounted(() => {
+  timer = window.setInterval(() => {
+    now.value = new Date()
+  }, 60_000) // update every minute
+})
+
+onUnmounted(() => {
+  clearInterval(timer)
+})
+
+const greeting = computed<string>(() => {
+  const hour = now.value.getHours()
+
   if (hour >= 5 && hour < 12) return 'Maayong Buntag'
   if (hour >= 12 && hour < 18) return 'Maayong Hapon'
-  return 'Maayong Gabie'
+  if (hour >= 18 && hour < 24) return 'Maayong Gabie'
+  return 'Maayong Kaadlawon'
 })
+
 </script>
