@@ -36,17 +36,33 @@ export function useAuth() {
     if (session.value) await loadProfile()
   }
 
-  const loadProfile = async () => {
-    const userId = session.value.user.id
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single()
+const loadProfile = async () => {
+  const userId = session.value.user.id
 
-    if (error) throw error
-    profile.value = data
-  }
+  const { data, error } = await supabase
+    .from('profiles')
+    .select(`
+      id,
+      role,
+      first_name,
+      middle_name,
+      last_name,
+      birthdate,
+      gender,
+      contact_no,
+      barangay_id,
+      barangays (
+        id,
+        name
+      )
+    `)
+    .eq('id', userId)
+    .single()
+
+  if (error) throw error
+  profile.value = data
+}
+
 
   const login = async (email: string, password: string) => {
     loading.value = true

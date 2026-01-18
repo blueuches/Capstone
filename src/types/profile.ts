@@ -1,3 +1,8 @@
+export type Barangay = {
+  id: string
+  name: string
+}
+
 export type Profile = {
   id: string
   role: 'admin' | 'osca_staff' | 'barangay_staff' | 'senior'
@@ -8,4 +13,6 @@ export type Profile = {
   birthdate: string | null
   gender: string | null
   contact_no: string | null
+  barangay_id?: string | null
+  barangays?: Barangay | null
 }
