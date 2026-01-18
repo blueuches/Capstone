@@ -4,18 +4,18 @@
     class="group flex items-center gap-3 rounded-xl px-3 py-3 transition
            focus:outline-none focus:ring-2 focus:ring-white/40"
     :class="[
-      isActive ? 'bg-white/20' : 'bg-white/0 hover:bg-white/15 active:bg-white/20'
+      isActive ? 'bg-white/20' : 'bg-[#42ad43] hover:bg-white/15 active:bg-white/20'
     ]"
   >
     <div
-      class="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center transition"
-      :class="isActive ? 'bg-white/25' : 'group-hover:bg-white/20'"
+      class="w-10 h-10 rounded-xl bg-[#42ad43] flex items-center justify-center transition"
+      :class="isActive ? 'bg-[#42ad43]' : 'group-hover:bg-[#42ad43]'"
     >
-<img
-  :src="icon"
-  alt=""
-  class="w-5 h-5 object-contain"
-/>
+      <img
+        :src="icon"
+        alt=""
+        class="w-5 h-5 object-contain"
+      />
 
     </div>
 

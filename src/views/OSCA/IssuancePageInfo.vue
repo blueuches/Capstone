@@ -13,6 +13,37 @@
         :notificationCount="3"
         @toggle-sidebar="sidebarCollapsed = !sidebarCollapsed"
       />
+            <RouterLink
+        to="/osca/programs"
+        class="inline-flex items-center gap-2
+              text-gray-700 hover:text-[#42ad43]
+              mt-2 ml-3 group"
+      >
+        <!-- Circle + arrow -->
+        <span
+          class="shrink-0 w-7 h-7 rounded-full bg-[#42ad43]
+                flex items-center justify-center text-white
+                transition group-hover:bg-[#369a3a]"
+          aria-hidden="true"
+        >
+          <svg
+            class="w-4 h-4 -rotate-180"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M9 18l6-6-6-6" />
+          </svg>
+        </span>
+
+        <!-- Back text -->
+        <span class="text-sm font-semibold">
+          Back
+        </span>
+      </RouterLink>
 
       <main class="flex-1 overflow-y-auto">
         <div class="px-4 sm:px-8 py-6">          

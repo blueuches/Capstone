@@ -105,9 +105,9 @@ const routes = [
   //OSCA dashboard
   { path: '/osca/applicant', component: ApplicantReview, meta: { requiresAuth: true, role: 'osca_staff' }},
   { path: '/osca/barangays', component: BarangaysPage, meta: { requiresAuth: true, role: 'osca_staff' }},
-  { path: '/osca/barangayView', component: BarangaysPageInfo, meta: { requiresAuth: true, role: 'osca_staff' }},
+  { path: '/osca/barangayView/:barangayId', name: 'barangay-info', props:true, component: BarangaysPageInfo, meta: { requiresAuth: true, role: 'osca_staff' }},
   { path: '/osca/programs', component: OSCAIssuancePage, meta: { requiresAuth: true, role: 'osca_staff' }},
-  { path: '/osca/programView', component: OSCAIssuancePageInfo, meta: { requiresAuth: true, role: 'osca_staff' }},
+  { path: '/osca/programView/:issuanceTypeId',name: 'issuance-info', component: OSCAIssuancePageInfo,props:true, meta: { requiresAuth: true, role: 'osca_staff' }},
   { path: '/osca/announcement', component: OSCAAnnouncement, meta: { requiresAuth: true, role: 'osca_staff' }},
   { path: '/osca/message', component: OSCAMessagePage, meta: { requiresAuth: true, role: 'osca_staff' }},
   { path: '/osca/notification', component: OSCANotification, meta: { requiresAuth: true, role: 'osca_staff' }},
