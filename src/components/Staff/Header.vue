@@ -7,12 +7,13 @@
         class="w-10 h-10 rounded-xl border border-gray-200 hover:bg-gray-50 active:bg-gray-100 transition flex items-center justify-center"
         aria-label="Toggle sidebar"
       >
-        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <path
-            d="M4 7h16M4 12h16M4 17h16"
+            d="M10 7l-5 5 5 5M19 7l-5 5 5 5"
             stroke="currentColor"
             stroke-width="2"
             stroke-linecap="round"
+            stroke-linejoin="round"
           />
         </svg>
       </button>

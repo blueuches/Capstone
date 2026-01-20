@@ -45,6 +45,8 @@ import OSCASearch from '@/views/OSCA/Search.vue'
 import OSCAActivityPage from '@/views/OSCA/ActivityPage.vue'
 import OSCASettings from '@/views/OSCA/Settings.vue'
 import OSCAAbout from '@/views/OSCA/About.vue'
+import BRGYMessage from '@/views/OSCA/BRGYMessage.vue'
+import BRGYProfile from '@/views/OSCA/StaffProfile.vue'
 
 //BRGY
 import SeniorManagement from '@/views/Barangay/SeniorManagement.vue'
@@ -103,8 +105,10 @@ const routes = [
   { path: '/senior/dashboard/applications/info', component: IssuancePageInfo, meta: { requiresAuth: true, role: 'senior' }},
 
   //OSCA dashboard
-  { path: '/osca/applicant', component: ApplicantReview, meta: { requiresAuth: true, role: 'osca_staff' }},
+  { path: '/osca/applicant/:seniorId', name:'ApplicantReview',props:true ,component: ApplicantReview, meta: { requiresAuth: true, role: 'osca_staff' }},
   { path: '/osca/barangays', component: BarangaysPage, meta: { requiresAuth: true, role: 'osca_staff' }},
+  { path: '/osca/barangay/message/:barangayId',name: 'BRGYMessage',props:true, component: BRGYMessage, meta: { requiresAuth: true, role: 'osca_staff' }},
+  { path: '/osca/barangay/staff/profile/:staffId',name: 'BRGYProfile',props:true, component: BRGYProfile, meta: { requiresAuth: true, role: 'osca_staff' }},
   { path: '/osca/barangayView/:barangayId', name: 'barangay-info', props:true, component: BarangaysPageInfo, meta: { requiresAuth: true, role: 'osca_staff' }},
   { path: '/osca/programs', component: OSCAIssuancePage, meta: { requiresAuth: true, role: 'osca_staff' }},
   { path: '/osca/programView/:issuanceTypeId',name: 'issuance-info', component: OSCAIssuancePageInfo,props:true, meta: { requiresAuth: true, role: 'osca_staff' }},
@@ -117,7 +121,7 @@ const routes = [
   { path: '/osca/settings', component: OSCASettings, meta: { requiresAuth: true, role: 'osca_staff' }},
   { path: '/osca/about', component: OSCAAbout, meta: { requiresAuth: true, role: 'osca_staff' }},
 
-
+  
   //BRGY dashboard
   { path: '/barangay/users', component: SeniorList, meta: { requiresAuth: true, role: 'barangay_staff' }},
   { path: '/barangay/userview', component: SeniorView, meta: { requiresAuth: true, role: 'barangay_staff' }},
