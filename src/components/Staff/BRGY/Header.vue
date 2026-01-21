@@ -157,10 +157,9 @@ const props = defineProps<{
   aboutTo?: string
 }>()
 
-const notificationTo = computed(() => props.notificationTo ?? '/osca/notification')
-const profileTo = computed(() => props.profileTo ?? '/osca/profile')
-const settingsTo = computed(() => props.settingsTo ?? '/osca/settings')
-const aboutTo = computed(() => props.aboutTo ?? '/osca/about')
+const notificationTo = computed(() => props.notificationTo ?? '/barangay/notification')
+const profileTo = computed(() => props.profileTo ?? '/barangay/profile')
+const aboutTo = computed(() => props.aboutTo ?? '/barangay/about')
 
 
 defineEmits<{

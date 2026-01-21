@@ -74,7 +74,7 @@
 import { computed, ref } from 'vue'
 import supabase from '@/supabase/client'
 import Sidebar, { type NavItem } from '@/components/Staff/Sidebar.vue'
-import Header from '@/components/Staff/Header.vue'
+import Header from '@/components/Staff/BRGY/Header.vue'
 import DashboardRectangle from '@/components/Staff/DashboardRectangle.vue'
 import { useAuth } from '@/composables/useAuth'
 import DashboardIcon from '/public/staff/dashboard.png'

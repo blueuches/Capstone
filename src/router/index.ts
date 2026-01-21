@@ -41,6 +41,7 @@ import OSCAAnnouncement from '@/views/OSCA/Announcement.vue' //share?
 import OSCAMessagePage from '@/views/OSCA/MessagePage.vue'
 import OSCANotification from '@/views/OSCA/Notifications.vue'
 import OSCAProfilePage from '@/views/OSCA/ProfilePage.vue'
+import OSCAProfilePageEdit from '@/views/OSCA/ProfilePageEdit.vue'
 import OSCASearch from '@/views/OSCA/Search.vue'
 import OSCAActivityPage from '@/views/OSCA/ActivityPage.vue'
 import OSCASettings from '@/views/OSCA/Settings.vue'
@@ -56,6 +57,7 @@ import BRGYAnnouncement from '@/views/Barangay/Announcement.vue'
 import BRGYMessagePage from '@/views/Barangay/MessagePage.vue'
 import BRGYNotifications from '@/views/Barangay/Notifications.vue'
 import BRGYProfilePage from '@/views/Barangay/ProfilePage.vue'
+import BRGYProfilePageEdit from '@/views/Barangay/ProfilePageEdit.vue'
 import BRGYSettings from '@/views/Barangay/Settings.vue'
 import BRGYAbout from '@/views/Barangay/About.vue'
 
@@ -116,6 +118,7 @@ const routes = [
   { path: '/osca/announcement', component: OSCAAnnouncement, meta: { requiresAuth: true, role: 'osca_staff' }},
   { path: '/osca/notification', component: OSCANotification, meta: { requiresAuth: true, role: 'osca_staff' }},
   { path: '/osca/profile', component: OSCAProfilePage, meta: { requiresAuth: true, role: 'osca_staff' }},
+  { path: '/osca/profile/edit', component: OSCAProfilePageEdit, meta: { requiresAuth: true, role: 'osca_staff' }},
   { path: '/osca/search', component: OSCASearch, meta: { requiresAuth: true, role: 'osca_staff' }},
   { path: '/osca/activity', component: OSCAActivityPage, meta: { requiresAuth: true, role: 'osca_staff' }},
   { path: '/osca/settings', component: OSCASettings, meta: { requiresAuth: true, role: 'osca_staff' }},
@@ -130,6 +133,7 @@ const routes = [
   { path: '/barangay/message', component: BRGYMessagePage, meta: { requiresAuth: true, role: 'barangay_staff' }},
   { path: '/barangay/notification', component: BRGYNotifications, meta: { requiresAuth: true, role: 'barangay_staff' }},
   { path: '/barangay/profile', component: BRGYProfilePage, meta: { requiresAuth: true, role: 'barangay_staff' }},
+  { path: '/barangay/profile/edit', component: BRGYProfilePageEdit, meta: { requiresAuth: true, role: 'barangay_staff' }},
   { path: '/barangay/settings', component: BRGYSettings, meta: { requiresAuth: true, role: 'barangay_staff' }},
   { path: '/barangay/about', component: BRGYAbout, meta: { requiresAuth: true, role: 'barangay_staff' }},
 
