@@ -2,7 +2,11 @@
   <!-- Entire page locked; only main content scrolls -->
   <div class="h-screen overflow-hidden bg-gray-50 flex">
     <!-- Sidebar (fixed height, not scrollable) -->
-    <Sidebar :collapsed="sidebarCollapsed" />
+    <Sidebar
+      :collapsed="sidebarCollapsed"
+      :navItems="navItems"
+      footerText="OSCA - CSU © 2026"
+    />
 
     <!-- Right side -->
     <div class="flex-1 min-w-0 flex flex-col">
@@ -52,6 +56,23 @@ import Sidebar from '@/components/Admin/Sidebar.vue'
 import Header from '@/components/Admin/Header.vue'
 import DashboardRectangle from '@/components/Admin/DashboardRectangle.vue'
 import { useAuth } from '@/composables/useAuth'
+
+import IconDashboard  from '/public/admin/dashboard.png'
+import IconLogs from '/public/admin/logs.png'
+import IconUsers from '/public/admin/users.png'
+import IconEdit from '/public/admin/edit.png'
+import IconForm from '/public/admin/form.png'
+import IconBackup from '/public/admin/backup.png'
+
+const navItems = computed(() => [
+  { label: 'Dashboard', to: '/admin/dashboard', icon: IconDashboard },
+  { label: 'Logs', to: '/admin/logs', icon: IconLogs },
+  { label: 'Users', to: '/admin/users', icon: IconUsers },
+  { label: 'Edit', to: '/admin/edit', icon: IconEdit },
+  { label: 'Form Builder', to: '/admin/formbuilder', icon: IconForm },
+  { label: 'Backups', to: '/admin/backup', icon: IconBackup }
+
+])
 
 const { logout, profile } = useAuth()
 

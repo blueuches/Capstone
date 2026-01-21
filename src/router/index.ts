@@ -70,6 +70,7 @@ import UserManagement from '@/views/Admin/UserManagement.vue'
 import Edit from '@/views/Admin/Edit.vue'
 import EditIssuanceOption from '@/views/Admin/EditIssuanceOption.vue'
 import EditIssuanceOptionEdit from '@/views/Admin/EditIssuanceOptionEdit.vue'
+import EditIssuanceRequirements from '@/views/Admin/EditIssuanceRequirements.vue'
 import EditRequirementsOption from '@/views/Admin/EditRequirementsOption.vue'
 import EditRequirementsOptionEdit from '@/views/Admin/EditRequirementsOptionsEdit.vue'
 
@@ -146,9 +147,10 @@ const routes = [
   { path: '/admin/users', component: UserManagement, meta: { requiresAuth: true, role: 'admin'}},
   { path: '/admin/edit', component: Edit, meta: { requiresAuth: true, role: 'admin'}},
   { path: '/admin/edit/issuance', component: EditIssuanceOption, meta: { requiresAuth: true, role: 'admin'}},
-  { path: '/admin/edit/issuance/edit', component: EditIssuanceOptionEdit, meta: { requiresAuth: true, role: 'admin'}},
+  { path: '/admin/edit/issuance/edit/:id',name: 'EditIssuance', component: EditIssuanceOptionEdit,props:true,  meta: { requiresAuth: true, role: 'admin'}},
+  { path: '/admin/edit/issuance/requirements/:id',name: 'EditIssuanceRequirements', component: EditIssuanceRequirements,props:true, meta: { requiresAuth: true, role: 'admin'}},
   { path: '/admin/edit/requirements', component: EditRequirementsOption, meta: { requiresAuth: true, role: 'admin'}},
-  { path: '/admin/edit/requirements/edit', component: EditRequirementsOptionEdit, meta: { requiresAuth: true, role: 'admin'}},
+  { path: '/admin/edit/requirements/edit/:id',name: 'EditRequirements', component: EditRequirementsOptionEdit,props:true, meta: { requiresAuth: true, role: 'admin'}},
 ]
 
 export const router = createRouter({
