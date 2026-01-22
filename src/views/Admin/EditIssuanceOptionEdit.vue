@@ -17,7 +17,7 @@
       <div class="flex items-center justify-between mt-2 ml-3 mr-3 mb-4">
         <!-- Back -->
         <RouterLink
-          to="/osca/programs"
+          to="/admin/edit/issuance"
           class="inline-flex items-center gap-2
                  text-gray-700 hover:text-[#2e6b38]
                  group shrink-0"

@@ -17,6 +17,43 @@
         @toggle-sidebar="sidebarCollapsed = !sidebarCollapsed"
       />
 
+      <div class="flex items-center justify-between mt-2 ml-3 mr-3 mb-4">
+        <!-- Back -->
+        <RouterLink
+          to="/admin/formbuilder"
+          class="inline-flex items-center gap-2
+                 text-gray-700 hover:text-[#2e6b38]
+                 group shrink-0"
+        >
+          <span
+            class="shrink-0 w-7 h-7 rounded-full bg-[#2e6b38]
+                   flex items-center justify-center text-white
+                   transition group-hover:brightness-105"
+            aria-hidden="true"
+          >
+            <svg
+              class="w-4 h-4 -rotate-180"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M9 18l6-6-6-6" />
+            </svg>
+          </span>
+          <span class="text-sm font-semibold">Back</span>
+        </RouterLink>
+
+        <!-- Page title -->
+        <div class="min-w-0 text-right">
+          <h1 class="text-xl sm:text-2xl font-extrabold text-gray-900 leading-tight">
+            Edit [OSCA ID APPLICATION FORM]
+          </h1>
+        </div>
+      </div>
+
       <!-- Main scroll area -->
       <main class="flex-1 overflow-y-auto">
         <div class="px-4 sm:px-8 py-6">
