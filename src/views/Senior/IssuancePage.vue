@@ -1,3 +1,4 @@
+<!-- views/Senior/IssuancePage.vue -->
 <template>
   <div class="h-screen overflow-hidden bg-gray-50 font-poppins pb-16 flex flex-col">
     <Header @toggle-menu="open = true" />
@@ -26,7 +27,7 @@
       <!-- Optional helper / note -->
       <div class="mb-4 rounded-3xl bg-white border border-gray-200 p-4">
         <p class="text-sm text-gray-700 text-center">
-          To apply to one of these, 
+          To apply to one of these,
           <RouterLink to="/senior/dashboard/apply" class="font-semibold text-black">click here</RouterLink>.
         </p>
       </div>
@@ -51,59 +52,66 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import Header from '@/components/Senior/Header.vue'
 import SideBurger from '@/components/Senior/SideBurger.vue'
 import BottomNav from '@/components/Senior/BottomNav.vue'
-import ApplyItem from '@/components/Senior/ApplyItem.vue'
+import ApplyItem from '@/components/Senior/IssuanceItem.vue'
 import Left from '@/assets/icons/senior/left-arrow.svg'
+
+import { supabase } from '@/supabase/client'
 
 type ApplyOption = {
   id: string
   title: string
   subtitle?: string
   disabled?: boolean
-  route: string
+}
+
+type IssuanceTypeRow = {
+  id: string
+  name: string
+  description: string | null
+  active: boolean
 }
 
 const open = ref(false)
 const router = useRouter()
 
-// TEMP DATA (replace later with DB-driven services)
-const applyItems = ref<ApplyOption[]>([
-  {
-    id: 'new',
-    title: 'NEW\nAPPLICATION',
-    subtitle: 'View Info',
-    route: '/senior/dashboard/applications/info'
-  },
-  {
-    id: 'lost',
-    title: 'LOST ID CARD',
-    subtitle: 'View Info',
-    route: '/senior/dashboard/applications/info'
-  },
-  {
-    id: 'damaged',
-    title: 'CHANGE OR\nDAMAGED\nID CARD',
-    subtitle: 'View Info',
-    route: '/senior/dashboard/applications/info'
-  },
-  {
-    id: 'transfer',
-    title: 'TRANSFEREE\nFROM\nOTHER\nCITY\nMUNICIPALITY',
-    subtitle: 'View Info',
-    route: '/senior/dashboard/applications/info',
-    disabled: false
+const applyItems = ref<ApplyOption[]>([])
+
+onMounted(async () => {
+  const { data, error } = await supabase
+    .from('issuance_types')
+    .select('id, name, description, active')
+    .eq('active', true)
+    .order('created_at', { ascending: true })
+
+  if (error) {
+    console.error('Failed to load issuance_types:', error)
+    applyItems.value = []
+    return
   }
-])
+
+  const rows = (data ?? []) as IssuanceTypeRow[]
+
+  // ✅ real data from DB
+  applyItems.value = rows.map((row) => ({
+    id: row.id,
+    title: row.name,              // real name
+    subtitle: 'View Info',
+    disabled: false
+  }))
+})
 
 function onApply(item: ApplyOption) {
   if (item.disabled) return
 
-  // Placeholder: you can replace this with "create application then route"
-  // For now, just route directly.
-  router.push(item.route)
+  // ✅ pass issuance_types.id to IssuancePageInfo.vue via :id param
+  router.push({
+    name: 'IssuancePageInfo',
+    params: { id: item.id }
+  })
 }
 </script>

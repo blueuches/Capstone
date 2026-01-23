@@ -16,6 +16,7 @@ import SeniorDashboard from '@/views/Senior/Dashboard.vue'
 
 import About from '@/views/Senior/About.vue'
 import ApplyPage from '@/views/Senior/ApplyPage.vue'
+import ApplyPageOption from '@/views/Senior/ApplyPageOption.vue'
 import ApplyPageForm from '@/views/Senior/ApplyPageForm.vue'
 import ApplyPageSubmit from '@/views/Senior/ApplyPageSubmit.vue'
 import Help from '@/views/Senior/Help.vue'
@@ -103,9 +104,11 @@ const routes = [
   //senior functions
   { path: '/senior/dashboard/mystatus/updates', component: StatusPageUpdate, meta: { requiresAuth: true, role: 'senior' }},
   { path: '/senior/dashboard/myrequirements/list', component: RequirementsPageList, meta: { requiresAuth: true, role: 'senior' }},
-  { path: '/senior/dashboard/apply/submitlist', component: ApplyPageSubmit, meta: { requiresAuth: true, role: 'senior' }},
-  { path: '/senior/dashboard/apply/form', component: ApplyPageForm, meta: { requiresAuth: true, role: 'senior' }},
-  { path: '/senior/dashboard/applications/info', component: IssuancePageInfo, meta: { requiresAuth: true, role: 'senior' }},
+  { path: '/senior/dashboard/apply/submitlist/:applicationId',name: 'ApplyPageSubmit', component: ApplyPageSubmit,props: true, meta: { requiresAuth: true, role: 'senior' }},
+  { path: '/senior/dashboard/apply/option/:issuanceTypeId',name: 'ApplyPageOption', component: ApplyPageOption,props: true, meta: { requiresAuth: true, role: 'senior' }},
+  { path: '/senior/dashboard/apply/option/continue/:issuanceTypeId', name: 'ApplyPageContinueList',component: () => import('@/views/Senior/ApplyPageContinueList.vue'),props: true,meta: { requiresAuth: true, role: 'senior' }},
+  { path: '/senior/dashboard/apply/form/:id',name: 'ApplyForm',  component: ApplyPageForm,props: true,  meta: { requiresAuth: true, role: 'senior' }},
+  { path: '/senior/dashboard/applications/info/:id',name: 'IssuancePageInfo', component: IssuancePageInfo, props: true, meta: { requiresAuth: true, role: 'senior' }},
 
   //OSCA dashboard
   { path: '/osca/applicant/:seniorId', name:'ApplicantReview',props:true ,component: ApplicantReview, meta: { requiresAuth: true, role: 'osca_staff' }},

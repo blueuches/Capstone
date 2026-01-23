@@ -21,7 +21,7 @@
     </button>
 
     <button @click="goProfile" class="text-white flex flex-col items-center gap-1">
-      <component :is="ProfileIcon" class="tile-icon w-7 h-7 text-blue" />
+      <component :is="ProfileIcon" class="tile-icon w-7 h-7 text-gray-600" />
       <span class="text-xs">Profile</span>
     </button>
   </nav>

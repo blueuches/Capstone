@@ -7,13 +7,25 @@
     <main class="flex-1 px-4 pt-4 flex flex-col">
       <!-- Top row -->
       <div class="flex items-center justify-between mb-2">
-        <RouterLink
-          to="/senior/dashboard/apply/submitlist"
-          class="flex items-center gap-2 text-sm font-semibold text-gray-700"
-        >
-          <component :is="Left" class="w-5 h-5 text-yellow-500" />
-          <span class="text-gray-500">Back</span>
-        </RouterLink>
+<RouterLink
+  v-if="applicationId"
+  :to="{ name: 'ApplyPageSubmit', params: { applicationId } }"
+  class="flex items-center gap-2 text-sm font-semibold text-gray-700"
+>
+  <component :is="Left" class="w-5 h-5 text-yellow-500" />
+  <span class="text-gray-500">Back</span>
+</RouterLink>
+
+<!-- fallback (prevents blank page) -->
+<button
+  v-else
+  type="button"
+  class="flex items-center gap-2 text-sm font-semibold text-gray-700"
+  @click="router.push('/senior/dashboard/apply')"
+>
+  <component :is="Left" class="w-5 h-5 text-yellow-500" />
+  <span class="text-gray-500">Back</span>
+</button>
 
         <button
           class="flex items-center gap-2 text-sm font-semibold text-gray-700"
@@ -136,7 +148,9 @@
 
 <script setup lang="ts">
 import { ref, computed, reactive, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
+import { supabase } from '@/supabase/client'
+
 import Header from '@/components/Senior/Header.vue'
 import SideBurger from '@/components/Senior/SideBurger.vue'
 import BottomNav from '@/components/Senior/BottomNav.vue'
@@ -171,14 +185,24 @@ type FormFieldRow = {
   sort_order: number
   options?: any
   depends_on?: DependsOn
+  placeholder?: string | null
 }
 
-const open = ref(false)
+const props = defineProps<{ id: string }>() // <-- this is application_requirement_id
+const route = useRoute()
 const router = useRouter()
 
+const open = ref(false)
+
+const applicationId = computed(() => {
+  const v = route.query.applicationId
+  return typeof v === 'string' ? v : ''
+})
+const applicationRequirementId = computed(() => props.id)
+
 const formMeta = reactive({
-  id: 'form-001',
-  name: 'OSCA ID Application Form'
+  id: '',
+  name: ''
 })
 
 const fields = ref<FormFieldRow[]>([])
@@ -197,14 +221,18 @@ const FIELDS_PER_STEP = 3
 
 function passesDepends(dep: DependsOn): boolean {
   if (!dep) return true
-  return answers[dep.field_key] === dep.value
+  const current = answers[dep.field_key]
+
+  if (dep.op === 'equals') return current === dep.value
+  if (dep.op === 'not_equals') return current !== dep.value
+  return true
 }
 
 const visibleFields = computed(() =>
   fields.value
     .slice()
     .sort((a, b) => a.sort_order - b.sort_order)
-    .filter((f) => passesDepends(f.depends_on ?? null))
+    .filter((f) => passesDepends((f.depends_on ?? null) as any))
 )
 
 const steps = computed(() => {
@@ -234,17 +262,23 @@ function prevStep() {
    ACTIONS
 ======================= */
 
+function goBackToSubmit() {
+  // ensure we return to the correct Submit page
+  if (!applicationId.value) return router.push('/senior/dashboard/apply')
+  router.push({ name: 'ApplyPageSubmit', params: { applicationId: applicationId.value } })
+}
+
 function confirmFinish() {
   finishModalOpen.value = false
-  router.push('/senior/dashboard/apply/submitlist')
+  goBackToSubmit()
 }
 
 function confirmDraft() {
   draftModalOpen.value = false
-  router.push('/senior/dashboard/apply/submitlist')
+  goBackToSubmit()
 }
 
-function initAnswers() {
+function initAnswersDefaults() {
   for (const f of fields.value) {
     if (answers[f.field_key] !== undefined) continue
     if (f.field_type === 'checkbox') answers[f.field_key] = false
@@ -254,22 +288,108 @@ function initAnswers() {
 }
 
 /* =======================
-   MOCK DATA
+   LOAD REAL DB FIELDS
 ======================= */
 
-onMounted(() => {
-  fields.value = [
-    { id: 'f1', form_id: 'form-001', section: 'p', label: 'First Name', field_key: 'first_name', field_type: 'text', required: true, sort_order: 1 },
-    { id: 'f2', form_id: 'form-001', section: 'p', label: 'Middle Name', field_key: 'middle_name', field_type: 'text', required: false, sort_order: 2 },
-    { id: 'f3', form_id: 'form-001', section: 'p', label: 'Last Name', field_key: 'last_name', field_type: 'text', required: true, sort_order: 3 },
-    { id: 'f4', form_id: 'form-001', section: 'a', label: 'Barangay', field_key: 'barangay', field_type: 'text', required: true, sort_order: 4 },
-    { id: 'f5', form_id: 'form-001', section: 'a', label: 'Birthdate', field_key: 'birthdate', field_type: 'date', required: true, sort_order: 5 },
-    { id: 'f6', form_id: 'form-001', section: 'o', label: 'Has PhilHealth?', field_key: 'has_philhealth', field_type: 'radio', required: true, sort_order: 6, options: { choices: ['Yes', 'No'] } },
-    { id: 'f7', form_id: 'form-001', section: 'o', label: 'PhilHealth No.', field_key: 'philhealth_no', field_type: 'text', required: true, sort_order: 7, depends_on: { field_key: 'has_philhealth', op: 'equals', value: 'Yes' } }
-  ]
+async function loadForm() {
+  // Guard: must have application_requirement_id
+  if (!applicationRequirementId.value) {
+    console.error('Missing applicationRequirementId')
+    return
+  }
 
-  initAnswers()
-})
+  // Guard: applicationId must be provided (for back + form_submissions insert)
+  if (!applicationId.value) {
+    console.error('Missing applicationId in query. Pass it when navigating to ApplyForm.')
+    return
+  }
+
+  const { data: authRes, error: authErr } = await supabase.auth.getUser()
+  if (authErr) return console.error(authErr)
+  const userId = authRes.user?.id
+  if (!userId) return
+
+  // 1) Get or create form_submissions row (1:1 per application_requirement)
+  let { data: submission, error: subErr } = await supabase
+    .from('form_submissions')
+    .select('id, form_id, status, forms(name)')
+    .eq('application_requirement_id', applicationRequirementId.value)
+    .maybeSingle()
+
+  if (subErr) return console.error(subErr)
+
+  // If not exists yet, we need the form_id from issuance_type_requirements.doc_rules.form_id
+  if (!submission) {
+    const { data: ar, error: arErr } = await supabase
+      .from('application_requirements')
+      .select(`
+        id,
+        application_id,
+        issuance_type_requirement:issuance_type_requirement_id (
+          id,
+          doc_rules
+        )
+      `)
+      .eq('id', applicationRequirementId.value)
+      .single()
+
+    if (arErr) return console.error(arErr)
+
+    const formId = (ar?.issuance_type_requirement as any)?.doc_rules?.form_id as string | undefined
+    if (!formId) {
+      console.error('No form_id found in issuance_type_requirements.doc_rules for this requirement.')
+      return
+    }
+
+    const { data: created, error: createErr } = await supabase
+      .from('form_submissions')
+      .insert({
+        application_id: applicationId.value,
+        application_requirement_id: applicationRequirementId.value,
+        form_id: formId,
+        created_by: userId,
+        status: 'draft'
+      })
+      .select('id, form_id, status, forms(name)')
+      .single()
+
+    if (createErr) return console.error(createErr)
+    submission = created
+  }
+
+  // 2) Set form meta
+  formMeta.id = submission.form_id
+  formMeta.name = (submission as any)?.forms?.name ?? 'Application Form'
+
+  // 3) Load form_fields for this form_id
+  const { data: ff, error: ffErr } = await supabase
+    .from('form_fields')
+    .select('id, form_id, section, label, field_key, field_type, required, sort_order, options, depends_on, placeholder')
+    .eq('form_id', submission.form_id)
+    .order('sort_order', { ascending: true })
+
+  if (ffErr) return console.error(ffErr)
+  fields.value = (ff ?? []) as any
+
+  // defaults first
+  initAnswersDefaults()
+
+  // 4) Load existing answers (if any)
+  const { data: ansRows, error: ansErr } = await supabase
+    .from('form_answers')
+    .select('field_id, value')
+    .eq('form_submission_id', submission.id)
+
+  if (ansErr) return console.error(ansErr)
+
+  const fieldIdToKey = new Map(fields.value.map((f) => [f.id, f.field_key]))
+  for (const row of ansRows ?? []) {
+    const key = fieldIdToKey.get((row as any).field_id)
+    if (key) answers[key] = (row as any).value
+  }
+}
+
+onMounted(loadForm)
 </script>
 
 <style scoped>

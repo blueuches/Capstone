@@ -6,7 +6,7 @@
     <main class="flex-1 px-4 pt-4 flex flex-col min-h-0">
       <!-- Breadcrumb -->
       <RouterLink
-        to="/senior/dashboard"
+        to="/senior/dashboard/apply"
         class="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-4"
       >
         <component :is="Left" class="w-5 h-5 text-yellow-500" />
@@ -17,21 +17,12 @@
 
       <!-- Title -->
       <div class="mb-3">
-        <h1 class="text-xl font-bold text-gray-900">Apply</h1>
+        <h1 class="text-xl font-bold text-gray-900">Choose what application to continue</h1>
         <p class="text-sm text-gray-500">
-          Choose the service you want to apply for.
+          Continue submitting
         </p>
       </div>
 
-      <!-- Optional helper / note -->
-      <div class="mb-4 rounded-3xl bg-white border border-gray-200 p-4">
-        <p class="text-sm text-gray-700">
-          Tip: If you already have an ongoing application, you can continue it in
-          <RouterLink to="/senior/dashboard/myrequirements" class="font-semibold text-black">My Requirements</RouterLink>.
-        </p>
-      </div>
-
-      <!-- ✅ Tile Grid (only this scrolls if ever needed) -->
       <section class="flex-1 min-h-0 overflow-y-auto pr-1">
         <div class="grid grid-cols-2 gap-4 pb-3">
           <ApplyItem
@@ -54,7 +45,6 @@
         @cancel="confirmOpen=false"
         @confirm="handleConfirm"
       />
-
     </main>
 
     <BottomNav />
@@ -75,36 +65,37 @@ import Left from '@/assets/icons/senior/left-arrow.svg'
 import { supabase } from '@/supabase/client'
 
 type ApplyOption = {
-  id: string
+  id: 'continue' | 'another'
   title: string
   subtitle?: string
   disabled?: boolean
 }
 
-type IssuanceTypeRow = {
-  id: string
-  name: string
-  description: string | null
-  active: boolean
-}
+const props = defineProps<{ issuanceTypeId: string }>()
 
 const open = ref(false)
 const router = useRouter()
 
-const applyItems = ref<ApplyOption[]>([])
+const latestAppId = ref<string | null>(null)
+
+// 2 cards only
+const applyItems = ref<ApplyOption[]>([
+  { id: 'continue', title: 'Continue Submission', subtitle: 'Continue Submission', disabled: false },
+  { id: 'another', title: 'Apply For Another', subtitle: 'Apply For Another', disabled: false }
+])
 
 // ConfirmModal state
 const confirmOpen = ref(false)
 const confirmTitle = ref('')
 const confirmMessage = ref('')
-const confirmText = ref('Apply')
+const confirmText = ref('Confirm')
 const pendingAction = ref<null | (() => Promise<void>)>(null)
 
 function askConfirm(
   title: string,
   message: string,
   onConfirm: () => Promise<void>,
-  confirmBtnText = 'Apply'
+  confirmBtnText = 'Confirm'
 ) {
   confirmTitle.value = title
   confirmMessage.value = message
@@ -113,72 +104,70 @@ function askConfirm(
   confirmOpen.value = true
 }
 
+async function handleConfirm() {
+  confirmOpen.value = false
+  if (pendingAction.value) await pendingAction.value()
+}
+
 onMounted(async () => {
-  const { data, error } = await supabase
-    .from('issuance_types')
-    .select('id, name, description, active')
-    .eq('active', true)
-    .order('created_at', { ascending: true })
-
-  if (error) {
-    console.error('Failed to load issuance_types:', error)
-    applyItems.value = []
-    return
-  }
-
-  const rows = (data ?? []) as IssuanceTypeRow[]
-  applyItems.value = rows.map((row) => ({
-    id: row.id,
-    title: row.name,
-    subtitle: 'Click to Apply',
-    disabled: false
-  }))
-})
-
-async function onApply(item: ApplyOption) {
-  if (item.disabled) return
-
   const { data: authRes, error: authErr } = await supabase.auth.getUser()
-  if (authErr) {
-    console.error('auth error:', authErr)
-    return
-  }
+  if (authErr) return console.error(authErr)
 
   const seniorId = authRes.user?.id
   if (!seniorId) return
 
-  // check existing applications under this issuance type
-  const { data: existingApps, error } = await supabase
+  const { data, error } = await supabase
     .from('applications')
-    .select('id, status,barangay_id, created_at')
+    .select('id, created_at')
     .eq('senior_id', seniorId)
-    .eq('issuance_type_id', item.id)
+    .eq('issuance_type_id', props.issuanceTypeId)
     .order('created_at', { ascending: false })
+    .limit(1)
 
-  if (error) {
-    console.error('existingApps error:', error)
-    return
-  }
+  if (error) return console.error(error)
+  latestAppId.value = data?.[0]?.id ?? null
 
-  if ((existingApps?.length ?? 0) === 0) {
-    // confirm → create → go submit
-    askConfirm(
-      'Apply',
-      'Do you want to apply for this?',
-      async () => {
-        const appId = await createApplication(seniorId, item.id)
-        if (appId) {
-          router.push({ name: 'ApplyPageSubmit', params: { applicationId: appId } })
-        }
-      },
-      'Apply'
+  // if for some reason none exists, disable "Continue"
+  if (!latestAppId.value) {
+    applyItems.value = applyItems.value.map((x) =>
+      x.id === 'continue' ? { ...x, disabled: true } : x
     )
-    return
+  }
+})
+
+function onApply(item: ApplyOption) {
+  if (item.disabled) return
+
+  if (item.id === 'continue') {
+  onContinue()
+  return
   }
 
-  // has existing → go option page for that issuance type
-  router.push({ name: 'ApplyPageOption', params: { issuanceTypeId: item.id } })
+  // Apply For Another → confirm → create new → go submit
+  askConfirm(
+    'Apply for Another',
+    'You have an existing application, continue for another?',
+    async () => {
+      const { data: authRes, error: authErr } = await supabase.auth.getUser()
+      if (authErr) return console.error(authErr)
+
+      const seniorId = authRes.user?.id
+      if (!seniorId) return
+
+      const appId = await createApplication(seniorId, props.issuanceTypeId)
+      if (appId) router.push({ name: 'ApplyPageSubmit', params: { applicationId: appId } })
+    },
+    'Apply'
+  )
 }
+
+function onContinue() {
+  router.push({
+    name: 'ApplyPageContinueList',
+    params: { issuanceTypeId: props.issuanceTypeId }
+  })
+}
+
 
 async function createApplication(seniorId: string, issuanceTypeId: string) {
   // 1) get barangay_id of senior from profiles
@@ -255,8 +244,4 @@ async function seedApplicationRequirements(applicationId: string, issuanceTypeId
   if (insErr) throw insErr
 }
 
-async function handleConfirm() {
-  confirmOpen.value = false
-  if (pendingAction.value) await pendingAction.value()
-}
 </script>
