@@ -143,7 +143,7 @@ const routes = [
   { path: '/admin/logs', component: Logs, meta: { requiresAuth: true, role: 'admin'}},
   { path: '/admin/backup', component: Backup, meta: { requiresAuth: true, role: 'admin'}},
   { path: '/admin/formbuilder', component: FormBuilder, meta: { requiresAuth: true, role: 'admin'}},
-  { path: '/admin/formbuilder/workaround', component: FormBuilderWorkaround, meta: { requiresAuth: true, role: 'admin'}},
+  { path: '/admin/formbuilder/workaround/:id',name: 'FormBuilderWorkaround', component: FormBuilderWorkaround,props:true, meta: { requiresAuth: true, role: 'admin'}},
   { path: '/admin/users', component: UserManagement, meta: { requiresAuth: true, role: 'admin'}},
   { path: '/admin/edit', component: Edit, meta: { requiresAuth: true, role: 'admin'}},
   { path: '/admin/edit/issuance', component: EditIssuanceOption, meta: { requiresAuth: true, role: 'admin'}},
