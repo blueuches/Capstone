@@ -102,7 +102,7 @@
       <!-- Logout -->
       <section class="mt-6">
         <button
-          type="button"
+          @click="handleLogout"
           class="w-full px-5 py-3 rounded-2xl bg-gray-900 text-white font-semibold shadow hover:bg-black"
         >
           Log Out
@@ -122,9 +122,13 @@ import BottomNav from '@/components/Senior/BottomNav.vue'
 import Left from '@/assets/icons/senior/left-arrow.svg'
 import { useAuth } from '@/composables/useAuth'
 
-const { profile } = useAuth()
+const { profile, logout } = useAuth()
 
 const open = ref(false)
+
+const handleLogout = async () => {
+  await logout()
+}
 
 // purely UI placeholder avatar
 const avatarPlaceholder =

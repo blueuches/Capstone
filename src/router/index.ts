@@ -111,14 +111,8 @@ const routes = [
   { path: '/senior/dashboard/applications/info/:id',name: 'IssuancePageInfo', component: IssuancePageInfo, props: true, meta: { requiresAuth: true, role: 'senior' }},
 
   //OSCA dashboard
-  { path: '/osca/applicant/:seniorId', name:'ApplicantReview',props:true ,component: ApplicantReview, meta: { requiresAuth: true, role: 'osca_staff' }},
-  { path: '/osca/message', component: OSCAMessagePage, meta: { requiresAuth: true, role: 'osca_staff' }},
   { path: '/osca/barangays', component: BarangaysPage, meta: { requiresAuth: true, role: 'osca_staff' }},
-  { path: '/osca/barangay/message/:barangayId',name: 'BRGYMessage',props:true, component: BRGYMessage, meta: { requiresAuth: true, role: 'osca_staff' }},
-  { path: '/osca/barangay/staff/profile/:staffId',name: 'BRGYProfile',props:true, component: BRGYProfile, meta: { requiresAuth: true, role: 'osca_staff' }},
-  { path: '/osca/barangayView/:barangayId', name: 'barangay-info', props:true, component: BarangaysPageInfo, meta: { requiresAuth: true, role: 'osca_staff' }},
   { path: '/osca/programs', component: OSCAIssuancePage, meta: { requiresAuth: true, role: 'osca_staff' }},
-  { path: '/osca/programView/:issuanceTypeId',name: 'issuance-info', component: OSCAIssuancePageInfo,props:true, meta: { requiresAuth: true, role: 'osca_staff' }},
   { path: '/osca/announcement', component: OSCAAnnouncement, meta: { requiresAuth: true, role: 'osca_staff' }},
   { path: '/osca/notification', component: OSCANotification, meta: { requiresAuth: true, role: 'osca_staff' }},
   { path: '/osca/profile', component: OSCAProfilePage, meta: { requiresAuth: true, role: 'osca_staff' }},
@@ -128,7 +122,14 @@ const routes = [
   { path: '/osca/settings', component: OSCASettings, meta: { requiresAuth: true, role: 'osca_staff' }},
   { path: '/osca/about', component: OSCAAbout, meta: { requiresAuth: true, role: 'osca_staff' }},
 
-  
+  //OSCA functions
+  { path: '/osca/applicant/:applicationId', name:'ApplicantReview',props:true ,component: ApplicantReview, meta: { requiresAuth: true, role: 'osca_staff' }},
+  { path: '/osca/applicant/message/:applicationId',name:'osca-message', component: OSCAMessagePage, props: true, meta: { requiresAuth: true, role: 'osca_staff' }},
+  { path: '/osca/barangay/message/:barangayId',name: 'BRGYMessage',props:true, component: BRGYMessage, meta: { requiresAuth: true, role: 'osca_staff' }},
+  { path: '/osca/barangay/staff/profile/:staffId',name: 'BRGYProfile',props:true, component: BRGYProfile, meta: { requiresAuth: true, role: 'osca_staff' }},
+  { path: '/osca/barangayView/:barangayId', name: 'barangay-info', props:true, component: BarangaysPageInfo, meta: { requiresAuth: true, role: 'osca_staff' }},
+  { path: '/osca/programView/:issuanceTypeId',name: 'issuance-info', component: OSCAIssuancePageInfo,props:true, meta: { requiresAuth: true, role: 'osca_staff' }},
+
   //BRGY dashboard
   { path: '/barangay/users', component: SeniorList, meta: { requiresAuth: true, role: 'barangay_staff' }},
   { path: '/barangay/userview', component: SeniorView, meta: { requiresAuth: true, role: 'barangay_staff' }},
@@ -141,6 +142,7 @@ const routes = [
   { path: '/barangay/settings', component: BRGYSettings, meta: { requiresAuth: true, role: 'barangay_staff' }},
   { path: '/barangay/about', component: BRGYAbout, meta: { requiresAuth: true, role: 'barangay_staff' }},
 
+  //BRGY functions
 
   //ADMIN
   { path: '/admin/logs', component: Logs, meta: { requiresAuth: true, role: 'admin'}},

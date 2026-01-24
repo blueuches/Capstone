@@ -38,8 +38,8 @@
 
           <!-- Row Arrow -->
           <RouterLink
-            v-if="rowToName"
-            :to="{ name: rowToName, params: { [rowParamKey]: r.id } }"
+            v-if="r.to"
+            :to="r.to"
             class="shrink-0 w-7 h-7 rounded-full bg-[#42ad43] text-white
                    flex items-center justify-center
                    hover:brightness-105 active:brightness-95 transition"
@@ -58,7 +58,7 @@
             </svg>
           </RouterLink>
 
-          <!-- If no route provided -->
+          <!-- Disabled if no route -->
           <button
             v-else
             type="button"
@@ -108,29 +108,20 @@ import Pagination from '@/components/Staff/Pagination.vue'
 type Row = {
   id: string
   full_name: string
+  to?: any // vue-router Location
 }
 
 const props = withDefaults(
   defineProps<{
     title: string
     barangayId: string
-    roles: string[] // ex: ['senior'] or ['senior','barangay_staff']
+    mode: 'seniors_applying' | 'all_users' | 'staff'
     pageSize?: number
     emptyText?: string
-
-    /**
-     * Where each row arrow goes:
-     * Example:
-     * rowToName="osca-profile-info"
-     * rowParamKey="profileId"
-     */
-    rowToName?: string
-    rowParamKey?: string
   }>(),
   {
     pageSize: 10,
-    emptyText: 'No records yet',
-    rowParamKey: 'profileId'
+    emptyText: 'No records yet'
   }
 )
 
@@ -140,6 +131,103 @@ const total = ref(0)
 const page = ref(1)
 
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / props.pageSize)))
+
+function makeFullName(first?: string, last?: string) {
+  return [first, last].filter(Boolean).join(' ').trim() || 'Unnamed'
+}
+
+async function fetchSeniorsApplying(from: number, to: number) {
+  // REAL: applications filtered by barangay_id; arrow -> ApplicantReview(applicationId)
+  const { data, count, error } = await supabase
+    .from('applications')
+    .select(
+      `
+      id,
+      senior_id,
+      profiles:profiles!applications_senior_id_fkey (
+        first_name,
+        last_name
+      )
+    `,
+      { count: 'exact' }
+    )
+    .eq('barangay_id', props.barangayId)
+    .order('created_at', { ascending: false })
+    .range(from, to)
+
+  if (error) throw error
+
+  total.value = count ?? 0
+  rows.value = (data ?? []).map((a: any) => ({
+    id: a.id, // application id
+    full_name: makeFullName(a?.profiles?.first_name, a?.profiles?.last_name),
+    to: { name: 'ApplicantReview', params: { applicationId: a.id } }
+  }))
+}
+
+async function fetchAllUsers(from: number, to: number) {
+  // REAL: all seniors + barangay_staff under the barangay (with/without applications)
+  // Also: if senior has an application, arrow -> ApplicantReview(applicationId), else disabled
+  const { data, count, error } = await supabase
+    .from('profiles')
+    .select(
+      `
+      id,
+      role,
+      first_name,
+      last_name,
+      applications:applications!applications_senior_id_fkey (
+        id,
+        created_at,
+        barangay_id
+      )
+    `,
+      { count: 'exact' }
+    )
+    .eq('barangay_id', props.barangayId)
+    .in('role', ['senior', 'barangay_staff'])
+    .order('last_name', { ascending: true })
+    .range(from, to)
+
+  if (error) throw error
+
+  total.value = count ?? 0
+  rows.value = (data ?? []).map((p: any) => {
+    // find latest application under THIS barangay (if any)
+    const apps = Array.isArray(p.applications) ? p.applications : []
+    const latest = apps
+      .filter((x: any) => x?.barangay_id === props.barangayId)
+      .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]
+
+    return {
+      id: p.id,
+      full_name: makeFullName(p.first_name, p.last_name),
+      to: latest
+        ? { name: 'ApplicantReview', params: { applicationId: latest.id } }
+        : undefined
+    }
+  })
+}
+
+async function fetchStaff(from: number, to: number) {
+  // REAL: barangay_staff only (no route required unless you have BRGY staff profile page)
+  const { data, count, error } = await supabase
+    .from('profiles')
+    .select('id, first_name, last_name', { count: 'exact' })
+    .eq('barangay_id', props.barangayId)
+    .eq('role', 'barangay_staff')
+    .order('last_name', { ascending: true })
+    .range(from, to)
+
+  if (error) throw error
+
+  total.value = count ?? 0
+  rows.value = (data ?? []).map((p: any) => ({
+    id: p.id,
+    full_name: makeFullName(p.first_name, p.last_name),
+    to: undefined // keep arrow disabled unless you add a route
+  }))
+}
 
 async function fetchRows() {
   if (!props.barangayId) return
@@ -153,22 +241,9 @@ async function fetchRows() {
 
   loading.value = true
   try {
-    const { data, count, error } = await supabase
-      .from('profiles')
-      .select('id, first_name, last_name', { count: 'exact' })
-      .eq('barangay_id', props.barangayId)
-      .in('role', props.roles)
-      .order('last_name', { ascending: true })
-      .range(from, to)
-
-    if (error) throw error
-
-    total.value = count ?? 0
-    rows.value =
-      (data ?? []).map((x: any) => ({
-        id: x.id,
-        full_name: [x.first_name, x.last_name].filter(Boolean).join(' ').trim() || 'Unnamed'
-      })) ?? []
+    if (props.mode === 'seniors_applying') await fetchSeniorsApplying(from, to)
+    if (props.mode === 'all_users') await fetchAllUsers(from, to)
+    if (props.mode === 'staff') await fetchStaff(from, to)
   } catch (e) {
     console.error(`[${props.title}] fetch error:`, e)
     total.value = 0
@@ -180,15 +255,13 @@ async function fetchRows() {
 
 onMounted(fetchRows)
 
-// refetch when barangay changes or roles change
 watch(
-  () => [props.barangayId, props.roles.join('|')],
+  () => [props.barangayId, props.mode],
   () => {
     page.value = 1
     fetchRows()
   }
 )
 
-// refetch when page changes
 watch(page, () => fetchRows())
 </script>

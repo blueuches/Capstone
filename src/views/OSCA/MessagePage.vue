@@ -19,11 +19,12 @@
       <div class="flex items-center justify-between mt-2 ml-3 mr-3 mb-4">
         <!-- Back -->
         <RouterLink
-          to="/osca/programs"
+          :to="`/osca/applicant/${applicationId}`"
           class="inline-flex items-center gap-2
-                 text-gray-700 hover:text-[#42ad43]
-                 group shrink-0"
+                text-gray-700 hover:text-[#42ad43]
+                group shrink-0"
         >
+
           <span
             class="shrink-0 w-7 h-7 rounded-full bg-[#42ad43]
                    flex items-center justify-center text-white
@@ -52,7 +53,7 @@
           </h1>
           <p class="text-sm text-gray-600">
             Conversation with
-            <span class="font-semibold">[User A]</span>
+            <span class="font-semibold">{{ seniorFullName || 'Unknown' }}</span>
           </p>
         </div>
       </div>
@@ -104,9 +105,10 @@
   </div>
 </template>
 
-
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref } from 'vue'
+import { useRoute } from 'vue-router'
+import { supabase } from '@/supabase/client'
 import Sidebar, { type NavItem } from '@/components/Staff/Sidebar.vue'
 import Header from '@/components/Staff/Header.vue'
 import MessageBodies from '@/components/MessageBodies.vue'
@@ -119,8 +121,12 @@ import ActivityIcon from '/public/staff/activity.png'
 import AnnouncementIcon from '/public/staff/announcement.png'
 
 const { profile } = useAuth()
+const route = useRoute()
 
 const sidebarCollapsed = ref(false)
+
+// ROUTE: /osca/applicant/message/:applicationId
+const applicationId = computed(() => String(route.params.applicationId || ''))
 
 const staffName = computed(() => {
   const p = profile.value as any
@@ -128,9 +134,14 @@ const staffName = computed(() => {
   return full || 'Lando Norris'
 })
 
-// IMPORTANT: MessageBodies.vue aligns:
+// MessageBodies.vue aligns:
 // - msg.sender === 'staff'  => left (yellow)
 // - else                    => right (green)
+//
+// We will interpret "right side (green)" as "ME (current OSCA staff)".
+// So:
+// - if sender_id === currentUserId => sender = 'brgy' (right/green)
+// - else => sender = 'staff' (left/yellow)
 type Msg = {
   id: string
   sender: 'staff' | 'brgy'
@@ -139,70 +150,225 @@ type Msg = {
   date: string
 }
 
-const messages = ref<Msg[]>([
-  {
-    id: 'm1',
-    sender: 'staff',
-    name: 'Staff Maria',
-    text: "That’s all?",
-    date: 'Sent at January 16 2026'
-  },
-  {
-    id: 'm2',
-    sender: 'brgy',
-    name: 'Staff Lando',
-    text: 'Please gather your seniors',
-    date: 'Sent at January 16 2026'
-  }
-])
-
+const messages = ref<Msg[]>([])
 const draft = ref('')
 const scrollEl = ref<HTMLElement | null>(null)
 
+// Header display
+const seniorFullName = ref('')
+
+// Conversation context
+const conversationId = ref<string>('')
+
+// For creating participants
+const seniorId = ref<string>('')
+
+// ----------------- helpers -----------------
 function scrollToBottom() {
   const el = scrollEl.value
   if (!el) return
   el.scrollTop = el.scrollHeight
 }
 
-function nowLabel() {
-  // Simple placeholder formatting (swap with real timestamps later)
-  const d = new Date()
+function formatSentLabel(iso: string) {
+  // Display like: "Sent at January 16 2026"
+  const d = new Date(iso)
   const months = [
     'January','February','March','April','May','June',
     'July','August','September','October','November','December'
   ]
-  const label = `Sent at ${months[d.getMonth()]} ${d.getDate()} ${d.getFullYear()}`
-  return label
+  if (isNaN(d.getTime())) return `Sent at ${iso}`
+  return `Sent at ${months[d.getMonth()]} ${d.getDate()} ${d.getFullYear()}`
 }
 
+function myUserId() {
+  // profiles.id is auth.users.id
+  return (profile.value as any)?.id || ''
+}
+
+// ----------------- DB fetchers -----------------
+async function fetchApplicationSenior() {
+  if (!applicationId.value) return
+
+  const { data, error } = await supabase
+    .from('applications')
+    .select(`
+      id,
+      senior_id,
+      senior:profiles!applications_senior_id_fkey(first_name, last_name)
+    `)
+    .eq('id', applicationId.value)
+    .single()
+
+  if (error) {
+    console.error('fetchApplicationSenior error:', error)
+    seniorFullName.value = ''
+    seniorId.value = ''
+    return
+  }
+
+  seniorId.value = (data as any)?.senior_id || ''
+  const fn = (data as any)?.senior?.first_name || ''
+  const ln = (data as any)?.senior?.last_name || ''
+  seniorFullName.value = [fn, ln].filter(Boolean).join(' ').trim()
+}
+
+async function ensureConversation() {
+  if (!applicationId.value) return
+
+  // Try find existing conversation for this application
+  const { data, error } = await supabase
+    .from('conversations')
+    .select('id, conversation_type, application_id')
+    .eq('application_id', applicationId.value)
+    .eq('conversation_type', 'senior_osca')
+    .maybeSingle()
+
+  if (error) {
+    console.error('ensureConversation find error:', error)
+    return
+  }
+
+  if (data?.id) {
+    conversationId.value = data.id
+    return
+  }
+
+  // Create one if none
+  const { data: created, error: createErr } = await supabase
+    .from('conversations')
+    .insert({
+      conversation_type: 'senior_osca',
+      application_id: applicationId.value,
+    })
+    .select('id')
+    .single()
+
+  if (createErr) {
+    console.error('ensureConversation create error:', createErr)
+    return
+  }
+
+  conversationId.value = created.id
+
+  // Add participants (senior + current osca)
+  // Note: your schema uses composite PK, so we "upsert" to avoid duplicates.
+  const me = myUserId()
+  const partRows = [
+    ...(seniorId.value ? [{ conversation_id: conversationId.value, user_id: seniorId.value }] : []),
+    ...(me ? [{ conversation_id: conversationId.value, user_id: me }] : []),
+  ]
+
+  if (partRows.length) {
+    const { error: partErr } = await supabase
+      .from('conversation_participants')
+      .upsert(partRows, { onConflict: 'conversation_id,user_id' })
+    if (partErr) console.error('participants upsert error:', partErr)
+  }
+}
+
+async function fetchMessages() {
+  if (!conversationId.value) {
+    messages.value = []
+    return
+  }
+
+  const { data, error } = await supabase
+    .from('messages')
+    .select(`
+      id,
+      body,
+      created_at,
+      sender_id,
+      sender:profiles!messages_sender_id_fkey(first_name, last_name)
+    `)
+    .eq('conversation_id', conversationId.value)
+    .order('created_at', { ascending: true })
+
+  if (error) {
+    console.error('fetchMessages error:', error)
+    messages.value = []
+    return
+  }
+
+  const me = myUserId()
+
+  messages.value = (data || []).map((m: any) => {
+    const fn = m?.sender?.first_name || ''
+    const ln = m?.sender?.last_name || ''
+    const name = [fn, ln].filter(Boolean).join(' ').trim() || 'Unknown'
+
+    const isMe = me && m.sender_id === me
+
+    return {
+      id: m.id,
+      sender: isMe ? 'brgy' : 'staff', // right = me (green), left = other (yellow)
+      name,
+      text: m.body,
+      date: formatSentLabel(m.created_at),
+    } as Msg
+  })
+}
+
+// ----------------- send -----------------
 async function sendMessage() {
   const text = draft.value.trim()
   if (!text) return
+  if (!conversationId.value) return
 
-  messages.value.push({
-    id: `m_${Date.now()}`,
-    sender: 'brgy', // right side (green) in MessageBodies.vue
-    name: staffName.value,
-    text,
-    date: nowLabel()
+  const me = myUserId()
+  if (!me) return
+
+  // ✅ claim-on-reply: assign reviewer if NULL
+  const { error: claimErr } = await supabase
+    .from('applications')
+    .update({ assigned_osca_id: me })
+    .eq('id', applicationId.value)
+    .is('assigned_osca_id', null)
+
+  if (claimErr) console.error('claim application error:', claimErr)
+
+  // ensure osca is participant
+  await supabase
+    .from('conversation_participants')
+    .upsert([{ conversation_id: conversationId.value, user_id: me }], {
+      onConflict: 'conversation_id,user_id',
+    })
+
+  // insert message
+  const { error } = await supabase.from('messages').insert({
+    conversation_id: conversationId.value,
+    sender_id: me,
+    body: text,
   })
 
-  draft.value = ''
+  if (error) {
+    console.error('sendMessage insert error:', error)
+    return
+  }
 
+  draft.value = ''
+  await fetchMessages()
   await nextTick()
   scrollToBottom()
 }
 
-onMounted(() => {
+// ----------------- lifecycle -----------------
+onMounted(async () => {
+  await fetchApplicationSenior()
+  await ensureConversation()
+  await fetchMessages()
+  await nextTick()
   scrollToBottom()
 })
 
+// Nav items
 const oscaNavItems: NavItem[] = [
   { label: 'Dashboard', to: '/osca/dashboard', icon: DashboardIcon },
   { label: 'Barangays', to: '/osca/barangays', icon: BarangaysIcon },
   { label: 'Application', to: '/osca/programs', icon: ApplicationIcon },
   { label: 'Activity', to: '/osca/activity', icon: ActivityIcon },
-  { label: 'Announcement', to: '/osca/announcement', icon: AnnouncementIcon }
+  { label: 'Announcement', to: '/osca/announcement', icon: AnnouncementIcon },
 ]
 </script>
+

@@ -51,9 +51,9 @@
               </h1>
             </div>
 
-            <!-- Send Message link (adjust route name if you already have one) -->
+            <!-- Send Message -->
             <RouterLink
-              :to="`/osca/barangay/message/${barangayId}`"
+              :to="{ name: 'BRGYMessage', params: { barangayId } }"
               class="text-sm font-bold text-gray-900 hover:text-[#42ad43]
                      underline underline-offset-4"
             >
@@ -61,49 +61,35 @@
             </RouterLink>
           </div>
 
-          <!-- Cards (3 columns on wide screens, stack on mobile) -->
+          <!-- Cards -->
           <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <!-- 1) Seniors Applying -->
+            <!-- 1) Seniors Applying (REAL: from applications) -->
             <BarangayInfoCard
               title="Seniors Applying"
               :barangayId="barangayId"
-              :roles="['senior']"
+              mode="seniors_applying"
               :pageSize="10"
               emptyText="No records yet"
-              rowToName="ApplicantReview"
-              rowParamKey="seniorId"
-              :debug="true"
             />
 
-            <!-- 2) All Users -->
+            <!-- 2) All Users (REAL: seniors + barangay_staff under barangay) -->
             <BarangayInfoCard
               title="All Users"
               :barangayId="barangayId"
-              :roles="['senior']" 
+              mode="all_users"
               :pageSize="10"
               emptyText="No records yet"
-              rowToName="ApplicantReview"
-              rowParamKey="seniorId"
-              :debug="true"
             />
 
-            <!-- 3) Staff -->
+            <!-- 3) Staff (REAL: barangay_staff only) -->
             <BarangayInfoCard
               title="Staff"
               :barangayId="barangayId"
-              :roles="['barangay_staff']"
+              mode="staff"
               :pageSize="10"
               emptyText="No records yet"
-              rowToName="BRGYProfile"
-              rowParamKey="staffId"
-              :debug="true"
             />
           </div>
-
-          <!-- Note:
-               Replace the rowToName + param keys above with YOUR actual route names.
-               I put placeholders so the arrows really route somewhere once you align them.
-          -->
         </div>
       </main>
     </div>
@@ -117,7 +103,6 @@ import { useRoute } from 'vue-router'
 import Sidebar, { type NavItem } from '@/components/Staff/Sidebar.vue'
 import Header from '@/components/Staff/Header.vue'
 import BarangayInfoCard from '@/components/Staff/OSCA/BarangayInfoCard.vue'
-
 import { supabase } from '@/supabase/client'
 
 import DashboardIcon from '/public/staff/dashboard.png'
@@ -138,13 +123,11 @@ const oscaNavItems: NavItem[] = [
 
 const route = useRoute()
 const barangayId = computed(() => String(route.params.barangayId || ''))
-
 const barangayName = ref('')
 
 onMounted(async () => {
   if (!barangayId.value) return
 
-  // get barangay name by id
   const { data, error } = await supabase
     .from('barangays')
     .select('name')
@@ -153,7 +136,7 @@ onMounted(async () => {
 
   if (error) {
     console.error('Failed to load barangay name:', error)
-    barangayName.value = barangayId.value // fallback
+    barangayName.value = barangayId.value
     return
   }
 

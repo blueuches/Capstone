@@ -102,7 +102,6 @@
               </div>
             </div>
           </section>
-
         </div>
       </main>
     </div>
@@ -111,6 +110,7 @@
 
 <script setup lang="ts">
 import { computed, ref, onMounted, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { supabase } from '@/supabase/client'
 import Sidebar, { type NavItem } from '@/components/Staff/Sidebar.vue'
 import Header from '@/components/Staff/Header.vue'
@@ -123,6 +123,7 @@ import ApplicationIcon from '/public/staff/application.png'
 import ActivityIcon from '/public/staff/activity.png'
 import AnnouncementIcon from '/public/staff/announcement.png'
 
+const router = useRouter()
 const { profile } = useAuth()
 const sidebarCollapsed = ref(false)
 
@@ -171,33 +172,76 @@ async function fetchIssuanceTypeName(id: string) {
   }
 }
 
-onMounted(() => {
-  fetchIssuanceTypeName(issuanceTypeId.value)
-})
-
-watch(issuanceTypeId, (newId, oldId) => {
-  if (newId && newId !== oldId) fetchIssuanceTypeName(newId)
-})
-
 type Row = { id: string; primary: string; status: string }
 
-// Placeholder rows (replace with Supabase later)
-const rows = ref<Row[]>([
-  { id: 'a1', primary: 'User A from Barangay Ampayon', status: 'Completed' },
-  { id: 'a2', primary: 'User B from Barangay Taguibo', status: 'Needs Correction' },
-  { id: 'a3', primary: 'User B from Barangay Taguibo', status: 'Draft' },
-  { id: 'a4', primary: 'User B from Barangay Taguibo', status: 'Completed' },
-  { id: 'a5', primary: 'User B from Barangay Taguibo', status: 'Needs Correction' },
-  { id: 'a6', primary: 'User B from Barangay Taguibo', status: 'Completed' },
-  { id: 'a7', primary: 'User B from Barangay Taguibo', status: 'Completed' },
-  { id: 'a8', primary: 'User C from Barangay Ampayon', status: 'Draft' },
-  { id: 'a9', primary: 'User D from Barangay Libertad', status: 'Completed' },
-  { id: 'a10', primary: 'User E from Barangay Bayanihan', status: 'Needs Correction' }
-])
+// REAL rows from DB
+const rows = ref<Row[]>([])
+const loadingRows = ref(false)
+
+function statusLabel(s: string) {
+  const map: Record<string, string> = {
+    draft: 'Draft',
+    submitted: 'Submitted',
+    under_review: 'Under Review',
+    needs_correction: 'Needs Correction',
+    approved: 'Approved',
+    rejected: 'Rejected',
+    released: 'Released'
+  }
+  return map[s] ?? s
+}
+
+async function fetchApplicantsForIssuance(id: string) {
+  if (!id) {
+    rows.value = []
+    return
+  }
+
+  loadingRows.value = true
+  try {
+    // applications -> profiles (senior) + barangays
+    // Uses explicit FK join names based on schema
+    const { data, error } = await supabase
+      .from('applications')
+      .select(`
+        id,
+        status,
+        created_at,
+        senior:profiles!applications_senior_id_fkey(first_name, last_name),
+        barangay:barangays!applications_barangay_id_fkey(name)
+      `)
+      .eq('issuance_type_id', id)
+      .order('created_at', { ascending: false })
+
+    if (error) throw error
+
+    // Make: "Application 1 of Juan Dela Cruz from Barangay Ampayon"
+    const counterBySenior = new Map<string, number>()
+
+    rows.value = (data ?? []).map((r: any) => {
+      const fullName = [r?.senior?.first_name, r?.senior?.last_name].filter(Boolean).join(' ').trim() || 'Unknown Senior'
+      const brgy = r?.barangay?.name || 'Unknown Barangay'
+
+      const key = `${fullName}||${brgy}`
+      const nextCount = (counterBySenior.get(key) ?? 0) + 1
+      counterBySenior.set(key, nextCount)
+
+      return {
+        id: r.id, // IMPORTANT: this is applications.id
+        primary: `Application ${nextCount} of ${fullName} from Barangay ${brgy}`,
+        status: statusLabel(r.status)
+      }
+    })
+  } catch (e) {
+    console.error('Failed to fetch applicants:', e)
+    rows.value = []
+  } finally {
+    loadingRows.value = false
+  }
+}
 
 // Pagination state
 const page = ref(1)
-// Smaller page size so it fits better inside the compact card
 const pageSize = ref(6)
 
 const pagedRows = computed(() => {
@@ -206,7 +250,20 @@ const pagedRows = computed(() => {
 })
 
 function onReview(row: Row) {
-  console.log('Review Now:', row, 'issuanceTypeId:', issuanceTypeId.value)
-  // later: route to review page
+  // Review must pass the ROW/RECORD id = applications.id
+  router.push({ name: 'ApplicantReview', params: { applicationId: row.id } })
 }
+
+onMounted(() => {
+  fetchIssuanceTypeName(issuanceTypeId.value)
+  fetchApplicantsForIssuance(issuanceTypeId.value)
+})
+
+watch(issuanceTypeId, (newId, oldId) => {
+  if (newId && newId !== oldId) {
+    page.value = 1
+    fetchIssuanceTypeName(newId)
+    fetchApplicantsForIssuance(newId)
+  }
+})
 </script>
