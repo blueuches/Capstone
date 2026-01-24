@@ -7,25 +7,25 @@
     <main class="flex-1 px-4 pt-4 flex flex-col">
       <!-- Top row -->
       <div class="flex items-center justify-between mb-2">
-<RouterLink
-  v-if="applicationId"
-  :to="{ name: 'ApplyPageSubmit', params: { applicationId } }"
-  class="flex items-center gap-2 text-sm font-semibold text-gray-700"
->
-  <component :is="Left" class="w-5 h-5 text-yellow-500" />
-  <span class="text-gray-500">Back</span>
-</RouterLink>
+        <RouterLink
+          v-if="applicationId"
+          :to="{ name: 'ApplyPageSubmit', params: { applicationId } }"
+          class="flex items-center gap-2 text-sm font-semibold text-gray-700"
+        >
+          <component :is="Left" class="w-5 h-5 text-yellow-500" />
+          <span class="text-gray-500">Back</span>
+        </RouterLink>
 
-<!-- fallback (prevents blank page) -->
-<button
-  v-else
-  type="button"
-  class="flex items-center gap-2 text-sm font-semibold text-gray-700"
-  @click="router.push('/senior/dashboard/apply')"
->
-  <component :is="Left" class="w-5 h-5 text-yellow-500" />
-  <span class="text-gray-500">Back</span>
-</button>
+        <!-- fallback (prevents blank page) -->
+        <button
+          v-else
+          type="button"
+          class="flex items-center gap-2 text-sm font-semibold text-gray-700"
+          @click="router.push('/senior/dashboard/apply')"
+        >
+          <component :is="Left" class="w-5 h-5 text-yellow-500" />
+          <span class="text-gray-500">Back</span>
+        </button>
 
         <button
           class="flex items-center gap-2 text-sm font-semibold text-gray-700"
@@ -51,7 +51,7 @@
       </div>
 
       <!-- FORM (NO SCROLL, STEP-BASED) -->
-      <section class="flex-1 pt-4">
+      <section ref="formAreaRef" class="flex-1 pt-4">
         <div class="space-y-4">
           <div
             v-for="field in currentFields"
@@ -147,7 +147,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, reactive, onMounted } from 'vue'
+import { ref, computed, reactive, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { supabase } from '@/supabase/client'
 
@@ -170,8 +170,12 @@ type FormFieldType =
   | 'select'
   | 'multiselect'
 
+// supports BOTH formats:
+// - { field_key, op: 'equals'|'not_equals', value }
+// - { field_key, op: '=', value }   (your DB)
+// - { field_key, op: '!=', value }
 type DependsOn =
-  | { field_key: string; op: 'equals' | 'not_equals'; value: any }
+  | { field_key: string; op: 'equals' | 'not_equals' | '=' | '!='; value: any }
   | null
 
 type FormFieldRow = {
@@ -188,7 +192,7 @@ type FormFieldRow = {
   placeholder?: string | null
 }
 
-const props = defineProps<{ id: string }>() // <-- this is application_requirement_id
+const props = defineProps<{ id: string }>() // application_requirement_id
 const route = useRoute()
 const router = useRouter()
 
@@ -213,18 +217,40 @@ const finishModalOpen = ref(false)
 const draftModalOpen = ref(false)
 
 /* =======================
+   AUTO STEP SIZE (fit to space)
+======================= */
+
+const formAreaRef = ref<HTMLElement | null>(null)
+const fieldsPerStep = ref(6) // default fallback
+let resizeObs: ResizeObserver | null = null
+
+function recalcFieldsPerStep() {
+  const el = formAreaRef.value
+  if (!el) return
+
+  // available space for fields
+  const h = el.clientHeight
+
+  // estimate each field block height:
+  // label (~16) + input (~44) + gap (~16) ≈ 76–90
+  const estimatedPerField = 86
+
+  const n = Math.max(1, Math.floor(h / estimatedPerField))
+  fieldsPerStep.value = n
+}
+
+/* =======================
    MULTI-STEP LOGIC
 ======================= */
 
 const currentStep = ref(0)
-const FIELDS_PER_STEP = 3
 
 function passesDepends(dep: DependsOn): boolean {
   if (!dep) return true
   const current = answers[dep.field_key]
 
-  if (dep.op === 'equals') return current === dep.value
-  if (dep.op === 'not_equals') return current !== dep.value
+  if (dep.op === 'equals' || dep.op === '=') return current === dep.value
+  if (dep.op === 'not_equals' || dep.op === '!=') return current !== dep.value
   return true
 }
 
@@ -232,13 +258,18 @@ const visibleFields = computed(() =>
   fields.value
     .slice()
     .sort((a, b) => a.sort_order - b.sort_order)
+    // ✅ ONLY show applicant section
+    .filter((f) => f.section === 'A_APPLICANT')
+    // ✅ respect depends_on
     .filter((f) => passesDepends((f.depends_on ?? null) as any))
 )
 
 const steps = computed(() => {
   const chunks: FormFieldRow[][] = []
-  for (let i = 0; i < visibleFields.value.length; i += FIELDS_PER_STEP) {
-    chunks.push(visibleFields.value.slice(i, i + FIELDS_PER_STEP))
+  const size = Math.max(1, fieldsPerStep.value)
+
+  for (let i = 0; i < visibleFields.value.length; i += size) {
+    chunks.push(visibleFields.value.slice(i, i + size))
   }
   return chunks
 })
@@ -258,12 +289,20 @@ function prevStep() {
   if (currentStep.value > 0) currentStep.value--
 }
 
+// if changing conditions reduces steps, clamp currentStep
+watch(
+  () => steps.value.length,
+  (len) => {
+    if (!len) currentStep.value = 0
+    else if (currentStep.value > len - 1) currentStep.value = len - 1
+  }
+)
+
 /* =======================
    ACTIONS
 ======================= */
 
 function goBackToSubmit() {
-  // ensure we return to the correct Submit page
   if (!applicationId.value) return router.push('/senior/dashboard/apply')
   router.push({ name: 'ApplyPageSubmit', params: { applicationId: applicationId.value } })
 }
@@ -292,13 +331,10 @@ function initAnswersDefaults() {
 ======================= */
 
 async function loadForm() {
-  // Guard: must have application_requirement_id
   if (!applicationRequirementId.value) {
     console.error('Missing applicationRequirementId')
     return
   }
-
-  // Guard: applicationId must be provided (for back + form_submissions insert)
   if (!applicationId.value) {
     console.error('Missing applicationId in query. Pass it when navigating to ApplyForm.')
     return
@@ -309,7 +345,7 @@ async function loadForm() {
   const userId = authRes.user?.id
   if (!userId) return
 
-  // 1) Get or create form_submissions row (1:1 per application_requirement)
+  // 1) Get or create form_submissions row
   let { data: submission, error: subErr } = await supabase
     .from('form_submissions')
     .select('id, form_id, status, forms(name)')
@@ -318,7 +354,6 @@ async function loadForm() {
 
   if (subErr) return console.error(subErr)
 
-  // If not exists yet, we need the form_id from issuance_type_requirements.doc_rules.form_id
   if (!submission) {
     const { data: ar, error: arErr } = await supabase
       .from('application_requirements')
@@ -357,11 +392,11 @@ async function loadForm() {
     submission = created
   }
 
-  // 2) Set form meta
+  // 2) Set meta
   formMeta.id = submission.form_id
   formMeta.name = (submission as any)?.forms?.name ?? 'Application Form'
 
-  // 3) Load form_fields for this form_id
+  // 3) Load fields
   const { data: ff, error: ffErr } = await supabase
     .from('form_fields')
     .select('id, form_id, section, label, field_key, field_type, required, sort_order, options, depends_on, placeholder')
@@ -371,10 +406,9 @@ async function loadForm() {
   if (ffErr) return console.error(ffErr)
   fields.value = (ff ?? []) as any
 
-  // defaults first
   initAnswersDefaults()
 
-  // 4) Load existing answers (if any)
+  // 4) Load existing answers
   const { data: ansRows, error: ansErr } = await supabase
     .from('form_answers')
     .select('field_id, value')
@@ -387,9 +421,28 @@ async function loadForm() {
     const key = fieldIdToKey.get((row as any).field_id)
     if (key) answers[key] = (row as any).value
   }
+
+  // after fields mount, auto compute how many fit
+  await nextTick()
+  recalcFieldsPerStep()
 }
 
-onMounted(loadForm)
+onMounted(async () => {
+  await loadForm()
+  await nextTick()
+  recalcFieldsPerStep()
+
+  // live resize (orientation, device sizes)
+  if (formAreaRef.value) {
+    resizeObs = new ResizeObserver(() => recalcFieldsPerStep())
+    resizeObs.observe(formAreaRef.value)
+  }
+})
+
+onBeforeUnmount(() => {
+  if (resizeObs && formAreaRef.value) resizeObs.unobserve(formAreaRef.value)
+  resizeObs = null
+})
 </script>
 
 <style scoped>

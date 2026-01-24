@@ -8,7 +8,7 @@
              focus:border-[#42ad43]"
       :class="error ? 'border-red-400' : 'border-[#42ad43]'"
       :placeholder="placeholder"
-      :value="modelValue"
+      :value="modelValue ?? ''"
       @input="onInput"
       @focus="$emit('focus')"
     />
@@ -18,27 +18,36 @@
       v-else-if="field.field_type === 'select'"
       class="w-full rounded-md border-2 px-3 py-2 text-sm outline-none focus:border-[#42ad43]"
       :class="error ? 'border-red-400' : 'border-[#42ad43]'"
-      :value="modelValue"
+      :value="modelValue ?? ''"
       @change="onInput"
       @focus="$emit('focus')"
     >
-      <option value="" disabled>Select…</option>
-      <option v-for="opt in selectOptions" :key="opt" :value="opt">
-        {{ opt }}
+      <option value="" disabled>{{ placeholder || 'Select…' }}</option>
+
+      <option
+        v-for="opt in choices"
+        :key="opt.value"
+        :value="opt.value"
+      >
+        {{ opt.label }}
       </option>
     </select>
 
     <!-- RADIO -->
     <div v-else-if="field.field_type === 'radio'" class="flex flex-wrap gap-2">
       <button
-        v-for="opt in radioOptions"
-        :key="opt"
+        v-for="opt in choices"
+        :key="opt.value"
         type="button"
         class="px-3 py-2 rounded-xl text-xs font-bold border-2"
-        :class="modelValue === opt ? 'bg-[#42ad43] text-white border-[#42ad43]' : 'bg-white text-gray-700 border-gray-200'"
-        @click="update(opt)"
+        :class="
+          modelValue === opt.value
+            ? 'bg-[#42ad43] text-white border-[#42ad43]'
+            : 'bg-white text-gray-700 border-gray-200'
+        "
+        @click="update(opt.value)"
       >
-        {{ opt }}
+        {{ opt.label }}
       </button>
     </div>
 
@@ -54,17 +63,21 @@
       <span class="text-sm text-gray-700">Yes</span>
     </label>
 
-    <!-- MULTISELECT (simple pill toggles placeholder) -->
+    <!-- MULTISELECT -->
     <div v-else-if="field.field_type === 'multiselect'" class="flex flex-wrap gap-2">
       <button
-        v-for="opt in multiOptions"
-        :key="opt"
+        v-for="opt in choices"
+        :key="opt.value"
         type="button"
         class="px-3 py-2 rounded-xl text-xs font-bold border-2"
-        :class="isSelected(opt) ? 'bg-[#42ad43] text-white border-[#42ad43]' : 'bg-white text-gray-700 border-gray-200'"
-        @click="toggleMulti(opt)"
+        :class="
+          isSelected(opt.value)
+            ? 'bg-[#42ad43] text-white border-[#42ad43]'
+            : 'bg-white text-gray-700 border-gray-200'
+        "
+        @click="toggleMulti(opt.value)"
       >
-        {{ opt }}
+        {{ opt.label }}
       </button>
     </div>
 
@@ -78,7 +91,16 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
-type FormFieldType = 'text' | 'number' | 'date' | 'checkbox' | 'radio' | 'select' | 'multiselect'
+type FormFieldType =
+  | 'text'
+  | 'number'
+  | 'date'
+  | 'checkbox'
+  | 'radio'
+  | 'select'
+  | 'multiselect'
+
+type Choice = { label: string; value: string }
 
 type FormFieldRow = {
   id: string
@@ -87,6 +109,7 @@ type FormFieldRow = {
   field_type: FormFieldType
   required: boolean
   options?: any | null
+  placeholder?: string | null
 }
 
 const props = defineProps<{
@@ -113,10 +136,31 @@ const inputType = computed(() => {
 })
 
 const placeholder = computed(() => {
-  // match your prototype “Enter name”
+  // ✅ use DB placeholder if present
+  if (props.field.placeholder) return props.field.placeholder
+
+  // fallback
   if (props.field.field_type === 'date') return 'Select date'
   if (props.field.field_type === 'number') return 'Enter number'
-  return 'Enter name'
+  return 'Enter value'
+})
+
+// ✅ normalize choices from DB (objects or strings)
+const choices = computed<Choice[]>(() => {
+  const raw = props.field.options?.choices
+  if (!Array.isArray(raw)) return []
+
+  return raw.map((x: any) => {
+    // DB format: { label, value }
+    if (x && typeof x === 'object') {
+      return {
+        label: String(x.label ?? x.value ?? ''),
+        value: String(x.value ?? x.label ?? '')
+      }
+    }
+    // fallback: string
+    return { label: String(x), value: String(x) }
+  })
 })
 
 function onInput(e: Event) {
@@ -128,19 +172,15 @@ function update(v: any) {
   emit('update:modelValue', v)
 }
 
-const selectOptions = computed<string[]>(() => props.field.options?.choices ?? [])
-const radioOptions = computed<string[]>(() => props.field.options?.choices ?? [])
-const multiOptions = computed<string[]>(() => props.field.options?.choices ?? [])
-
-function isSelected(opt: string) {
-  return Array.isArray(props.modelValue) && props.modelValue.includes(opt)
+function isSelected(value: string) {
+  return Array.isArray(props.modelValue) && props.modelValue.includes(value)
 }
 
-function toggleMulti(opt: string) {
+function toggleMulti(value: string) {
   const current = Array.isArray(props.modelValue) ? [...props.modelValue] : []
-  const idx = current.indexOf(opt)
+  const idx = current.indexOf(value)
   if (idx >= 0) current.splice(idx, 1)
-  else current.push(opt)
+  else current.push(value)
   emit('update:modelValue', current)
 }
 </script>
