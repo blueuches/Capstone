@@ -29,7 +29,19 @@
 </template>
 
 <script setup lang="ts">
-defineProps<{
-  messages: Array<any>
-}>()
+const props = defineProps<{ messages: Array<any> }>()
+
+function parseBody(body: string) {
+  try {
+    const obj = JSON.parse(body)
+    return obj && typeof obj === 'object' ? obj : null
+  } catch {
+    return null
+  }
+}
+
+function isVoice(msg: any) {
+  const parsed = parseBody(msg.body ?? msg.text ?? '')
+  return parsed?.kind === 'voice' && parsed?.storage_bucket && parsed?.storage_path
+}
 </script>
