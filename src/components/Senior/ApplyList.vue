@@ -1,3 +1,4 @@
+<!-- components/Senior/ApplyList.vue -->
 <template>
   <div>
     <!-- Empty state -->
@@ -21,33 +22,32 @@
         :key="item.id"
         class="flex items-stretch gap-3"
       >
-        <!-- ✅ Left number column -->
+        <!-- Left number -->
         <div class="w-10 flex items-center justify-center">
           <span class="text-2xl font-extrabold text-[#42ad43] leading-none">
             {{ idx + 1 }}
           </span>
         </div>
 
-        <!-- ✅ Green pill card (prototype shape) -->
-        <div
-          class="flex-1 rounded-3xl bg-[#42ad43] text-white px-5 py-3 shadow-sm"
-        >
+        <!-- Green pill card -->
+        <div class="flex-1 rounded-3xl bg-[#42ad43] text-white px-5 py-3 shadow-sm">
           <div class="flex items-center justify-between gap-4">
-            <!-- LEFT CONTENT (wraps, never pushes button) -->
             <div class="min-w-0 flex-1">
-              <p
-                class="text-sm font-extrabold leading-snug break-words"
-                style="word-break: break-word;"
-              >
+              <p class="text-sm font-extrabold leading-snug break-words" style="word-break: break-word;">
                 {{ item.title }}
               </p>
 
               <p v-if="item.subtitle" class="text-[11px] text-white/85 mt-0.5 break-words">
                 {{ item.subtitle }}
               </p>
+
+              <!-- Optional small hint -->
+              <p v-if="item.hasRecord" class="text-[10px] mt-1 text-white/85">
+                ✓ Submitted
+              </p>
             </div>
 
-            <!-- RIGHT BUTTON (fixed, uniform) -->
+            <!-- Button -->
             <div class="w-[78px] shrink-0 flex justify-end">
               <button
                 class="px-3 py-2 rounded-full bg-white text-[#42ad43] text-xs font-extrabold shadow-sm
@@ -62,10 +62,11 @@
       </div>
     </div>
 
-    <!-- Optional: progress hint -->
+    <!-- Progress -->
     <div v-if="items.length" class="mt-4">
       <div class="text-xs text-gray-500">
-        Completed: <span class="font-semibold">{{ completedCount }}/{{ items.length }}</span> [Go to My Requirements to view]
+        Completed: <span class="font-semibold">{{ completedCount }}/{{ items.length }}</span>
+        [Go to My Requirements to view]
       </div>
       <div class="mt-2 h-2 rounded-full bg-gray-200 overflow-hidden">
         <div class="h-full bg-[#42ad43]" :style="{ width: progress + '%' }"></div>
@@ -85,16 +86,15 @@ type RequirementItem = {
   hasRecord: boolean
 }
 
-const props = defineProps<{
-  items: RequirementItem[]
-}>()
+const props = defineProps<{ items: RequirementItem[] }>()
 
 const emit = defineEmits<{
   (e: 'action', item: RequirementItem): void
 }>()
 
 function actionLabel(item: RequirementItem) {
-  return item.kind === 'form' ? 'Answer' : 'Submit'
+  if (item.kind === 'form') return item.hasRecord ? 'Edit' : 'Answer'
+  return item.hasRecord ? 'Update' : 'Submit'
 }
 
 const completedCount = computed(() => props.items.filter(i => i.hasRecord).length)

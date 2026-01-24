@@ -102,8 +102,8 @@ const routes = [
   { path: '/senior/settings', component: Settings, meta: { requiresAuth: true, role: 'senior' }},
 
   //senior functions
-  { path: '/senior/dashboard/mystatus/updates', component: StatusPageUpdate, meta: { requiresAuth: true, role: 'senior' }},
-  { path: '/senior/dashboard/myrequirements/list', component: RequirementsPageList, meta: { requiresAuth: true, role: 'senior' }},
+  { path: '/senior/dashboard/mystatus/updates/:applicationId',name: 'StatusPageUpdate', component: StatusPageUpdate, meta: { requiresAuth: true, role: 'senior' }},
+  { path: '/senior/dashboard/myrequirements/list/:applicationId',name: 'RequirementsPageList', component: RequirementsPageList, meta: { requiresAuth: true, role: 'senior' }},
   { path: '/senior/dashboard/apply/submitlist/:applicationId',name: 'ApplyPageSubmit', component: ApplyPageSubmit,props: true, meta: { requiresAuth: true, role: 'senior' }},
   { path: '/senior/dashboard/apply/option/:issuanceTypeId',name: 'ApplyPageOption', component: ApplyPageOption,props: true, meta: { requiresAuth: true, role: 'senior' }},
   { path: '/senior/dashboard/apply/option/continue/:issuanceTypeId', name: 'ApplyPageContinueList',component: () => import('@/views/Senior/ApplyPageContinueList.vue'),props: true,meta: { requiresAuth: true, role: 'senior' }},

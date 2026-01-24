@@ -111,6 +111,7 @@ import BottomNav from '@/components/Senior/BottomNav.vue'
 import RequirementItem from '@/components/Senior/RequirementItem.vue'
 import { useAuth } from '@/composables/useAuth'
 import Left from '@/assets/icons/senior/left-arrow.svg'
+import { supabase } from '@/supabase/client'
 
 type AppStatus = 'ongoing' | 'completed'
 
@@ -141,36 +142,94 @@ const filteredApplications = computed(() => {
 // Placeholder “fetch”
 async function loadApplications() {
   loading.value = true
+  try {
+    const { data: authData, error: authErr } = await supabase.auth.getUser()
+    if (authErr) throw authErr
+    const userId = authData.user?.id
+    if (!userId) throw new Error('Not authenticated.')
 
-  // simulate network delay so UI skeleton is visible
-  await new Promise((r) => setTimeout(r, 450))
+    // 1) Get applications with issuance type info
+    const { data: apps, error: appErr } = await supabase
+      .from('applications')
+      .select(`
+        id,
+        status,
+        issuance_type:issuance_type_id ( id, name )
+      `)
+      .eq('senior_id', userId)
+      .order('created_at', { ascending: false })
 
-  // ✅ TEMP cards matching your screenshot
-  applications.value = [
-    {
-      id: 'app-001',
-      tag: 'NEW APPLICATION',
-      service: 'OSCA ID Issuance',
-      requirementsSent: 1,
-      requirementsTotal: 7,
-      status: 'ongoing',
-      route: '/senior/dashboard/myrequirements/list'
-    },
-    {
-      id: 'app-002',
-      tag: 'LOST ID CARD',
-      service: 'OSCA ID Issuance',
-      requirementsSent: 6,
-      requirementsTotal: 7,
-      status: 'ongoing',
-      route: '/senior/dashboard/myrequirements/list'
+    if (appErr) throw appErr
+
+    // 2) Get all requirement rows for those apps (so we can compute sent/total)
+    const appIds = (apps ?? []).map((a: any) => a.id)
+    if (!appIds.length) {
+      applications.value = []
+      loading.value = false
+      return
     }
-  ]
 
-  // If you want to test the empty state, just set:
-  // applications.value = []
+    const { data: reqRows, error: reqErr } = await supabase
+      .from('application_requirements')
+      .select(`
+        id,
+        application_id,
+        issuance_type_requirement:issuance_type_requirement_id (
+          requirement:requirement_id ( requirement_kind )
+        ),
+        document_submissions ( id ),
+        form_submissions ( id )
+      `)
+      .in('application_id', appIds)
 
-  loading.value = false
+    if (reqErr) throw reqErr
+
+    // Aggregate totals per application
+    const totals = new Map<string, { total: number; sent: number }>()
+    for (const r of (reqRows ?? []) as any[]) {
+      const appId = r.application_id
+      const kind = (r?.issuance_type_requirement?.requirement?.requirement_kind ?? '').toLowerCase()
+      const isForm = kind === 'form'
+      const hasForm = Array.isArray(r.form_submissions) && r.form_submissions.length > 0
+      const hasDocs = Array.isArray(r.document_submissions) && r.document_submissions.length > 0
+      const hasRecord = isForm ? hasForm : hasDocs
+
+      const cur = totals.get(appId) ?? { total: 0, sent: 0 }
+      cur.total += 1
+      if (hasRecord) cur.sent += 1
+      totals.set(appId, cur)
+    }
+
+    // Numbering per issuance type
+    const issuanceCounter = new Map<string, number>()
+
+    applications.value = (apps ?? []).map((a: any) => {
+      const issuanceId = a?.issuance_type?.id ?? 'unknown'
+      const issuanceName = a?.issuance_type?.name ?? 'Issuance'
+      const n = (issuanceCounter.get(issuanceId) ?? 0) + 1
+      issuanceCounter.set(issuanceId, n)
+
+      const agg = totals.get(a.id) ?? { total: 0, sent: 0 }
+      const status: AppStatus = agg.total > 0 && agg.sent === agg.total ? 'completed' : 'ongoing'
+
+      // Keep your existing UI props:
+      return {
+        id: a.id,
+        tag: `${issuanceName.toUpperCase()} ${n}`, // ✅ numbering per issuance
+        service: issuanceName,
+        requirementsSent: agg.sent,
+        requirementsTotal: agg.total,
+        status,
+        route: `/senior/dashboard/myrequirements/list/${a.id}` // ✅ dynamic
+      } satisfies ApplicationCard
+    })
+
+  } catch (e: any) {
+    console.error(e)
+    applications.value = []
+  } finally {
+    loading.value = false
+  }
 }
 
 onMounted(() => {

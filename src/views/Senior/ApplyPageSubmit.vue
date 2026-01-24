@@ -1,5 +1,5 @@
+<!-- views/Senior/ApplyPageSubmit.vue -->
 <template>
-  <!-- LOCK the page scroll -->
   <div class="h-screen overflow-hidden bg-gray-50 font-poppins pb-16 flex flex-col">
     <Header @toggle-menu="open = true" />
     <SideBurger :open="open" @close="open = false" />
@@ -26,7 +26,7 @@
         </p>
       </div>
 
-      <!-- Small status card (aligned with your style) -->
+      <!-- Status card -->
       <div class="mb-4 rounded-3xl bg-white border border-gray-200 p-4">
         <div class="flex items-start justify-between gap-3">
           <div>
@@ -43,9 +43,13 @@
         </div>
       </div>
 
-      <!-- ✅ ONLY SCROLLABLE AREA -->
+      <!-- Scroll area -->
       <div class="flex-1 min-h-0 overflow-y-auto pr-1">
         <ApplyList :items="requirements" @action="onAction" />
+
+        <div v-if="saving" class="mt-3 text-xs text-gray-600 pb-3">
+          Uploading… please wait.
+        </div>
 
         <div v-if="loadError" class="mt-3 text-xs text-red-600 pb-3">
           {{ loadError }}
@@ -58,6 +62,18 @@
     </main>
 
     <BottomNav />
+
+    <!-- ✅ Reusable file picker modal -->
+    <SelectFile
+      v-model="filePickerOpen"
+      title="Upload Document"
+      subtitle="Choose a clear photo or PDF. You can update later if needed."
+      accept=".pdf,image/*"
+      :multiple="false"
+      :maxSizeMB="10"
+      @confirm="handlePickedFiles"
+      @cancel="activeReq = null"
+    />
   </div>
 </template>
 
@@ -69,6 +85,7 @@ import Header from '@/components/Senior/Header.vue'
 import SideBurger from '@/components/Senior/SideBurger.vue'
 import BottomNav from '@/components/Senior/BottomNav.vue'
 import ApplyList from '@/components/Senior/ApplyList.vue'
+import SelectFile from '@/components/SelectFile.vue'
 import Left from '@/assets/icons/senior/left-arrow.svg'
 
 import { supabase } from '@/supabase/client'
@@ -78,12 +95,14 @@ const props = defineProps<{ applicationId: string }>()
 type ReqKind = 'form' | 'file'
 
 type RequirementItem = {
-  id: string // ✅ application_requirement_id (important for next pages)
+  id: string // application_requirement_id
   title: string
   subtitle?: string
   kind: ReqKind
   hasRecord: boolean
 }
+
+const DOC_BUCKET = 'documents' 
 
 const open = ref(false)
 const router = useRouter()
@@ -93,12 +112,13 @@ const issuanceName = ref<string>('')
 const applicationStatus = ref<string>('draft')
 const loadError = ref<string>('')
 
+const filePickerOpen = ref(false)
+const activeReq = ref<RequirementItem | null>(null)
+const saving = ref(false)
+
 function prettyStatus(s?: string) {
   if (!s) return 'Unknown'
-  return s
-    .toString()
-    .replace(/_/g, ' ')
-    .replace(/\b\w/g, (m) => m.toUpperCase())
+  return s.toString().replace(/_/g, ' ').replace(/\b\w/g, (m) => m.toUpperCase())
 }
 
 const statusClass = computed(() => {
@@ -106,12 +126,10 @@ const statusClass = computed(() => {
   if (s === 'approved') return 'text-emerald-700'
   if (s === 'rejected') return 'text-red-600'
   if (s === 'submitted' || s === 'in_review') return 'text-amber-700'
-  return 'text-emerald-700' // draft/pending-ish
+  return 'text-emerald-700'
 })
 
 function toKind(requirementKind: string | null | undefined): ReqKind {
-  // Your enum is USER-DEFINED; common values are 'form' and 'document'/'file'.
-  // We only need to decide between form vs file.
   const k = (requirementKind ?? '').toLowerCase()
   return k === 'form' ? 'form' : 'file'
 }
@@ -122,23 +140,17 @@ async function loadHeader() {
     .select(`
       id,
       status,
-      issuance_type:issuance_type_id (
-        name
-      )
+      issuance_type:issuance_type_id ( name )
     `)
     .eq('id', props.applicationId)
     .single()
 
   if (error) throw error
-
   issuanceName.value = (data as any)?.issuance_type?.name ?? ''
   applicationStatus.value = (data as any)?.status ?? 'draft'
 }
 
 async function loadRequirements() {
-  // Pull application_requirements for THIS application
-  // Then join: issuance_type_requirements -> requirements
-  // Then check completion via form_submissions and document_submissions
   const { data, error } = await supabase
     .from('application_requirements')
     .select(`
@@ -156,21 +168,14 @@ async function loadRequirements() {
           notes
         )
       ),
-      form_submissions (
-        id,
-        status
-      ),
-      document_submissions (
-        id
-      )
+      form_submissions ( id, status ),
+      document_submissions ( id )
     `)
     .eq('application_id', props.applicationId)
 
   if (error) throw error
 
   const rows = (data ?? []) as any[]
-
-  // Sort by issuance_type_requirements.sort_order (client-side)
   rows.sort((a, b) => {
     const sa = a?.issuance_type_requirement?.sort_order ?? 0
     const sb = b?.issuance_type_requirement?.sort_order ?? 0
@@ -183,40 +188,81 @@ async function loadRequirements() {
     const subtitle = req?.notes ?? undefined
     const kind = toKind(req?.requirement_kind)
 
-    // Completion rules:
-    // - form: has form_submissions row
-    // - file: has at least 1 document_submissions row
     const hasForm = Array.isArray(r?.form_submissions) && r.form_submissions.length > 0
     const hasDocs = Array.isArray(r?.document_submissions) && r.document_submissions.length > 0
-
     const hasRecord = kind === 'form' ? hasForm : hasDocs
 
-    return {
-      id: r.id, // ✅ application_requirement_id
-      title,
-      subtitle,
-      kind,
-      hasRecord
-    } satisfies RequirementItem
+    return { id: r.id, title, subtitle, kind, hasRecord } satisfies RequirementItem
   })
 }
 
 function onAction(item: RequirementItem) {
-  // item.id is application_requirement_id (from ApplyPageSubmit list)
+  loadError.value = ''
+
   if (item.kind === 'form') {
     router.push({
       name: 'ApplyForm',
-      params: { id: item.id }, // ✅ route param :id = application_requirement_id
-      query: { applicationId: props.applicationId } // ✅ so back button can return correctly
+      params: { id: item.id },
+      query: { applicationId: props.applicationId }
     })
     return
   }
 
-  // uploads also benefit from having applicationId, optional but recommended
-  router.push({
-    path: `/senior/apply/upload/${item.id}`,
-    query: { applicationId: props.applicationId }
-  })
+  // ✅ file requirement: open picker modal NOW (no separate page needed)
+  activeReq.value = item
+  filePickerOpen.value = true
+}
+
+async function handlePickedFiles(files: File[]) {
+  if (!activeReq.value) return
+  const file = files[0]
+  if (!file) return
+
+  saving.value = true
+  loadError.value = ''
+
+  try {
+    // current user
+    const { data: authData, error: authErr } = await supabase.auth.getUser()
+    if (authErr) throw authErr
+    const userId = authData.user?.id
+    if (!userId) throw new Error('No authenticated user.')
+
+    // Upload path: applications/{applicationId}/{application_requirement_id}/timestamp_filename
+    const safeName = file.name.replace(/[^\w.\-() ]+/g, '_')
+    const storagePath = `applications/${props.applicationId}/${activeReq.value.id}/${Date.now()}_${safeName}`
+
+    // 1) upload to storage
+    const { error: upErr } = await supabase.storage
+      .from(DOC_BUCKET)
+      .upload(storagePath, file, {
+        contentType: file.type || undefined,
+        upsert: true
+      })
+    if (upErr) throw upErr
+
+    // 2) insert metadata row
+    const { error: insErr } = await supabase
+      .from('document_submissions')
+      .insert({
+        application_requirement_id: activeReq.value.id,
+        uploaded_by: userId,
+        storage_path: storagePath,
+        file_name: file.name,
+        mime_type: file.type || null,
+        file_size: file.size
+      })
+    if (insErr) throw insErr
+
+    // 3) refresh list to change button label (Submit -> Update)
+    await loadRequirements()
+  } catch (e: any) {
+    console.error(e)
+    loadError.value = e?.message ?? 'Upload failed.'
+  } finally {
+    saving.value = false
+    activeReq.value = null
+  }
 }
 
 onMounted(async () => {
