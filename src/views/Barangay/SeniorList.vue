@@ -31,8 +31,7 @@
                 class="w-full text-center font-extrabold text-white py-2 rounded-lg tracking-wide text-sm sm:text-base"
                 :style="{ backgroundColor: brand }"
               >
-                Barangay {{ profile?.barangays?.name }}'s Current Applying Seniors
-              </div>
+              Barangay {{ (Array.isArray(profile?.barangays) ? profile?.barangays?.[0]?.name : profile?.barangays?.name) || 'Unknown Barangay' }}'s Current Applying Seniors              </div>
             </div>
 
             <!-- Content -->

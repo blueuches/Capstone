@@ -34,8 +34,8 @@ import Notification from '@/views/Senior/Notification.vue'
 
 //OSCA
 import ApplicantReview from '@/views/OSCA/ApplicantReview.vue'
-import BarangaysPage from '@/views/OSCA/BarangaysPage.Vue'
-import BarangaysPageInfo from '@/views/OSCA/BarangaysPageInfo.Vue'
+import BarangaysPage from '@/views/OSCA/BarangaysPage.vue'
+import BarangaysPageInfo from '@/views/OSCA/BarangaysPageInfo.vue'
 import OSCAIssuancePage from '@/views/OSCA/IssuancePage.vue'
 import OSCAIssuancePageInfo from '@/views/OSCA/IssuancePageInfo.vue'
 import OSCAAnnouncement from '@/views/OSCA/Announcement.vue' //share?

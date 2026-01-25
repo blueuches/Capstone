@@ -1,13 +1,7 @@
 // src/composables/useSessionRole.ts
-import { computed } from 'vue'
+import type { Profile, Role } from '@/types/profile'
 
-export function useSessionRole(profile) {
-  const role = computed(() => profile.value?.role )
-
-  return {
-    isAdmin: computed(() => role.value === 'admin'),
-    isOSCA: computed(() => role.value === 'osca_staff'),
-    isBarangay: computed(() => role.value === 'barangay_staff'),
-    isSenior: computed(() => role.value === 'senior')
-  }
+export function useSessionRole(profile: Profile | null) {
+  const role: Role | null = profile?.role ?? null
+  return { role }
 }

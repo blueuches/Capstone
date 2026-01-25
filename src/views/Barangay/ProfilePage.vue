@@ -33,7 +33,7 @@
 
                 <h2 class="mt-4 text-lg font-extrabold text-gray-900">{{ staffName }}</h2>
                 <p class="text-sm text-gray-500 mt-0.5">
-                  Barangay {{ profile?.barangays?.name }} Staff
+                  Barangay {{ (Array.isArray(profile?.barangays) ? profile?.barangays?.[0]?.name : profile?.barangays?.name) || 'Unknown Barangay' }} Staff
                 </p>
 
                               <RouterLink

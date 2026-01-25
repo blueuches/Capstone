@@ -32,8 +32,7 @@
                   Barangay 
                 </h1>
                 <h2 class="mt-2 text-2xl sm:text-4xl font-extrabold tracking-tight text-gray-900">
-                  {{ profile?.barangays?.name || 'Unknown Barangay' }}
-                </h2>
+{{ (Array.isArray(profile?.barangays) ? profile?.barangays?.[0]?.name : profile?.barangays?.name) || 'Unknown Barangay' }}                </h2>
 
                 <p class="mt-6 text-sm sm:text-base text-gray-700">
                   Login Staff:
