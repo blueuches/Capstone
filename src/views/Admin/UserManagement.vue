@@ -1,258 +1,184 @@
+<!-- views/Staff/Admin/Logs.vue -->
 <template>
-  <div class="min-h-screen flex bg-gradient-to-br from-emerald-50 via-white to-emerald-100 text-[1.05rem] leading-relaxed">
-    <!-- 🟩 Sidebar -->
-    <aside class="w-72 bg-emerald-700 text-emerald-50 flex flex-col justify-between p-6 sticky top-0 h-screen shadow-xl text-[1rem]">
-      <div>
-        <div class="flex items-center gap-3 mb-6">
-          <div class="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow overflow-hidden">
-            <img src="/icon.png" alt="OSCA Logo" class="w-8 h-8 object-contain" />
-          </div>
-          <h1 class="text-2xl font-bold tracking-wide text-white">OSCA Admin</h1>
-        </div>
+  <div class="h-screen overflow-hidden bg-gray-50 flex">
+    <Sidebar
+      :collapsed="sidebarCollapsed"
+      :navItems="navItems"
+      footerText="OSCA - CSU © 2026"
+    />
 
-        <nav class="space-y-1 font-medium text-[1.05rem]">
-          <router-link to="/admin/dashboard" class="block px-3 py-2 rounded-lg text-emerald-100 hover:bg-emerald-600 transition">Dashboard</router-link>
-          <router-link to="/admin/programconfig" class="block px-3 py-2 rounded-lg text-emerald-100 hover:bg-emerald-600 transition">Programs</router-link>
-          <router-link to="/admin/formbuilder" class="block px-3 py-2 rounded-lg text-emerald-100 hover:bg-emerald-600 transition">Application Forms</router-link>
-          <router-link to="/admin/usermanagement" class="block px-3 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-500 transition">Users</router-link>
-          <router-link to="/logout" class="block px-3 py-2 rounded-lg text-emerald-100 hover:bg-emerald-600 transition">Logout</router-link>
-        </nav>
-      </div>
+    <div class="flex-1 min-w-0 flex flex-col">
+      <Header
+        :showSearch="false"
+        :notificationCount="3"
+        @toggle-sidebar="sidebarCollapsed = !sidebarCollapsed"
+      />
 
-      <div class="px-4 text-sm text-emerald-200 text-center leading-snug mt-6 border-t border-emerald-600 pt-4">
-        © 2025 <span class="font-semibold text-white">SeniorGo</span><br/>
-        Made for Butuan Seniors<br/>
-        Powered by Barangay &amp; OSCA
-      </div>
-    </aside>
-
-    <!-- 🟨 Main Content -->
-    <main class="flex-1 p-8 overflow-y-auto">
-      <!-- Header -->
-      <div class="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
-        <h1 class="text-3xl font-bold text-emerald-700">User Management</h1>
-
-        <!-- Search + Filter -->
-        <div class="flex flex-wrap gap-3">
-          <input
-            v-model="searchQuery"
-            type="text"
-            placeholder="Search by name or username..."
-            class="form-input w-64"
-          />
-          <select v-model="selectedRole" class="form-input w-40">
-            <option value="">All Roles</option>
-            <option value="senior">Senior</option>
-            <option value="brgy_staff">Barangay Staff</option>
-            <option value="osca_staff">OSCA Staff</option>
-          </select>
-        </div>
-      </div>
-
-      <!-- User Table -->
-      <div class="bg-white rounded-2xl border border-emerald-100 shadow-lg overflow-hidden">
-        <table class="w-full text-left text-sm">
-          <thead class="bg-emerald-50 text-emerald-800">
-            <tr>
-              <th class="px-6 py-3">Name</th>
-              <th class="px-6 py-3">Username</th>
-              <th class="px-6 py-3">Role</th>
-              <th class="px-6 py-3">Barangay</th>
-              <th class="px-6 py-3 text-center">Status</th>
-              <th class="px-6 py-3 text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="u in filteredUsers"
-              :key="u.user_id"
-              class="border-t hover:bg-emerald-50/50 transition"
+      <main class="flex-1 overflow-y-auto">
+        <div class="px-4 sm:px-8 py-6">
+          <div class="max-w-6xl mx-auto">
+            <!-- ✅ make the whole card height-controlled and flex column -->
+            <section
+              class="bg-white border-[5px] border-[#2e6b38] overflow-hidden flex flex-col"
+              style="border-radius: 2px"
             >
-              <td class="px-6 py-3 font-medium text-gray-800">{{ u.full_name || '—' }}</td>
-              <td class="px-6 py-3 text-gray-600">{{ u.username || '—' }}</td>
+              <!-- Title bar (fixed) -->
+              <div class="bg-white border-b-[5px] border-[#2e6b38] shrink-0">
+                <div class="py-3 text-center font-extrabold tracking-wide text-gray-800">
+                  System's Users
+                </div>
+              </div>
 
-              <!-- Role Badge -->
-              <td class="px-6 py-3">
-                <span
-                  class="px-3 py-1 rounded-full text-xs font-semibold capitalize"
-                  :class="{
-                    'bg-emerald-100 text-emerald-800': u.role === 'osca_staff',
-                    'bg-blue-100 text-blue-800': u.role === 'brgy_staff',
-                    'bg-gray-100 text-gray-700': u.role === 'senior',
-                  }"
+              <!-- ✅ content area with controlled height -->
+              <div class="p-3 sm:p-4 flex flex-col min-h-0">
+                <!-- ✅ table area scrolls, pagination stays visible -->
+                <div
+                  class="min-h-0 overflow-y-auto border border-gray-300"
+                  style="max-height: calc(100vh - 240px);"
                 >
-                  {{ u.role || '—' }}
-                </span>
-              </td>
+                  <div class="overflow-x-auto">
+                    <table class="w-full border-collapse">
+<thead class="sticky top-0 bg-white z-10">
+  <tr class="text-gray-800">
+    <th class="px-3 py-3 text-left text-sm font-extrabold border border-gray-400">
+      User ID
+    </th>
+    <th class="px-3 py-3 text-left text-sm font-extrabold border border-gray-400">
+      Initials
+    </th>
+    <th class="px-3 py-3 text-left text-sm font-extrabold border border-gray-400">
+      Role
+    </th>
+    <th class="px-3 py-3 text-left text-sm font-extrabold border border-gray-400">
+      Barangay
+    </th>
+    <th class="px-3 py-3 text-left text-sm font-extrabold border border-gray-400">
+      Email/Contact No
+    </th>
+  </tr>
+</thead>
 
-              <td class="px-6 py-3">{{ u.barangay || '—' }}</td>
+<tbody>
+  <tr v-for="row in visibleRows" :key="row._key" class="text-gray-700">
+    <td class="px-3 py-3 text-sm border border-gray-400 whitespace-nowrap">
+      {{ row.user_id }}
+    </td>
+    <td class="px-3 py-3 text-sm border border-gray-400 whitespace-nowrap font-semibold">
+      {{ row.initials }}
+    </td>
+    <td class="px-3 py-3 text-sm border border-gray-400 whitespace-nowrap">
+      {{ row.role }}
+    </td>
+    <td class="px-3 py-3 text-sm border border-gray-400 whitespace-nowrap">
+      {{ row.barangay }}
+    </td>
+    <td class="px-3 py-3 text-sm border border-gray-400">
+      <span class="text-gray-600">{{ row.contact }}</span>
+    </td>
+  </tr>
 
-              <!-- Status toggle -->
-              <td class="px-6 py-3 text-center">
-                <span
-                  class="px-3 py-1 rounded-full text-xs font-semibold cursor-pointer"
-                  :class="u.status === 'active'
-                    ? 'bg-emerald-100 text-emerald-800'
-                    : 'bg-gray-200 text-gray-600'"
-                  @click="toggleStatus(u)"
-                >
-                  {{ u.status }}
-                </span>
-              </td>
+  <tr v-if="visibleRows.length === 0">
+    <td
+      class="px-3 py-10 text-center text-sm text-gray-500 border border-gray-400"
+      colspan="5"
+    >
+      No logs to display.
+    </td>
+  </tr>
+</tbody>
 
-              <td class="px-6 py-3 text-right flex justify-end gap-3">
-                <button
-                  @click="resetPassword(u)"
-                  class="text-emerald-600 hover:text-emerald-800"
-                  title="Reset Password"
-                >
-                  🔑
-                </button>
-                <button
-                  @click="deleteUser(u)"
-                  class="text-red-500 hover:text-red-700"
-                  title="Delete User"
-                >
-                  🗑️
-                </button>
-              </td>
-            </tr>
+                    </table>
+                  </div>
+                </div>
 
-            <tr v-if="!filteredUsers.length">
-              <td colspan="6" class="text-center py-6 text-gray-500">No users found.</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </main>
+                <!-- ✅ pagination pinned under the table -->
+                <div class="mt-4 shrink-0">
+                  <Pagination
+                    v-model="page"
+                    :totalItems="logs.length"
+                    :pageSize="pageSize"
+                  />
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+      </main>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { supabase } from '@/supabase/client'
+import { computed, ref } from 'vue'
+import Sidebar from '@/components/Admin/Sidebar.vue'
+import Header from '@/components/Admin/Header.vue'
+import Pagination from '@/components/Admin/Pagination.vue'
+import { useAuth } from '@/composables/useAuth'
 
-interface User {
-  user_id: string
-  full_name: string
-  username: string
-  role: string
-  barangay: string
-  status: string
-}
+import IconDashboard  from '/public/admin/dashboard.png'
+import IconLogs from '/public/admin/logs.png'
+import IconUsers from '/public/admin/users.png'
+import IconEdit from '/public/admin/edit.png'
+import IconForm from '/public/admin/form.png'
+import IconBackup from '/public/admin/backup.png'
 
-const users = ref<User[]>([])
-const searchQuery = ref('')
-const selectedRole = ref('')
+const navItems = computed(() => [
+  { label: 'Dashboard', to: '/admin/dashboard', icon: IconDashboard },
+  { label: 'Logs', to: '/admin/logs', icon: IconLogs },
+  { label: 'Users', to: '/admin/users', icon: IconUsers },
+  { label: 'Edit', to: '/admin/edit', icon: IconEdit },
+  { label: 'Form Builder', to: '/admin/formbuilder', icon: IconForm },
+  { label: 'Backups', to: '/admin/backup', icon: IconBackup }
 
-onMounted(async () => {
-  // Get USERS + their memberships + seniors
-  const { data, error } = await supabase
-    .from('Users')
-    .select(`
-      user_id,
-      full_name,
-      username,
-      SeniorCitizens!left (id),
-      Memberships!left (
-        status,
-        Roles!left (code),
-        Organizations!left (
-          kind,
-          name,
-          Barangays!left (name)
-        )
-      )
-    `)
+])
 
-  if (error) {
-    console.error('❌ Supabase error:', error)
-    return
-  }
+const { profile } = useAuth()
+const sidebarCollapsed = ref(false)
 
-  const allUsers: User[] = []
-
-  data.forEach((u: any) => {
-    // 🔹 SENIOR CITIZENS
-    if (u.SeniorCitizens && u.SeniorCitizens.id) {
-      allUsers.push({
-        user_id: u.user_id,
-        full_name: u.full_name,
-        username: u.username,
-        role: 'senior',
-        barangay: '—',
-        status: 'active',
-      })
-    }
-
-    // 🔹 OSCA + BARANGAY STAFF
-    if (Array.isArray(u.Memberships) && u.Memberships.length > 0) {
-      u.Memberships.forEach((m: any) => {
-        const orgKind = m.Organizations?.kind
-        const roleCode = m.Roles?.code
-
-        // Determine role based on organization kind
-        const role =
-          roleCode ||
-          (orgKind === 'osca'
-            ? 'osca_staff'
-            : orgKind === 'barangay'
-            ? 'brgy_staff'
-            : 'staff')
-
-        allUsers.push({
-          user_id: u.user_id,
-          full_name: u.full_name,
-          username: u.username,
-          role,
-          barangay:
-            m.Organizations?.Barangays?.name ||
-            m.Organizations?.name ||
-            '—',
-          status: m.status || 'active',
-        })
-      })
-    }
-  })
-
-  // ✅ remove duplicates (same user + role)
-  const uniqueUsers = new Map()
-  allUsers.forEach(u => uniqueUsers.set(`${u.user_id}-${u.role}`, u))
-
-  users.value = Array.from(uniqueUsers.values())
-
-  console.log('✅ Loaded users:', users.value)
+// (Optional) keeping your pattern, in case you’ll show “who is logged in” later
+const staffName = computed(() => {
+  const p = profile.value as any
+  const full = [p?.first_name, p?.last_name].filter(Boolean).join(' ').trim()
+  return full || 'Lando Norris'
 })
 
+/** Pagination state */
+const page = ref(1)
+const pageSize = 10
 
-const filteredUsers = computed(() =>
-  users.value.filter(u => {
-    const matchesRole = selectedRole.value ? u.role === selectedRole.value : true
-    const matchesSearch =
-      u.full_name?.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      u.username?.toLowerCase().includes(searchQuery.value.toLowerCase())
-    return matchesRole && matchesSearch
-  })
+type LogRow = {
+  _key: string
+  user_id: string
+  initials: string
+  role: string
+  barangay: string
+  contact: string
+}
+
+const logs = ref<LogRow[]>(
+  Array.from({ length: 50 }).map((_, i) => ({
+    _key: `log-${i + 1}`,
+    user_id: i % 3 === 0 ? 'USR-10021' : i % 3 === 1 ? 'USR-10487' : 'USR-10990',
+    initials: i % 3 === 0 ? 'LN' : i % 3 === 1 ? 'KP' : 'DN',
+    role: i % 3 === 0 ? 'Admin' : i % 3 === 1 ? 'OSCA Staff' : 'Barangay Staff',
+    barangay:
+      i % 4 === 0 ? 'San Vicente'
+      : i % 4 === 1 ? 'Anticala'
+      : i % 4 === 2 ? 'Libertad'
+      : 'Banza',
+    contact:
+      i % 2 === 0 ? 'lando.norris@email.com / 09xx-xxx-xxxx'
+      : 'osca.staff@email.com / 09xx-xxx-xxxx'
+  }))
 )
 
-async function toggleStatus(u: User) {
-  u.status = u.status === 'active' ? 'disabled' : 'active'
-  await supabase.from('Memberships').update({ status: u.status }).eq('user_id', u.user_id)
-}
 
-async function deleteUser(u: User) {
-  if (!confirm(`Delete ${u.full_name}? This cannot be undone.`)) return
-  users.value = users.value.filter(x => x.user_id !== u.user_id)
-  await supabase.from('Users').delete().eq('user_id', u.user_id)
-}
+const totalPages = computed(() => Math.max(1, Math.ceil(logs.value.length / pageSize)))
 
-function resetPassword(u: User) {
-  alert(`🔑 Password reset link sent to ${u.username || u.full_name}`)
-}
+const visibleRows = computed(() => {
+  // clamp page just in case
+  const p = Math.min(Math.max(1, page.value), totalPages.value)
+  const start = (p - 1) * pageSize
+  return logs.value.slice(start, start + pageSize)
+})
 </script>
-
-<style scoped>
-.form-input {
-  @apply border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400 transition;
-}
-</style>

@@ -1,143 +1,182 @@
 <template>
-  <div class="min-h-screen flex bg-gradient-to-br from-green-100 via-emerald-50 to-white">
-    <!-- Sidebar -->
-    <Sidebar role="brgy" />
+  <!-- Entire page locked; only main content scrolls -->
+  <div class="h-screen overflow-hidden bg-gray-50 flex">
+    <!-- Sidebar (fixed height, not scrollable) -->
+    <Sidebar
+      :collapsed="sidebarCollapsed"
+      :navItems="oscaNavItems"
+      footerText="OSCA - CSU © 2026"
+    />
 
-    <!-- Main Content -->
-   <main class="flex-1 flex flex-col items-center px-4 sm:px-6 py-8 ml-4 sm:ml-6">
+    <!-- Right side -->
+    <div class="flex-1 min-w-0 flex flex-col">
+      <Header
+        :showSearch="false"
+        :notificationCount="3"
+        @toggle-sidebar="sidebarCollapsed = !sidebarCollapsed"
+      />
 
-      <!-- Header -->
-      <div class="w-full max-w-3xl bg-white rounded-3xl shadow-lg p-6 mb-4">
-        <div class="flex items-center justify-between">
-          <div>
-            <h1 class="text-2xl font-extrabold text-emerald-700">Barangay Notifications</h1>
-            <p class="text-gray-600 mt-1">Updates from OSCA and the system</p>
-          </div>
-
-          <button
-            class="text-sm px-3 py-1.5 rounded-lg bg-emerald-100 text-emerald-800 hover:bg-emerald-200 disabled:opacity-50"
-            @click="markAllRead"
-            :disabled="loading || !notifications.length"
+      <main class="flex-1 overflow-hidden">
+        <div class="h-full px-4 sm:px-6 py-4 flex flex-col">
+          <!-- Card (intentionally smaller) -->
+          <section
+            class="bg-white rounded-2xl shadow-sm border-4 flex flex-col max-h-[520px] w-full"
+            :style="{ borderColor: brand }"
           >
-            Mark all as read
-          </button>
-        </div>
+            <!-- Header bar -->
+            <div
+              class="px-4 sm:px-6 py-2 border-b-4 rounded-t-xl shrink-0"
+              :style="{ borderColor: brand }"
+            >
+              <div
+                class="w-full text-center font-extrabold text-white py-2 rounded-lg tracking-wide text-sm sm:text-base"
+                :style="{ backgroundColor: brand }"
+              >
+                General Notification
+              </div>
+            </div>
 
-      </div>
-
-      <!-- List -->
-      <div class="w-full max-w-3xl">
-        <div v-if="loading" class="space-y-3">
-          <div class="h-16 bg-emerald-100/40 animate-pulse rounded-xl"></div>
-          <div class="h-16 bg-emerald-100/40 animate-pulse rounded-xl"></div>
-        </div>
-
-        <p v-else-if="error" class="text-sm text-red-600">{{ error }}</p>
-
-        <p v-else-if="!filtered.length" class="text-sm text-gray-600">
-          You have no notifications yet.
-        </p>
-
-        <ul v-else class="space-y-3">
-          <li
-            v-for="n in filtered"
-            :key="n.id"
-            class="p-4 rounded-lg border-l-4"
-            :class="[n.is_read ? 'bg-white border-emerald-300' : 'bg-emerald-50 border-emerald-500']"
-          >
-            <div class="flex items-start justify-between gap-3">
-              <div class="min-w-0">
-                <div class="font-semibold text-emerald-900 line-clamp-1">
-                  {{ n.announcement?.title ?? 'Announcement' }}
-                </div>
-
-                <div class="text-[15px] text-emerald-800 whitespace-pre-line mt-0.5">
-                  {{ n.announcement?.content ?? '' }}
-                </div>
-
-                <div v-if="n.announcement?.attachment_url" class="mt-2">
-                  <a
-                    class="inline-flex items-center text-sm text-emerald-700 underline hover:text-emerald-900"
-                    :href="n.announcement.attachment_url" target="_blank" rel="noopener"
+            <!-- Content -->
+            <div class="px-3 sm:px-4 py-3 flex-1 min-h-0 flex flex-col">
+              <!-- Rows area -->
+              <div class="flex-1 min-h-0 overflow-y-auto pr-1">
+                <div class="space-y-2">
+                  <div
+                    v-for="a in pagedActivities"
+                    :key="a.id"
+                    class="flex items-center gap-3 border-2 rounded-lg px-3 py-2"
+                    :style="{ borderColor: brand }"
                   >
-                    View attachment
-                    <svg class="w-4 h-4 ml-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M7 17L17 7M7 7h10v10" />
-                    </svg>
-                  </a>
+                    <!-- status dot -->
+                    <span
+                      class="w-2.5 h-2.5 rounded-full shrink-0"
+                      :class="a.isUnread ? 'opacity-100' : 'opacity-0'"
+                      :style="{ backgroundColor: '#f4d000' }"
+                      aria-hidden="true"
+                      title="Unread"
+                    />
+
+                    <!-- message -->
+                    <div class="min-w-0 flex-1">
+                      <p class="text-gray-800 text-sm font-semibold truncate">
+                        {{ a.message }}
+                      </p>
+                      <p class="text-[11px] text-gray-500">
+                        {{ a.timeLabel }} • {{ prettyType(a.type) }}
+                      </p>
+                    </div>
+
+                    <!-- action -->
+                    <RouterLink
+                      :to="a.to"
+                      class="shrink-0 inline-flex items-center justify-center
+                             px-3 py-1.5 rounded-md text-sm font-bold text-white
+                             hover:brightness-105 active:brightness-95 transition"
+                      :style="{ backgroundColor: brand }"
+                      @click="markRead(a.id)"
+                    >
+                      View
+                    </RouterLink>
+                  </div>
                 </div>
 
-                <div class="text-xs text-gray-500 mt-1">
-                  {{ formatTimeAgo(n.created_at) }}
-                  <span v-if="n.announcement?.sender_role" class="text-gray-400">
-                    • from {{ n.announcement?.sender_role }}
-                  </span>
+                <!-- Empty state -->
+                <div v-if="pagedActivities.length === 0" class="py-10 text-center text-gray-500">
+                  No activities found.
                 </div>
               </div>
 
-              <button
-                v-if="!n.is_read"
-                class="text-xs px-2 py-1 shrink-0 rounded-lg border border-emerald-300 hover:bg-emerald-100"
-                @click="markOneRead(n.id)"
-              >
-                Mark read
-              </button>
+              <!-- Pagination always visible -->
+              <div class="mt-3 pt-3 border-t shrink-0">
+                <Pagination
+                  v-model="page"
+                  :total-items="activities.length"
+                  :page-size="pageSize"
+                />
+              </div>
             </div>
-          </li>
-        </ul>
-      </div>
-
-    </main>
+          </section>
+        </div>
+      </main>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import Sidebar from '@/components/Sidebar.vue'
-import { useNotifications } from '@/composables/useNotifications'
+import { computed, ref } from 'vue'
+import Sidebar, { type NavItem } from '@/components/Staff/Sidebar.vue'
+import Header from '@/components/Staff/BRGY/Header.vue'
+import { useAuth } from '@/composables/useAuth'
+import DashboardIcon from '/public/staff/dashboard.png'
+import BarangaysIcon from '/public/staff/barangays.png'
+import ApplicationIcon from '/public/staff/application.png'
+import ActivityIcon from '/public/staff/activity.png'
+import AnnouncementIcon from '/public/staff/announcement.png'
 
-defineOptions({ name: 'BarangayNotifications' })
+const brand = '#42ad43'
+const sidebarCollapsed = ref(false)
 
-/** --- Types to satisfy TS --- */
-type Ann = {
-  id: number
-  title: string | null
-  content: string | null
-  attachment_url?: string | null
-  sender_role?: string | null
+/** Pagination */
+const page = ref(1)
+const pageSize = ref(7)
+
+type ActivityType = 'submitted_file' | 'resubmitted_file' | 'started_application' | 'sent_form'
+type ActivityItem = {
+  id: string
+  type: ActivityType
+  message: string
+  timeLabel: string
+  isUnread: boolean
+  to: string
 }
-type Notif = {
-  id: number
-  is_read: boolean
-  created_at: string
-  announcement?: Ann | null
-}
 
-/** Pull notifications (same composable as senior page) */
-const { notifications, unreadCount, loading, error, formatTimeAgo, markOneRead, markAllRead } =
-  useNotifications(100)
+/** TEMP DATA (replace with Supabase later) */
+const activities = ref<ActivityItem[]>([
+  { id: 'a-001', type: 'resubmitted_file', message: 'User A re-submitted Document A', timeLabel: '2 mins ago', isUnread: true, to: '/osca/applicant-review/a-001' },
+  { id: 'a-002', type: 'submitted_file', message: 'User A submitted Document A', timeLabel: '10 mins ago', isUnread: false, to: '/osca/applicant-review/a-002' },
+  { id: 'a-003', type: 'submitted_file', message: 'User A submitted Document B', timeLabel: '25 mins ago', isUnread: false, to: '/osca/applicant-review/a-003' },
+  { id: 'a-004', type: 'sent_form', message: 'User A submitted Form A', timeLabel: '1 hour ago', isUnread: true, to: '/osca/applicant-review/a-004' },
+  { id: 'a-005', type: 'submitted_file', message: 'User G submitted Document A', timeLabel: '3 hours ago', isUnread: true, to: '/osca/applicant-review/a-005' },
+  { id: 'a-006', type: 'submitted_file', message: 'User F submitted Document A', timeLabel: 'Yesterday', isUnread: false, to: '/osca/applicant-review/a-006' },
+  { id: 'a-007', type: 'started_application', message: 'User S started an application', timeLabel: '2 days ago', isUnread: true, to: '/osca/programs' },
+  { id: 'a-008', type: 'submitted_file', message: 'User K submitted Barangay Certificate', timeLabel: '3 days ago', isUnread: false, to: '/osca/applicant-review/a-008' },
+  { id: 'a-009', type: 'sent_form', message: 'User M sent OSCA request form', timeLabel: '4 days ago', isUnread: false, to: '/osca/applicant-review/a-009' },
+  { id: 'a-010', type: 'resubmitted_file', message: 'User T re-submitted Affidavit of Loss', timeLabel: '5 days ago', isUnread: true, to: '/osca/applicant-review/a-010' }
+])
 
-/** Cast to a typed array so TS recognizes `attachment_url` */
-const items = computed<Notif[]>(() => notifications.value as unknown as Notif[])
+const totalPages = computed(() => Math.max(1, Math.ceil(activities.value.length / pageSize.value)))
 
-/** Optional search */
-const q = ref('')
-const filtered = computed(() => {
-  const term = q.value.trim().toLowerCase()
-  if (!term) return items.value
-  return items.value.filter(n =>
-    (n.announcement?.title || '').toLowerCase().includes(term) ||
-    (n.announcement?.content || '').toLowerCase().includes(term)
-  )
+const pagedActivities = computed(() => {
+  const p = Math.min(Math.max(1, page.value), totalPages.value)
+  const start = (p - 1) * pageSize.value
+  return activities.value.slice(start, start + pageSize.value)
 })
 
-/** If you need a bell badge somewhere else, call useNotifications() there
- * instead of trying to `export` from <script setup>.
- * Example in your navbar: const { unreadCount } = useNotifications(10)
- */
+function markRead(id: string) {
+  const item = activities.value.find(x => x.id === id)
+  if (item) item.isUnread = false
+}
+
+function prettyType(t: ActivityType) {
+  switch (t) {
+    case 'submitted_file':
+      return 'Submitted File'
+    case 'resubmitted_file':
+      return 'Re-submitted File'
+    case 'started_application':
+      return 'Started Application'
+    case 'sent_form':
+      return 'Sent Form'
+    default:
+      return 'Activity'
+  }
+}
+
+const oscaNavItems: NavItem[] = [
+  { label: 'Dashboard', to: '/barangay/dashboard', icon: DashboardIcon },
+  { label: 'List', to: '/barangay/management', icon: BarangaysIcon },
+  { label: 'Seniors', to: '/barangay/users', icon: ApplicationIcon },
+  { label: 'Message', to: '/barangay/message', icon: ActivityIcon },
+  { label: 'Announcement', to: '/barangay/announcement', icon: AnnouncementIcon },
+]
 </script>
-
-
-<style scoped>
-.line-clamp-1 { display:-webkit-box; -webkit-line-clamp:1; -webkit-box-orient:vertical; overflow:hidden; }
-</style>

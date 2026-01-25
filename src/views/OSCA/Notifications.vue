@@ -1,105 +1,181 @@
+<!-- views/Staff/OSCA/Activity.vue -->
 <template>
-  <div class="min-h-screen flex bg-gradient-to-br from-green-100 via-emerald-50 to-white">
-    <!-- Sidebar -->
-    <Sidebar role="osca" />
+  <div class="h-screen overflow-hidden bg-gray-50 flex">
+    <Sidebar
+      :collapsed="sidebarCollapsed"
+      :navItems="oscaNavItems"
+      footerText="OSCA - CSU © 2026"
+    />
 
-    <!-- Main Content -->
-<main class="flex-1 p-4 sm:p-6 md:p-7">
-      <!-- Header -->
-      <div class="w-full max-w-2xl bg-white rounded-3xl shadow-lg p-6 mb-6 text-center">
-        <h1 class="text-3xl font-extrabold text-emerald-700">OSCA Notifications</h1>
-        <p class="text-gray-600 mt-2 text-lg">Updates from applications, barangays, and the system</p>
-      </div>
+    <div class="flex-1 min-w-0 flex flex-col">
+      <Header
+        :showSearch="false"
+        :notificationCount="3"
+        @toggle-sidebar="sidebarCollapsed = !sidebarCollapsed"
+      />
 
-      <!-- Notification List -->
-      <div class="w-full max-w-2xl flex flex-col gap-4">
-        <div
-          v-for="(n, i) in notifications"
-          :key="i"
-          class="flex items-start gap-4 bg-white rounded-xl shadow p-5 hover:shadow-md hover:bg-emerald-50 transition duration-200"
-        >
-          <div class="text-emerald-600">
-            <svg v-if="n.type === 'success'" xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-            </svg>
-            <svg v-else-if="n.type === 'pending'" xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-            </svg>
-            <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-            </svg>
-          </div>
-
-          <div class="flex-1">
-            <div class="flex items-center justify-between">
-              <h2 class="font-bold text-xl text-emerald-700">{{ n.title }}</h2>
-              <span class="px-3 py-1 text-sm font-semibold rounded-full" :class="badgeClass(n.type)">
-                {{ capitalize(n.type) }}
-              </span>
+      <!-- No page scrolling; keep everything within the screen -->
+      <main class="flex-1 overflow-hidden">
+        <div class="h-full px-4 sm:px-6 py-4 flex flex-col">
+          <!-- Card (intentionally smaller) -->
+          <section
+            class="bg-white rounded-2xl shadow-sm border-4 flex flex-col max-h-[520px] w-full"
+            :style="{ borderColor: brand }"
+          >
+            <!-- Header bar -->
+            <div
+              class="px-4 sm:px-6 py-2 border-b-4 rounded-t-xl shrink-0"
+              :style="{ borderColor: brand }"
+            >
+              <div
+                class="w-full text-center font-extrabold text-white py-2 rounded-lg tracking-wide text-sm sm:text-base"
+                :style="{ backgroundColor: brand }"
+              >
+                General Notification
+              </div>
             </div>
-            <p class="text-gray-700 mt-2">{{ n.message }}</p>
-            <p class="text-sm text-gray-500 mt-1">{{ n.time }}</p>
-          </div>
+
+            <!-- Content -->
+            <div class="px-3 sm:px-4 py-3 flex-1 min-h-0 flex flex-col">
+              <!-- Rows area -->
+              <div class="flex-1 min-h-0 overflow-y-auto pr-1">
+                <div class="space-y-2">
+                  <div
+                    v-for="a in pagedActivities"
+                    :key="a.id"
+                    class="flex items-center gap-3 border-2 rounded-lg px-3 py-2"
+                    :style="{ borderColor: brand }"
+                  >
+                    <!-- status dot -->
+                    <span
+                      class="w-2.5 h-2.5 rounded-full shrink-0"
+                      :class="a.isUnread ? 'opacity-100' : 'opacity-0'"
+                      :style="{ backgroundColor: '#f4d000' }"
+                      aria-hidden="true"
+                      title="Unread"
+                    />
+
+                    <!-- message -->
+                    <div class="min-w-0 flex-1">
+                      <p class="text-gray-800 text-sm font-semibold truncate">
+                        {{ a.message }}
+                      </p>
+                      <p class="text-[11px] text-gray-500">
+                        {{ a.timeLabel }} • {{ prettyType(a.type) }}
+                      </p>
+                    </div>
+
+                    <!-- action -->
+                    <RouterLink
+                      :to="a.to"
+                      class="shrink-0 inline-flex items-center justify-center
+                             px-3 py-1.5 rounded-md text-sm font-bold text-white
+                             hover:brightness-105 active:brightness-95 transition"
+                      :style="{ backgroundColor: brand }"
+                      @click="markRead(a.id)"
+                    >
+                      View
+                    </RouterLink>
+                  </div>
+                </div>
+
+                <!-- Empty state -->
+                <div v-if="pagedActivities.length === 0" class="py-10 text-center text-gray-500">
+                  No activities found.
+                </div>
+              </div>
+
+              <!-- Pagination always visible -->
+              <div class="mt-3 pt-3 border-t shrink-0">
+                <Pagination
+                  v-model="page"
+                  :total-items="activities.length"
+                  :page-size="pageSize"
+                />
+              </div>
+            </div>
+          </section>
         </div>
-      </div>
-    </main>
+      </main>
+    </div>
   </div>
 </template>
 
-<script setup>
-import { ref } from 'vue'
-import { useRoute, RouterLink } from 'vue-router'
-import Sidebar from '@/components/Sidebar.vue'
+<script setup lang="ts">
+import { computed, ref } from 'vue'
+import Sidebar, { type NavItem } from '@/components/Staff/Sidebar.vue'
+import Header from '@/components/Staff/Header.vue'
+import Pagination from '@/components/Staff/Pagination.vue'
+import DashboardIcon from '/public/staff/dashboard.png'
+import BarangaysIcon from '/public/staff/barangays.png'
+import ApplicationIcon from '/public/staff/application.png'
+import ActivityIcon from '/public/staff/activity.png'
+import AnnouncementIcon from '/public/staff/announcement.png'
 
-defineOptions({ name: 'BarangayNotifications' })
+const brand = '#42ad43'
+const sidebarCollapsed = ref(false)
 
-// Demo notifications (replace later with Supabase or API data)
-const notifications = ref([
-  {
-    title: 'Applications Sent to OSCA',
-    message: 'All applications submitted by your barangay have been forwarded to OSCA for review.',
-    time: '1 hour ago',
-    type: 'success'
-  },
-  {
-    title: 'OSCA Validation Update',
-    message: 'OSCA has validated 8 out of 12 applications from your barangay. Check the list for details.',
-    time: 'Today',
-    type: 'pending'
-  },
-  {
-    title: 'System Maintenance',
-    message: 'The SeniorGo portal will undergo maintenance tomorrow at 9:00 AM. Access may be temporarily unavailable.',
-    time: 'Yesterday',
-    type: 'alert'
-  }
+/** Pagination */
+const page = ref(1)
+const pageSize = ref(7)
+
+type ActivityType = 'submitted_file' | 'resubmitted_file' | 'started_application' | 'sent_form'
+type ActivityItem = {
+  id: string
+  type: ActivityType
+  message: string
+  timeLabel: string
+  isUnread: boolean
+  to: string
+}
+
+/** TEMP DATA (replace with Supabase later) */
+const activities = ref<ActivityItem[]>([
+  { id: 'a-001', type: 'resubmitted_file', message: 'User A re-submitted Document A', timeLabel: '2 mins ago', isUnread: true, to: '/osca/applicant-review/a-001' },
+  { id: 'a-002', type: 'submitted_file', message: 'User A submitted Document A', timeLabel: '10 mins ago', isUnread: false, to: '/osca/applicant-review/a-002' },
+  { id: 'a-003', type: 'submitted_file', message: 'User A submitted Document B', timeLabel: '25 mins ago', isUnread: false, to: '/osca/applicant-review/a-003' },
+  { id: 'a-004', type: 'sent_form', message: 'User A submitted Form A', timeLabel: '1 hour ago', isUnread: true, to: '/osca/applicant-review/a-004' },
+  { id: 'a-005', type: 'submitted_file', message: 'User G submitted Document A', timeLabel: '3 hours ago', isUnread: true, to: '/osca/applicant-review/a-005' },
+  { id: 'a-006', type: 'submitted_file', message: 'User F submitted Document A', timeLabel: 'Yesterday', isUnread: false, to: '/osca/applicant-review/a-006' },
+  { id: 'a-007', type: 'started_application', message: 'User S started an application', timeLabel: '2 days ago', isUnread: true, to: '/osca/programs' },
+  { id: 'a-008', type: 'submitted_file', message: 'User K submitted Barangay Certificate', timeLabel: '3 days ago', isUnread: false, to: '/osca/applicant-review/a-008' },
+  { id: 'a-009', type: 'sent_form', message: 'User M sent OSCA request form', timeLabel: '4 days ago', isUnread: false, to: '/osca/applicant-review/a-009' },
+  { id: 'a-010', type: 'resubmitted_file', message: 'User T re-submitted Affidavit of Loss', timeLabel: '5 days ago', isUnread: true, to: '/osca/applicant-review/a-010' }
 ])
 
-const badgeMap = {
-  success: 'bg-green-100 text-green-700',
-  pending: 'bg-yellow-100 text-yellow-700',
-  alert: 'bg-red-100 text-red-700'
-}
-const badgeClass = (type) => badgeMap[type] ?? badgeMap.alert
-const capitalize = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : '')
+const totalPages = computed(() => Math.max(1, Math.ceil(activities.value.length / pageSize.value)))
 
-const sidebarOpen = ref(false)
-const route = useRoute()
+const pagedActivities = computed(() => {
+  const p = Math.min(Math.max(1, page.value), totalPages.value)
+  const start = (p - 1) * pageSize.value
+  return activities.value.slice(start, start + pageSize.value)
+})
 
-const navActive = (path) => {
-  const isActive = route.path === path
-  return isActive
-    ? 'bg-emerald-50 text-emerald-900 font-extrabold relative before:content-[\'\'] before:absolute before:-left-1 before:h-6 before:w-1 before:rounded-full before:bg-emerald-500'
-    : ''
+function markRead(id: string) {
+  const item = activities.value.find(x => x.id === id)
+  if (item) item.isUnread = false
 }
+
+function prettyType(t: ActivityType) {
+  switch (t) {
+    case 'submitted_file':
+      return 'Submitted File'
+    case 'resubmitted_file':
+      return 'Re-submitted File'
+    case 'started_application':
+      return 'Started Application'
+    case 'sent_form':
+      return 'Sent Form'
+    default:
+      return 'Activity'
+  }
+}
+
+const oscaNavItems: NavItem[] = [
+  { label: 'Dashboard', to: '/osca/dashboard', icon: DashboardIcon },
+  { label: 'Barangays', to: '/osca/barangays', icon: BarangaysIcon },
+  { label: 'Application', to: '/osca/programs', icon: ApplicationIcon },
+  { label: 'Activity', to: '/osca/activity', icon: ActivityIcon },
+  { label: 'Announcement', to: '/osca/announcement', icon: AnnouncementIcon }
+]
 </script>
-
-<style scoped>
-/* Tailwind animation + focus helpers */
-@keyframes float-in {
-  0% { transform: translateY(10px); opacity: 0; }
-  100% { transform: translateY(0); opacity: 1; }
-}
-.animate-float { animation: float-in .2s ease-out both; }
-.focus-ring:focus { outline: none; box-shadow: 0 0 0 3px rgba(16,185,129,.35); }
-</style>

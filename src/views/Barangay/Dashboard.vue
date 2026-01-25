@@ -1,272 +1,105 @@
 <template>
-  <div class="min-h-screen flex bg-gradient-to-br from-green-100 via-emerald-50 to-white">
-    <Sidebar role="brgy" />
+  <!-- Entire page locked; only main content scrolls -->
+  <div class="h-screen overflow-hidden bg-gray-50 flex">
+    <!-- Sidebar (fixed height, not scrollable) -->
+    <Sidebar
+      :collapsed="sidebarCollapsed"
+      :navItems="oscaNavItems"
+      footerText="OSCA - CSU © 2026"
+    />
 
-    <!-- Main Content -->
-    <main class="flex-1 p-7 md:ml-100">
-      <!-- Topbar -->
-      <div class="flex items-center justify-between mb-6">
-        <button
-          class="md:hidden text-emerald-700 focus-ring"
-          aria-label="Toggle menu"
-          @click="sidebarOpen = !sidebarOpen"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M4 6h16M4 12h16M4 18h16" />
-          </svg>
-        </button>
-        <div class="flex items-center gap-3">
-          <h1 class="text-2xl font-extrabold text-emerald-700 tracking-tight">
-            Barangay {{ loading ? 'Loading…' : (barangayName || 'Barangay') }}
-          </h1>
-          <span
-            class="hidden sm:inline text-[11px] px-2 py-1 rounded-full bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200"
-          >
-            Design-only
-          </span>
-        </div>
-      </div>
+    <!-- Right side -->
+    <div class="flex-1 min-w-0 flex flex-col">
+      <Header
+        :showSearch="false"
+        :notificationCount="3"
 
-      <!-- Welcome -->
-      <div
-        class="bg-white/90 backdrop-blur rounded-3xl shadow-lg p-6 mb-8 flex flex-col md:flex-row items-center justify-between animate-float"
-      >
-        <p class="text-gray-700 text-base">
-          Welcome, <span class="font-semibold text-emerald-700">Barangay Personnel</span>
-        </p>
-        <div class="mt-3 md:mt-0 flex items-center gap-2">
-          <span class="text-xs text-gray-500">Quick actions:</span>
-          <button
-            class="px-3 py-1.5 rounded-lg text-sm font-semibold text-emerald-700 bg-emerald-50 ring-1 ring-emerald-200 hover:bg-emerald-100"
-            @click="() => { loadSeniorsCount(); loadValidatedFromSubmitted(); loadCurrentApplicants(); }"
-          >
-            Refresh
-          </button>
-          <button class="px-3 py-1.5 rounded-lg text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700">
-            Guide
-          </button>
-        </div>
-      </div>
+          notificationTo="/barangay/notification"
+          profileTo="/barangay/profile"
+          settingsTo="/barangay/settings"
+          aboutTo="/barangay/about"
+        @toggle-sidebar="sidebarCollapsed = !sidebarCollapsed"
+      />
 
-      <!-- Stats Section -->
-      <section class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mb-10">
-        <!-- Total Seniors -->
-        <div
-          class="group relative overflow-hidden rounded-2xl shadow bg-white p-6 text-center ring-1 ring-emerald-100 hover:ring-emerald-200 hover:shadow-xl transition cursor-pointer focus-within:ring-2 focus-within:ring-emerald-400 animate-float"
-          role="button"
-          tabindex="0"
-          title="View the total seniors"
-        >
-          <span class="ribbon"></span>
-          <div class="corner-bubble"></div>
-          <div class="mx-auto mb-2 h-10 w-10 rounded-xl grid place-items-center bg-emerald-50 ring-1 ring-emerald-100">
-            <svg class="h-5 w-5 text-emerald-700" viewBox="0 0 24 24" fill="currentColor">
-              <path
-                d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5m0 2c-5.33 0-8 2.667-8 5v1h16v-1c0-2.333-2.67-5-8-5"
-              />
-            </svg>
-          </div>
-          <!-- 🔽 HERE: real total seniors -->
-          <h2 class="text-emerald-700 text-4xl font-extrabold group-hover:scale-105 transition">
-            {{ stats.seniors }}
-          </h2>
-          <p class="text-gray-600 mt-1">Total Seniors</p>
-          <div class="mt-3">
-            <div class="w-full h-2 bg-emerald-100 rounded-full">
-              <div class="h-2 bg-emerald-500 rounded-full w-[65%]"></div>
+      <!-- Main scroll area -->
+      <main class="flex-1 overflow-y-auto">
+        <div class="px-4 sm:px-8 py-6">
+          <!-- Center area like your prototype -->
+          <div class="max-w-5xl mx-auto">
+            <div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 sm:p-10">
+              <div class="text-center">
+                <h1 class="text-3xl sm:text-5xl font-extrabold tracking-tight text-gray-900">
+                  Barangay 
+                </h1>
+                <h2 class="mt-2 text-2xl sm:text-4xl font-extrabold tracking-tight text-gray-900">
+                  {{ profile?.barangays?.name || 'Unknown Barangay' }}
+                </h2>
+
+                <p class="mt-6 text-sm sm:text-base text-gray-700">
+                  Login Staff:
+                  <span class="font-semibold">
+                    {{ staffName }}
+                  </span>
+                </p>
+
+                <!-- Buttons row -->
+                <div class="mt-8 flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3">
+                  <DashboardRectangle label="View Seniors" to="/barangay/users" />
+                  <DashboardRectangle label="Create List" to="/barangay/management" />
+                  <DashboardRectangle label="About" to="/barangay/about" />
+                </div>
+
+                <!-- Small debug / auth info (optional) -->
+                <div class="mt-8">
+                  <button
+                    @click="logout"
+                    class="mt-3 inline-flex items-center justify-center px-4 py-2 rounded-xl
+                           border border-gray-200 bg-white hover:bg-gray-50 active:bg-gray-100
+                           text-sm font-semibold text-gray-700 transition"
+                  >
+                    Logout
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
-          <router-link
-            to="/barangay/senior-queue"
-            class="mt-3 inline-flex items-center gap-1 text-sm text-emerald-700"
-          >
-            View the total seniors
-            <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-              <path
-                fill-rule="evenodd"
-                d="M6 10a1 1 0 0 1 1-1h6.586l-2.293-2.293A1 1 0 0 1 12.707 5.293l4 4a1 1 0 0 1 0 1.414l-4 4a1 1 0 1 1-1.414-1.414L13.586 11H7a1 1 0 0 1-1-1z"
-                clip-rule="evenodd"
-              />
-            </svg>
-          </router-link>
         </div>
-
-        <!-- OSCA-Validated -->
-        <div
-          class="group relative overflow-hidden rounded-2xl shadow bg-white p-6 text-center ring-1 ring-emerald-100 hover:ring-emerald-200 hover:shadow-xl transition cursor-pointer focus-within:ring-2 focus-within:ring-emerald-400 animate-float"
-          role="button"
-          tabindex="0"
-          title="View seniors validated by OSCA from the barangay who submitted"
-        >
-          <span class="ribbon"></span>
-          <div class="corner-bubble"></div>
-          <div class="mx-auto mb-2 h-10 w-10 rounded-xl grid place-items-center bg-emerald-50 ring-1 ring-emerald-100">
-            <svg class="h-5 w-5 text-emerald-700" viewBox="0 0 24 24" fill="currentColor">
-              <path
-                d="M12 1.75a10.25 10.25 0 1 0 10.25 10.25A10.262 10.262 0 0 0 12 1.75Zm-1.03 14.28-4-4a1 1 0 1 1 1.41-1.42l3.29 3.3 6.29-6.3a1 1 0 0 1 1.42 1.42l-7 7a1 1 0 0 1-1.41 0Z"
-              />
-            </svg>
-          </div>
-          <!-- 🔽 HERE: real validated count -->
-          <h2 class="text-emerald-700 text-4xl font-extrabold group-hover:scale-105 transition">
-            {{ stats.validatedFromSubmitted }}
-          </h2>
-          <p class="text-gray-600 mt-1">OSCA-Validated (From Submitted)</p>
-          <div class="mt-3">
-            <div class="w-full h-2 bg-emerald-100 rounded-full">
-              <div class="h-2 bg-emerald-500 rounded-full w-[80%]"></div>
-            </div>
-          </div>
-          <router-link
-            to="/barangay/senior-queue"
-            class="mt-3 inline-flex items-center gap-1 text-sm text-emerald-700"
-          >
-            View validated by OSCA from submitted
-            <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-              <path
-                fill-rule="evenodd"
-                d="M6 10a1 1 0 0 1 1-1h6.586l-2.293-2.293A1 1 0 0 1 12.707 5.293l4 4a1 1 0 0 1 0 1.414l-4 4a1 1 0 1 1-1.414-1.414L13.586 11H7a1 1 0 0 1-1-1z"
-                clip-rule="evenodd"
-              />
-            </svg>
-          </router-link>
-        </div>
-
-        <!-- Current Applicants -->
-        <div
-          class="group relative overflow-hidden rounded-2xl shadow bg-white p-6 text-center ring-1 ring-emerald-100 hover:ring-emerald-200 hover:shadow-xl transition cursor-pointer focus-within:ring-2 focus-within:ring-emerald-400 animate-float"
-          role="button"
-          tabindex="0"
-          title="View the current applicants"
-        >
-          <span class="ribbon"></span>
-          <div class="corner-bubble"></div>
-          <div class="mx-auto mb-2 h-10 w-10 rounded-xl grid place-items-center bg-emerald-50 ring-1 ring-emerald-100">
-            <svg class="h-5 w-5 text-emerald-700" viewBox="0 0 24 24" fill="currentColor">
-              <path
-                d="M20 6h-3.586l-1.707-1.707A.996.996 0 0 0 14 4h-4a.996.996 0 0 0-.707.293L7.586 6H4a2 2 0 0 0-2 2v9a3 3 0 0 0 3 3h14a3 3 0 0 0 3-3V8a2 2 0 0 0-2-2Zm-1 11h-3.382a2 2 0 0 1-1.789-1.106l-.658-1.316a1 1 0 0 0-.894-.578h-1.574a1 1 0 0 0-.894.553l-.71 1.42A2 2 0 0 1 6.382 17H3v-6h18v6Z"
-              />
-            </svg>
-          </div>
-          <!-- 🔽 HERE: real current applicants -->
-          <h2 class="text-emerald-700 text-4xl font-extrabold group-hover:scale-105 transition">
-            {{ stats.currentApplicants }}
-          </h2>
-          <p class="text-gray-600 mt-1">Current Applications</p>
-          <p class="text-[11px] text-gray-500 mt-1">Awaiting OSCA action</p>
-          <router-link
-            to="/barangay/senior-queue"
-            class="mt-3 inline-flex items-center gap-1 text-sm text-emerald-700"
-          >
-            View the current applicants
-            <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-              <path
-                fill-rule="evenodd"
-                d="M6 10a1 1 0 0 1 1-1h6.586l-2.293-2.293A1 1 0 0 1 12.707 5.293l4 4a1 1 0 0 1 0 1.414l-4 4a1 1 0 1 1-1.414-1.414L13.586 11H7a1 1 0 0 1-1-1z"
-                clip-rule="evenodd"
-              />
-            </svg>
-          </router-link>
-        </div>
-      </section>
-
-      <!-- Timeline / Posts ... (unchanged) -->
-      <!-- ... -->
-    </main>
+        
+      </main>
+    </div>
   </div>
 </template>
 
+<script setup lang="ts">
+import { computed, ref } from 'vue'
+import supabase from '@/supabase/client'
+import Sidebar, { type NavItem } from '@/components/Staff/Sidebar.vue'
+import Header from '@/components/Staff/BRGY/Header.vue'
+import DashboardRectangle from '@/components/Staff/DashboardRectangle.vue'
+import { useAuth } from '@/composables/useAuth'
+import DashboardIcon from '/public/staff/dashboard.png'
+import BarangaysIcon from '/public/staff/barangays.png'
+import ApplicationIcon from '/public/staff/application.png'
+import ActivityIcon from '/public/staff/activity.png'
+import AnnouncementIcon from '/public/staff/announcement.png'
 
-<script setup>
-import { ref, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
-import Sidebar from '@/components/Sidebar.vue'
-import { supabase } from '@/supabase/client'
-import { useBarangayContext } from '@/composables/useBarangayContext'
+const { logout, profile } = useAuth()
 
-const sidebarOpen = ref(false)
-const route = useRoute()
+const sidebarCollapsed = ref(false)
 
-// Active nav helper (adds bg + bold + indicator bar)
-const navActive = (path) => {
-  const isActive = route.path === path
-  return isActive
-    ? 'bg-emerald-50 text-emerald-900 font-extrabold relative before:content-[\'\'] before:absolute before:-left-1 before:h-6 before:w-1 before:rounded-full before:bg-emerald-500'
-    : ''
-}
-
-const stats = ref({ seniors: 0, validatedFromSubmitted: 0, currentApplicants: 0 })
-const { loading, orgId, barangayId, barangayName, fetchContext } = useBarangayContext()
-
-onMounted(async () => {
-  // 1) Resolve barangay + org context
-  const ctx = await fetchContext()
-
-  // 2) Load KPIs scoped to barangay/org
-  await Promise.all([
-    loadSeniorsCount(),           // by barangay_id
-    loadValidatedFromSubmitted(), // by orgId & status
-    loadCurrentApplicants(),      // by orgId & status
-  ])
+const staffName = computed(() => {
+  const p = profile.value as any
+  const full = [p?.first_name, p?.last_name].filter(Boolean).join(' ').trim()
+  return full || 'Lando Norris'
 })
 
-// Seniors that belong to this barangay
-async function loadSeniorsCount() {
-  if (!barangayId.value) return
-  const { count } = await supabase
-    .from('SeniorCitizens')
-    .select('id', { count: 'exact', head: true })
-    .eq('barangay_id', barangayId.value)
-  stats.value.seniors = count || 0
-}
+const oscaNavItems: NavItem[] = [
+  { label: 'Dashboard', to: '/barangay/dashboard', icon: DashboardIcon },
+  { label: 'List', to: '/barangay/management', icon: BarangaysIcon },
+  { label: 'Seniors', to: '/barangay/users', icon: ApplicationIcon },
+  { label: 'Message', to: '/barangay/message', icon: ActivityIcon },
+  { label: 'Announcement', to: '/barangay/announcement', icon: AnnouncementIcon },
+]
 
-// Requests validated (example: status 'approved') from those submitted by this org
-async function loadValidatedFromSubmitted() {
-  if (!orgId.value) return
-  const { count } = await supabase
-    .from('Requests')
-    .select('id', { count: 'exact', head: true })
-    .eq('organization_id', orgId.value)
-    .eq('status', 'approved')
-  stats.value.validatedFromSubmitted = count || 0
-}
 
-// Requests currently awaiting OSCA action (example: 'submitted'/'in_review')
-async function loadCurrentApplicants() {
-  if (!orgId.value) return
-  const { count } = await supabase
-    .from('Requests')
-    .select('id', { count: 'exact', head: true })
-    .eq('organization_id', orgId.value)
-    .in('status', ['submitted', 'in_review'])
-  stats.value.currentApplicants = count || 0
-}
 </script>
-
-<style>
-/* Tailwind is assumed to be included in your app build */
-/* tasteful micro-animations */
-@keyframes float-in {
-  0% { transform: translateY(10px); opacity: 0; }
-  100% { transform: translateY(0); opacity: 1; }
-}
-.animate-float { animation: float-in .2s ease-out both; }
-
-/* focus ring for keyboard users */
-.focus-ring:focus { outline: none; box-shadow: 0 0 0 3px rgba(16,185,129,.35); }
-
-/* kpi ribbon */
-.ribbon {
-  position: absolute; left: -32px; top: 14px;
-  transform: rotate(-30deg);
-  background: linear-gradient(90deg, #ecfdf5, #d1fae5);
-  color: #065f46; font-weight: 700; font-size: 10px;
-  padding: 4px 28px; border-radius: 999px; box-shadow: 0 1px 0 rgba(16,185,129,.2);
-}
-
-/* decorative corner */
-.corner-bubble {
-  position: absolute; right: -36px; top: -36px; width: 110px; height: 110px;
-  border-radius: 9999px; background: #ecfdf5;
-}
-</style>
