@@ -1,3 +1,4 @@
+<!-- views/Barangay/SeniorList.vue (or views/OSCA/SeniorList.vue) -->
 <template>
   <!-- Entire page locked; only main content scrolls -->
   <div class="h-screen overflow-hidden bg-gray-50 flex">
@@ -31,7 +32,13 @@
                 class="w-full text-center font-extrabold text-white py-2 rounded-lg tracking-wide text-sm sm:text-base"
                 :style="{ backgroundColor: brand }"
               >
-              Barangay {{ (Array.isArray(profile?.barangays) ? profile?.barangays?.[0]?.name : profile?.barangays?.name) || 'Unknown Barangay' }}'s Current Applying Seniors              </div>
+                Barangay
+                {{
+                  (Array.isArray(profile?.barangays)
+                    ? profile?.barangays?.[0]?.name
+                    : profile?.barangays?.name) || 'Unknown Barangay'
+                }}'s Current Applying Seniors
+              </div>
             </div>
 
             <!-- Content -->
@@ -45,28 +52,17 @@
                     class="flex items-center gap-3 border-2 rounded-lg px-3 py-2"
                     :style="{ borderColor: brand }"
                   >
-
                     <!-- message -->
                     <div class="min-w-0 flex-1">
                       <p class="text-gray-800 text-sm font-semibold truncate">
                         {{ a.message }}
                       </p>
                       <p class="text-[11px] text-gray-500">
-                        {{ a.timeLabel }} • {{ prettyType(a.type) }}
+                        {{ a.timeLabel }} • {{ prettyType(a.reviewState) }}
                       </p>
                     </div>
 
-                    <!-- action -->
-                    <RouterLink
-                      :to="a.to"
-                      class="shrink-0 inline-flex items-center justify-center
-                             px-3 py-1.5 rounded-md text-sm font-bold text-white
-                             hover:brightness-105 active:brightness-95 transition"
-                      :style="{ backgroundColor: brand }"
-                      @click="markRead(a.id)"
-                    >
-                      View
-                    </RouterLink>
+                    <!-- View button removed -->
                   </div>
                 </div>
 
@@ -78,11 +74,7 @@
 
               <!-- Pagination always visible -->
               <div class="mt-3 pt-3 border-t shrink-0">
-                <Pagination
-                  v-model="page"
-                  :total-items="activities.length"
-                  :page-size="pageSize"
-                />
+                <Pagination v-model="page" :total-items="activities.length" :page-size="pageSize" />
               </div>
             </div>
           </section>
@@ -93,7 +85,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import Sidebar, { type NavItem } from '@/components/Staff/Sidebar.vue'
 import Header from '@/components/Staff/BRGY/Header.vue'
 import { useAuth } from '@/composables/useAuth'
@@ -104,32 +96,155 @@ import ActivityIcon from '/public/staff/activity.png'
 import AnnouncementIcon from '/public/staff/announcement.png'
 import Pagination from '@/components/Staff/Pagination.vue'
 
+// ✅ Change this to your actual Supabase client import
+import { supabase } from '@/supabase/client'
+
 const brand = '#42ad43'
 const sidebarCollapsed = ref(false)
-
 const { profile } = useAuth()
 
 /** Pagination */
 const page = ref(1)
 const pageSize = ref(7)
 
-type ActivityType = 'Staff Divine' | 'Staff Lorena'
+type ReviewState = 'not_reviewed' | 'currently_reviewing'
+
 type ActivityItem = {
   id: string
-  type: ActivityType
   message: string
   timeLabel: string
-  isUnread: boolean
-  to: string
+  reviewState: ReviewState
 }
 
-/** TEMP DATA (replace with Supabase later) */
-const activities = ref<ActivityItem[]>([
-  { id: 'a-001', type: 'Staff Divine', message: 'User A re-submitted Document A', timeLabel: '2 mins ago', isUnread: true, to: '/osca/applicant-review/a-001' },
-  { id: 'a-002', type: 'Staff Lorena', message: 'User A submitted Document A', timeLabel: '10 mins ago', isUnread: false, to: '/osca/applicant-review/a-002' },
-  { id: 'a-003', type: 'Staff Lorena', message: 'User A submitted Document B', timeLabel: '25 mins ago', isUnread: false, to: '/osca/applicant-review/a-003' },
+const activities = ref<ActivityItem[]>([])
+const loading = ref(false)
 
-])
+/**
+ * Supabase embedded relations often come back as arrays in TS.
+ * We type them as arrays and pick [0].
+ */
+type DbRow = {
+  id: string
+  created_at: string
+  submitted_at: string | null
+  status: string | null
+  assigned_osca_id: string | null
+  senior: { first_name: string | null; last_name: string | null }[] | null
+  issuance: { name: string | null }[] | null
+}
+
+function pickOne<T>(v: T[] | null | undefined): T | null {
+  return Array.isArray(v) && v.length ? v[0] : null
+}
+
+function formatName(p?: { first_name?: string | null; last_name?: string | null } | null) {
+  const first = (p?.first_name || '').trim()
+  const last = (p?.last_name || '').trim()
+  const full = `${first} ${last}`.trim()
+  return full || 'Unknown User'
+}
+
+function formatTimeLabel(iso: string) {
+  const d = new Date(iso)
+  return d.toLocaleString()
+}
+
+function buildMessageWithIndex(userName: string, issuanceName: string, indexNum?: number) {
+  const suffix = typeof indexNum === 'number' ? `.${indexNum}` : ''
+  return `${userName} made an Application ${issuanceName}${suffix}`
+}
+
+async function fetchApplyingSeniors() {
+  const barangayId = (profile as any)?.value?.barangay_id || (profile as any)?.barangay_id
+
+  if (!barangayId) {
+    activities.value = []
+    return
+  }
+
+  loading.value = true
+  try {
+    // ✅ INCLUDE drafts now (no status/submitted_at filtering)
+    const { data, error } = await supabase
+      .from('applications')
+      .select(
+        `
+        id,
+        created_at,
+        submitted_at,
+        status,
+        assigned_osca_id,
+        senior:profiles!applications_senior_id_fkey(first_name,last_name),
+        issuance:issuance_types!applications_issuance_type_id_fkey(name)
+      `
+      )
+      .eq('barangay_id', barangayId)
+      .order('created_at', { ascending: false })
+      .limit(200)
+
+    if (error) throw error
+
+    const rows = (data ?? []) as unknown as DbRow[]
+
+    // Count per (user + issuance) so we can add ".1/.2" only when needed
+    const counts = new Map<string, number>()
+    for (const r of rows) {
+      const seniorOne = pickOne(r.senior)
+      const issuanceOne = pickOne(r.issuance)
+
+      const userName = formatName(seniorOne)
+      const issuanceName = (issuanceOne?.name || '').trim() || 'Unknown'
+      const key = `${userName}||${issuanceName}`
+
+      counts.set(key, (counts.get(key) || 0) + 1)
+    }
+
+    // Assign numbering in display order
+    const seen = new Map<string, number>()
+    const finalMapped: ActivityItem[] = rows.map(r => {
+      const seniorOne = pickOne(r.senior)
+      const issuanceOne = pickOne(r.issuance)
+
+      const userName = formatName(seniorOne)
+      const issuanceName = (issuanceOne?.name || '').trim() || 'Unknown'
+      const key = `${userName}||${issuanceName}`
+
+      const idx = (seen.get(key) || 0) + 1
+      seen.set(key, idx)
+
+      const total = counts.get(key) || 1
+      const msg =
+        total > 1
+          ? buildMessageWithIndex(userName, issuanceName, idx)
+          : `${userName} made an Application ${issuanceName}`
+
+      return {
+        id: r.id,
+        message: msg,
+        timeLabel: formatTimeLabel(r.created_at),
+        reviewState: r.assigned_osca_id ? 'currently_reviewing' : 'not_reviewed',
+      }
+    })
+
+    activities.value = finalMapped
+    page.value = 1
+  } catch (e) {
+    console.error('fetchApplyingSeniors error:', e)
+    activities.value = []
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(() => {
+  fetchApplyingSeniors()
+})
+
+watch(
+  () => (profile as any)?.value?.barangay_id,
+  () => fetchApplyingSeniors(),
+  { immediate: true }
+)
 
 const totalPages = computed(() => Math.max(1, Math.ceil(activities.value.length / pageSize.value)))
 
@@ -139,22 +254,19 @@ const pagedActivities = computed(() => {
   return activities.value.slice(start, start + pageSize.value)
 })
 
-function markRead(id: string) {
-  const item = activities.value.find(x => x.id === id)
-  if (item) item.isUnread = false
-}
-
-function prettyType(t: ActivityType) {
-  switch (t) {
-    case 'Staff Divine':
-      return 'Edited by Staff Divine'
-    case 'Staff Lorena':
-      return 'Edited by Staff Lorena'
+function prettyType(state: ReviewState) {
+  // per notes:
+  // - if no assigned_osca_id => Not Yet Reviewed
+  // - else => Currently Reviewing
+  switch (state) {
+    case 'not_reviewed':
+      return 'Edited by Staff Divina • Not Yet Reviewed'
+    case 'currently_reviewing':
+      return 'Edited by Staff Divina • Currently Reviewing'
     default:
-      return 'Activity'
+      return 'Edited by Staff Divina'
   }
 }
-
 
 const oscaNavItems: NavItem[] = [
   { label: 'Dashboard', to: '/barangay/dashboard', icon: DashboardIcon },
