@@ -1,12 +1,13 @@
 <template>
-  <!-- lock overall scroll -->
-  <div class="h-screen overflow-hidden bg-gray-50 font-poppins pb-16 flex flex-col">
+  <!-- lock overall scroll; use dvh for mobile -->
+  <div class="h-[100dvh] overflow-hidden bg-gray-50 font-poppins flex flex-col">
     <Header @toggle-menu="open = true" />
     <SideBurger :open="open" @close="open = false" />
 
-    <main class="flex-1 px-4 pt-4 flex flex-col">
+    <!-- important: min-h-0 + overflow-hidden so inner section can scroll -->
+    <main class="flex-1 min-h-0 px-4 pt-4 flex flex-col overflow-hidden">
       <!-- Top row -->
-      <div class="flex items-center justify-between mb-2">
+      <div class="flex items-center justify-between mb-2 shrink-0">
         <RouterLink
           v-if="applicationId"
           :to="{ name: 'ApplyPageSubmit', params: { applicationId } }"
@@ -16,7 +17,6 @@
           <span class="text-gray-500">Back</span>
         </RouterLink>
 
-        <!-- fallback (prevents blank page) -->
         <button
           v-else
           type="button"
@@ -37,27 +37,20 @@
       </div>
 
       <!-- Title -->
-      <div class="mb-2">
+      <div class="mb-2 shrink-0">
         <p class="text-center text-sm font-extrabold text-gray-900">
           {{ formMeta.name }}
         </p>
 
-        <!-- Voice CTA (UI ONLY) -->
-        <button
-          class="mt-2 w-full rounded-xl bg-[#42ad43] text-white text-xs font-extrabold py-2"
-        >
+        <button class="mt-2 w-full rounded-xl bg-[#42ad43] text-white text-xs font-extrabold py-2">
           Tap here to answer using your voice
         </button>
       </div>
 
-      <!-- FORM (NO SCROLL, STEP-BASED) -->
-      <section ref="formAreaRef" class="flex-1 pt-4">
+      <!-- ✅ SCROLL AREA (only this scrolls) -->
+      <section ref="formAreaRef" class="flex-1 min-h-0 overflow-y-auto pt-4 pb-6">
         <div class="space-y-4">
-          <div
-            v-for="field in currentFields"
-            :key="field.id"
-            class="space-y-1"
-          >
+          <div v-for="field in currentFields" :key="field.id" class="space-y-1">
             <label class="text-xs font-bold text-gray-700">
               {{ field.label }}
               <span v-if="field.required" class="text-red-500">*</span>
@@ -72,9 +65,9 @@
         </div>
       </section>
 
-      <!-- Bottom controls -->
-      <div class="pt-2 mb-9">
-        <!-- Progress = STEPS -->
+      <!-- Bottom controls (fixed inside page) -->
+      <!-- ✅ shrink-0 so it never overlaps the form; add safe-area padding -->
+      <div class="shrink-0 pt-2 pb-[calc(env(safe-area-inset-bottom)+84px)]">
         <div class="h-2 rounded-full bg-gray-200 overflow-hidden mb-3">
           <div
             class="h-full bg-[#42ad43] transition-all"
@@ -83,7 +76,6 @@
         </div>
 
         <div class="flex items-center justify-between gap-3">
-          <!-- Save Draft -->
           <button
             class="px-4 py-2 rounded-xl bg-[#42ad43] text-white text-xs font-extrabold"
             @click="draftModalOpen = true"
@@ -91,14 +83,12 @@
             Save as Draft
           </button>
 
-          <!-- Mic (UI only) -->
           <button
             class="w-12 h-12 rounded-full border-2 border-gray-200 bg-white flex items-center justify-center"
           >
             <component :is="Mic" class="tile-icon w-5 h-5 text-black" />
           </button>
 
-          <!-- Step navigation -->
           <button
             class="w-10 h-10 rounded-full bg-[#42ad43] text-white flex items-center justify-center"
             @click="prevStep"
@@ -122,7 +112,7 @@
 
     <BottomNav />
 
-    <!-- Finish modal -->
+    <!-- modals unchanged -->
     <ConfirmModal
       :open="finishModalOpen"
       title="Submit this form?"
@@ -133,7 +123,6 @@
       @cancel="finishModalOpen = false"
     />
 
-    <!-- Draft modal -->
     <ConfirmModal
       :open="draftModalOpen"
       title="Save as draft?"
@@ -145,6 +134,7 @@
     />
   </div>
 </template>
+
 
 <script setup lang="ts">
 import { ref, computed, reactive, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
