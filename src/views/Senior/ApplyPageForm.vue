@@ -135,7 +135,6 @@
   </div>
 </template>
 
-
 <script setup lang="ts">
 import { ref, computed, reactive, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -160,10 +159,6 @@ type FormFieldType =
   | 'select'
   | 'multiselect'
 
-// supports BOTH formats:
-// - { field_key, op: 'equals'|'not_equals', value }
-// - { field_key, op: '=', value }   (your DB)
-// - { field_key, op: '!=', value }
 type DependsOn =
   | { field_key: string; op: 'equals' | 'not_equals' | '=' | '!='; value: any }
   | null
@@ -194,11 +189,7 @@ const applicationId = computed(() => {
 })
 const applicationRequirementId = computed(() => props.id)
 
-const formMeta = reactive({
-  id: '',
-  name: ''
-})
-
+const formMeta = reactive({ id: '', name: '' })
 const fields = ref<FormFieldRow[]>([])
 const answers = reactive<Record<string, any>>({})
 const errors = reactive<Record<string, string | null>>({})
@@ -206,58 +197,67 @@ const errors = reactive<Record<string, string | null>>({})
 const finishModalOpen = ref(false)
 const draftModalOpen = ref(false)
 
-/* =======================
-   AUTO STEP SIZE (fit to space)
-======================= */
+// ✅ keep these so we can upsert answers without creating duplicates
+const formSubmissionId = ref<string>('')
+const userIdRef = ref<string>('')
 
+// ✅ barangay dropdown choices
+const barangayChoices = ref<Array<{ label: string; value: string }>>([])
+
+// =======================
+// AUTO STEP SIZE (fit to space)
+// =======================
 const formAreaRef = ref<HTMLElement | null>(null)
-const fieldsPerStep = ref(6) // default fallback
+const fieldsPerStep = ref(6)
 let resizeObs: ResizeObserver | null = null
 
 function recalcFieldsPerStep() {
   const el = formAreaRef.value
   if (!el) return
-
-  // available space for fields
   const h = el.clientHeight
-
-  // estimate each field block height:
-  // label (~16) + input (~44) + gap (~16) ≈ 76–90
   const estimatedPerField = 86
-
-  const n = Math.max(1, Math.floor(h / estimatedPerField))
-  fieldsPerStep.value = n
+  fieldsPerStep.value = Math.max(1, Math.floor(h / estimatedPerField))
 }
 
-/* =======================
-   MULTI-STEP LOGIC
-======================= */
-
-const currentStep = ref(0)
-
+// =======================
+// DEPENDS + VISIBILITY
+// =======================
 function passesDepends(dep: DependsOn): boolean {
   if (!dep) return true
   const current = answers[dep.field_key]
-
   if (dep.op === 'equals' || dep.op === '=') return current === dep.value
   if (dep.op === 'not_equals' || dep.op === '!=') return current !== dep.value
   return true
 }
 
+// ✅ custom order: birthdate before age (without touching DB)
+function adjustedSortOrder(f: FormFieldRow) {
+  if (f.field_key === 'birthdate') return 49
+  if (f.field_key === 'age') return 50
+  return f.sort_order ?? 0
+}
+
 const visibleFields = computed(() =>
   fields.value
     .slice()
-    .sort((a, b) => a.sort_order - b.sort_order)
-    // ✅ ONLY show applicant section
+    .sort((a, b) => adjustedSortOrder(a) - adjustedSortOrder(b))
     .filter((f) => f.section === 'A_APPLICANT')
-    // ✅ respect depends_on
     .filter((f) => passesDepends((f.depends_on ?? null) as any))
 )
+
+const applicantFieldsAll = computed(() =>
+  fields.value
+    .slice()
+    .sort((a, b) => adjustedSortOrder(a) - adjustedSortOrder(b))
+    .filter((f) => f.section === 'A_APPLICANT')
+)
+
+
+const currentStep = ref(0)
 
 const steps = computed(() => {
   const chunks: FormFieldRow[][] = []
   const size = Math.max(1, fieldsPerStep.value)
-
   for (let i = 0; i < visibleFields.value.length; i += size) {
     chunks.push(visibleFields.value.slice(i, i + size))
   }
@@ -274,12 +274,9 @@ const stepProgress = computed(() => {
 function nextStep() {
   if (currentStep.value < steps.value.length - 1) currentStep.value++
 }
-
 function prevStep() {
   if (currentStep.value > 0) currentStep.value--
 }
-
-// if changing conditions reduces steps, clamp currentStep
 watch(
   () => steps.value.length,
   (len) => {
@@ -288,25 +285,17 @@ watch(
   }
 )
 
-/* =======================
-   ACTIONS
-======================= */
-
+// =======================
+// NAV
+// =======================
 function goBackToSubmit() {
   if (!applicationId.value) return router.push('/senior/dashboard/apply')
   router.push({ name: 'ApplyPageSubmit', params: { applicationId: applicationId.value } })
 }
 
-function confirmFinish() {
-  finishModalOpen.value = false
-  goBackToSubmit()
-}
-
-function confirmDraft() {
-  draftModalOpen.value = false
-  goBackToSubmit()
-}
-
+// =======================
+// DEFAULTS + SPECIAL FIELDS
+// =======================
 function initAnswersDefaults() {
   for (const f of fields.value) {
     if (answers[f.field_key] !== undefined) continue
@@ -314,28 +303,190 @@ function initAnswersDefaults() {
     else if (f.field_type === 'multiselect') answers[f.field_key] = []
     else answers[f.field_key] = ''
   }
+
+  // ✅ your requested defaults
+  if (!answers.citizenship) answers.citizenship = 'Filipino'
+  if (!answers.civil_status) answers.civil_status = 'married'
 }
 
-/* =======================
-   LOAD REAL DB FIELDS
-======================= */
+// ✅ age auto compute
+function computeAge(birthdateISO: string): number | '' {
+  if (!birthdateISO) return ''
+  const d = new Date(birthdateISO)
+  if (Number.isNaN(d.getTime())) return ''
+  const today = new Date()
+  let age = today.getFullYear() - d.getFullYear()
+  const m = today.getMonth() - d.getMonth()
+  if (m < 0 || (m === 0 && today.getDate() < d.getDate())) age--
+  return age < 0 ? '' : age
+}
+
+watch(
+  () => answers.birthdate,
+  (val) => {
+    const age = computeAge(val)
+    answers.age = age === '' ? '' : age
+    // clear age errors when it gets auto-filled
+    if (errors.age) errors.age = null
+  }
+)
+
+// =======================
+// VALIDATION
+// =======================
+function isEmptyForType(field: FormFieldRow, value: any) {
+  if (field.field_type === 'checkbox') return value !== true
+  if (field.field_type === 'multiselect') return !Array.isArray(value) || value.length === 0
+  return value === null || value === undefined || String(value).trim() === ''
+}
+
+function validateRequiredVisible(): boolean {
+  let ok = true
+  for (const f of visibleFields.value) {
+    if (!f.required) continue
+    const v = answers[f.field_key]
+    if (isEmptyForType(f, v)) {
+      errors[f.field_key] = 'Required'
+      ok = false
+    } else {
+      errors[f.field_key] = null
+    }
+  }
+  return ok
+}
+
+// =======================
+// SAVE/UPSERT ANSWERS (Option B)
+// Save ONLY A_APPLICANT fields (including hidden depends_on fields)
+// =======================
+async function upsertApplicantAnswersAll() {
+  if (!formSubmissionId.value || !userIdRef.value) return
+  if (!fields.value.length) return
+
+  const rows = applicantFieldsAll.value.map((f) => ({
+    form_submission_id: formSubmissionId.value,
+    field_id: f.id,
+    value: answers[f.field_key] ?? null, // includes empty
+    answered_by: userIdRef.value
+  }))
+
+  const { error } = await supabase
+    .from('form_answers')
+    .upsert(rows as any, { onConflict: 'form_submission_id,field_id' })
+
+  if (error) {
+    console.error(error)
+    throw error
+  }
+}
+
+// =======================
+// ACTIONS: DRAFT + SUBMIT
+// =======================
+async function confirmDraft() {
+  draftModalOpen.value = false
+  try {
+    await upsertApplicantAnswersAll()
+
+
+    // status stays draft
+    await supabase
+      .from('form_submissions')
+      .update({ status: 'draft' })
+      .eq('id', formSubmissionId.value)
+
+    goBackToSubmit()
+  } catch (e) {
+    console.error(e)
+  }
+}
+
+async function confirmFinish() {
+  finishModalOpen.value = false
+
+  const ok = validateRequiredVisible()
+  if (!ok) {
+    // optionally scroll to top of the step to show errors; keeping your UI unchanged
+    return
+  }
+
+  try {
+    await upsertApplicantAnswersAll()
+
+    await supabase
+      .from('form_submissions')
+      .update({ status: 'submitted' })
+      .eq('id', formSubmissionId.value)
+
+    // ✅ important: mark requirement submitted too
+    await supabase
+      .from('application_requirements')
+      .update({ status: 'submitted' })
+      .eq('id', applicationRequirementId.value)
+
+    goBackToSubmit()
+  } catch (e) {
+    console.error(e)
+  }
+}
+
+// =======================
+// LOAD: FORM + FIELDS + EXISTING ANSWERS
+// =======================
+async function loadBarangays() {
+  const { data, error } = await supabase.from('barangays').select('id, name').order('name')
+  if (error) return console.error(error)
+  barangayChoices.value = (data ?? []).map((b: any) => ({ label: b.name, value: b.id }))
+}
+
+function applyFieldOverridesForUX() {
+  // ✅ convert barangay to dropdown using barangays table
+  const barangayField = fields.value.find((f) => f.field_key === 'barangay')
+  if (barangayField) {
+    barangayField.field_type = 'select'
+    barangayField.placeholder = null
+    barangayField.options = {
+      ...(barangayField.options ?? {}),
+      choices: barangayChoices.value,
+      default: barangayField.options?.default ?? null
+    }
+  }
+
+  // ✅ citizenship default Filipino
+  const citizen = fields.value.find((f) => f.field_key === 'citizenship')
+  if (citizen) {
+    citizen.options = { ...(citizen.options ?? {}), default: 'Filipino' }
+    citizen.placeholder = 'Filipino'
+  }
+
+  // ✅ civil status default married (and no “Select...” feel)
+  const civil = fields.value.find((f) => f.field_key === 'civil_status')
+  if (civil) {
+    civil.options = { ...(civil.options ?? {}), default: 'married' }
+    civil.placeholder = null
+  }
+
+  // ✅ age disabled (FormField will respect field.options.disabled after patch #2 below)
+  const age = fields.value.find((f) => f.field_key === 'age')
+  if (age) {
+    age.options = { ...(age.options ?? {}), disabled: true }
+  }
+}
 
 async function loadForm() {
-  if (!applicationRequirementId.value) {
-    console.error('Missing applicationRequirementId')
-    return
-  }
-  if (!applicationId.value) {
-    console.error('Missing applicationId in query. Pass it when navigating to ApplyForm.')
-    return
-  }
+  if (!applicationRequirementId.value) return console.error('Missing applicationRequirementId')
+  if (!applicationId.value) return console.error('Missing applicationId in query.')
 
   const { data: authRes, error: authErr } = await supabase.auth.getUser()
   if (authErr) return console.error(authErr)
   const userId = authRes.user?.id
   if (!userId) return
+  userIdRef.value = userId
 
-  // 1) Get or create form_submissions row
+  // ✅ load barangays early
+  await loadBarangays()
+
+  // 1) Get or create form_submissions row (unique by application_requirement_id)
   let { data: submission, error: subErr } = await supabase
     .from('form_submissions')
     .select('id, form_id, status, forms(name)')
@@ -347,24 +498,23 @@ async function loadForm() {
   if (!submission) {
     const { data: ar, error: arErr } = await supabase
       .from('application_requirements')
-      .select(`
+      .select(
+        `
         id,
         application_id,
         issuance_type_requirement:issuance_type_requirement_id (
           id,
           doc_rules
         )
-      `)
+      `
+      )
       .eq('id', applicationRequirementId.value)
       .single()
 
     if (arErr) return console.error(arErr)
 
     const formId = (ar?.issuance_type_requirement as any)?.doc_rules?.form_id as string | undefined
-    if (!formId) {
-      console.error('No form_id found in issuance_type_requirements.doc_rules for this requirement.')
-      return
-    }
+    if (!formId) return console.error('No form_id found in issuance_type_requirements.doc_rules')
 
     const { data: created, error: createErr } = await supabase
       .from('form_submissions')
@@ -382,27 +532,31 @@ async function loadForm() {
     submission = created
   }
 
-  // 2) Set meta
-  formMeta.id = submission.form_id
+  formSubmissionId.value = (submission as any).id
+
+  // 2) Meta
+  formMeta.id = (submission as any).form_id
   formMeta.name = (submission as any)?.forms?.name ?? 'Application Form'
 
-  // 3) Load fields
+  // 3) Fields
   const { data: ff, error: ffErr } = await supabase
     .from('form_fields')
     .select('id, form_id, section, label, field_key, field_type, required, sort_order, options, depends_on, placeholder')
-    .eq('form_id', submission.form_id)
+    .eq('form_id', (submission as any).form_id)
     .order('sort_order', { ascending: true })
 
   if (ffErr) return console.error(ffErr)
   fields.value = (ff ?? []) as any
 
+  // ✅ apply your special UX rules without changing design
+  applyFieldOverridesForUX()
+
   initAnswersDefaults()
 
-  // 4) Load existing answers
   const { data: ansRows, error: ansErr } = await supabase
     .from('form_answers')
     .select('field_id, value')
-    .eq('form_submission_id', submission.id)
+    .eq('form_submission_id', (submission as any).id)
 
   if (ansErr) return console.error(ansErr)
 
@@ -412,7 +566,11 @@ async function loadForm() {
     if (key) answers[key] = (row as any).value
   }
 
-  // after fields mount, auto compute how many fit
+  // ✅ ensure defaults still apply if DB returned empty
+  if (!answers.citizenship) answers.citizenship = 'Filipino'
+  if (!answers.civil_status) answers.civil_status = 'married'
+
+  // after mount
   await nextTick()
   recalcFieldsPerStep()
 }
@@ -422,7 +580,6 @@ onMounted(async () => {
   await nextTick()
   recalcFieldsPerStep()
 
-  // live resize (orientation, device sizes)
   if (formAreaRef.value) {
     resizeObs = new ResizeObserver(() => recalcFieldsPerStep())
     resizeObs.observe(formAreaRef.value)
