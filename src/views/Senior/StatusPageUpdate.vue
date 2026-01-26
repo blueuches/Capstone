@@ -67,12 +67,43 @@
     <div v-if="showMicModal" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
       <div class="bg-white p-6 rounded-xl w-72 text-center">
         <h3 class="font-semibold mb-2">Speak Now</h3>
-        <p class="text-sm text-gray-500 mb-4">(Temporary placeholder)</p>
+
+        <p v-if="recordError" class="text-xs text-red-600 mb-3">
+          {{ recordError }}
+        </p>
+
+        <p v-else class="text-sm text-gray-500 mb-4">
+          {{ recording ? 'Recording… tap Stop when done.' : recordedBlob ? 'Recorded! You can send it.' : 'Tap Start to record.' }}
+        </p>
 
         <div class="flex gap-2 justify-center">
-          <button class="px-3 py-2 bg-green-500 text-white rounded">Start</button>
-          <button class="px-3 py-2 bg-gray-300 rounded">Stop</button>
+          <button
+            class="px-3 py-2 bg-green-500 text-white rounded disabled:opacity-50"
+            :disabled="recording"
+            @click="startRecording"
+          >
+            Start
+          </button>
+
+          <button
+            class="px-3 py-2 bg-gray-700 text-white rounded disabled:opacity-50"
+            :disabled="!recording"
+            @click="stopRecording"
+          >
+            Stop
+          </button>
         </div>
+
+<p v-if="voiceStatus==='sending'" class="text-xs text-gray-500 mb-2">Sending…</p>
+<p v-if="voiceStatus==='error'" class="text-xs text-red-600 mb-2">{{ voiceError }}</p>
+
+<button
+  class="mt-3 w-full px-3 py-2 bg-[#42ad43] text-white rounded disabled:opacity-50"
+  :disabled="!recordedBlob || voiceSending"
+  @click="sendVoiceMessage"
+>
+  {{ voiceSending ? 'Sending…' : 'Send Voice' }}
+</button>
 
         <button class="mt-4 text-sm text-gray-500" @click="showMicModal = false">
           Close
@@ -280,8 +311,170 @@ async function sendMessage() {
   }
 }
 
+// --- VOICE RECORDING STATE ---
+const recorder = ref<MediaRecorder | null>(null)
+const recording = ref(false)
+const chunks = ref<BlobPart[]>([])
+const recordedBlob = ref<Blob | null>(null)
+const recordError = ref<string | null>(null)
+const recordStartedAt = ref<number | null>(null)
+const voiceSending = ref(false)
+const voiceStatus = ref<'idle'|'sending'|'sent'|'error'>('idle')
+const voiceError = ref<string | null>(null)
+
 function openMicModal() {
   showMicModal.value = true
+  recordError.value = null
+  recordedBlob.value = null
+}
+
+async function startRecording() {
+  recordError.value = null
+  recordedBlob.value = null
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+    const mime = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+      ? 'audio/webm;codecs=opus'
+      : 'audio/webm'
+
+    const mr = new MediaRecorder(stream, { mimeType: mime })
+    recorder.value = mr
+    chunks.value = []
+    recording.value = true
+    recordStartedAt.value = Date.now()
+
+    mr.ondataavailable = (e) => {
+      if (e.data && e.data.size > 0) chunks.value.push(e.data)
+    }
+
+    mr.onstop = () => {
+      // stop mic tracks
+      stream.getTracks().forEach((t) => t.stop())
+      recording.value = false
+
+      const blob = new Blob(chunks.value, { type: mr.mimeType || 'audio/webm' })
+      recordedBlob.value = blob
+    }
+
+    mr.start()
+  } catch (e: any) {
+    recordError.value = e?.message || 'Microphone permission denied.'
+    recording.value = false
+  }
+}
+
+function stopRecording() {
+  if (!recorder.value) return
+  if (recorder.value.state !== 'inactive') recorder.value.stop()
+}
+
+async function sendVoiceMessage() {
+  if (!conversationId.value || !recordedBlob.value) return
+  if (!recordedBlob.value) return
+
+  voiceSending.value = true
+  voiceStatus.value = 'sending'
+  voiceError.value = null
+
+  const { data: authData, error: authErr } = await supabase.auth.getUser()
+  if (authErr) return console.error(authErr)
+  const userId = authData.user?.id
+  if (!userId) return
+
+  const blob = recordedBlob.value
+  const durationMs =
+    recordStartedAt.value ? Math.max(0, Date.now() - recordStartedAt.value) : null
+
+  try {
+    // 1) create message row first (so we have messageId for filename)
+    const placeholderBody = JSON.stringify({
+      kind: 'voice',
+      storage_bucket: 'voicemail',
+      storage_path: 'pending',
+      mime_type: blob.type || 'audio/webm',
+      duration_ms: durationMs,
+      size: blob.size
+    })
+
+    const { data: inserted, error: insErr } = await supabase
+      .from('messages')
+      .insert({
+        conversation_id: conversationId.value,
+        sender_id: userId,
+        body: placeholderBody
+      })
+      .select('id, created_at')
+      .single()
+
+    if (insErr) throw insErr
+
+    const messageId = inserted.id as string
+    const ext = (blob.type || '').includes('webm') ? 'webm' : 'webm'
+    const storagePath = `conversations/${conversationId.value}/${messageId}.${ext}`
+
+    // 2) upload audio to voicemail bucket
+    const { error: upErr } = await supabase.storage
+      .from('voicemail')
+      .upload(storagePath, blob, {
+        contentType: blob.type || 'audio/webm',
+        upsert: true
+      })
+
+    if (upErr) throw upErr
+
+    // 3) update message.body with final storage pointer
+    const finalBody = JSON.stringify({
+      kind: 'voice',
+      storage_bucket: 'voicemail',
+      storage_path: storagePath,
+      mime_type: blob.type || 'audio/webm',
+      duration_ms: durationMs,
+      size: blob.size
+    })
+
+    const { error: updErr } = await supabase
+      .from('messages')
+      .update({ body: finalBody })
+      .eq('id', messageId)
+
+    if (updErr) throw updErr
+
+    // 4) notify assigned OSCA (optional)
+    if (assignedOscaId.value) {
+      await supabase.from('notifications').insert({
+        user_id: assignedOscaId.value,
+        type: 'message',
+        title: 'New voice message from senior',
+        body: 'Voice message',
+        link: { applicationId }
+      })
+    }
+
+    // 5) optimistic UI: push as "voice json"
+    messages.value.push({
+      id: messageId,
+      sender: 'senior',
+      name: profile?.value?.first_name || 'You',
+      text: finalBody, // MessageBodies will detect voice by JSON
+      date: 'Just now'
+    })
+
+    // reset modal state
+    recordedBlob.value = null
+    chunks.value = []
+    showMicModal.value = false
+
+        voiceStatus.value = 'sent'
+    showMicModal.value = false
+    recordedBlob.value = null
+  } catch (e: any) {
+    voiceStatus.value = 'error'
+    voiceError.value = e?.message || 'Failed to send voice message.'
+    console.error(e)
+  } finally {
+    voiceSending.value = false
+  }
 }
 
 onMounted(async () => {

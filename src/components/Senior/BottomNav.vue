@@ -7,7 +7,15 @@
       <span class="text-xs">Notifications</span>
     </button>
 
-    <button @click="decreaseFont" class="text-white font-semibold">
+    <!-- A- (clickable circle) -->
+    <button
+      @click="decreaseFont"
+      type="button"
+      class="w-10 h-10 rounded-full bg-white/20 active:bg-white/30
+             flex items-center justify-center text-white font-semibold select-none"
+      aria-label="Decrease text size"
+      title="Decrease text size"
+    >
       A-
     </button>
 
@@ -16,7 +24,15 @@
       <span class="text-xs">Home</span>
     </button>
 
-    <button @click="increaseFont" class="text-white font-semibold">
+    <!-- A+ (clickable circle) -->
+    <button
+      @click="increaseFont"
+      type="button"
+      class="w-10 h-10 rounded-full bg-white/20 active:bg-white/30
+             flex items-center justify-center text-white font-semibold select-none"
+      aria-label="Increase text size"
+      title="Increase text size"
+    >
       A+
     </button>
 
@@ -44,7 +60,6 @@ const goProfile = () => router.push('/senior/profile')
 </script>
 
 <style scoped>
-/* same trick as before: force svg to follow text color */
 .tile-icon :deep(path),
 .tile-icon :deep(circle),
 .tile-icon :deep(rect),

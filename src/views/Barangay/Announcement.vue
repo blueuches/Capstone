@@ -1,4 +1,4 @@
-<!-- views/Staff/OSCA/Announcement.vue -->
+<!-- views/Staff/BRGY/Announcement.vue -->
 <template>
   <div class="h-screen overflow-hidden bg-gray-50 flex">
     <!-- Sidebar (fixed height, not scrollable) -->
@@ -38,7 +38,6 @@
             >
               Specific Barangay
             </button>
-
           </div>
 
           <!-- Composer card (prototype-like) -->
@@ -101,7 +100,7 @@
                       />
                     </div>
 
-                    <!-- (Optional) expiry UI (not required, but aligned with schema) -->
+                    <!-- expiry -->
                     <div class="mt-3 flex flex-wrap items-center gap-3">
                       <label class="text-xs font-semibold text-gray-700">Expires (optional):</label>
                       <input
@@ -110,7 +109,6 @@
                         class="h-9 rounded-lg border border-gray-300 bg-white px-3 text-sm
                                focus:outline-none focus:ring-2 focus:ring-[#42ad43]/40"
                       />
-
                     </div>
                   </div>
                 </div>
@@ -125,20 +123,15 @@
                     :disabled="sendDisabled"
                     @click="onSend"
                     aria-label="Send announcement"
-                    title="Send (not wired yet)"
+                    title="Send announcement"
                   >
                     &gt;
                   </button>
                 </div>
               </div>
-
-              <!-- small note -->
-              <!-- <p class="mt-4 text-xs text-gray-500">
-                Note: Send button is intentionally not wired yet. This page only prepares the target selection
-                that will map to <span class="font-semibold">announcement_targets</span> later.
-              </p> -->
             </div>
           </section>
+
         </div>
       </main>
     </div>
@@ -146,10 +139,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import Sidebar, { type NavItem } from '@/components/Staff/Sidebar.vue'
 import Header from '@/components/Staff/BRGY/Header.vue'
 import { useAuth } from '@/composables/useAuth'
+import { supabase } from '@/supabase/client' // ✅ adjust path if yours differs
 
 import DashboardIcon from '/public/staff/dashboard.png'
 import BarangaysIcon from '/public/staff/barangays.png'
@@ -157,33 +151,18 @@ import ApplicationIcon from '/public/staff/application.png'
 import ActivityIcon from '/public/staff/activity.png'
 import AnnouncementIcon from '/public/staff/announcement.png'
 
-
-/**
- * Target mapping (based on your schema):
- * - all_seniors -> announcement_targets.target_type = 'all_seniors' (no role/barangay_id/user_id)
- * - barangay    -> announcement_targets.target_type = 'barangay' (barangay_id required)
- * - all_barangays (UI convenience) -> would insert many 'barangay' targets later (one per barangay)
- *   (we won't implement DB writes yet; just model it in UI state)
- */
-type UiTarget = 'all_seniors' | 'other_barangays' 
-
+type UiTarget = 'all_seniors' | 'other_barangays'
 const brand = '#42ad43'
+
 const { profile } = useAuth()
-
 const sidebarCollapsed = ref(false)
-
-const staffName = computed(() => {
-  const p = profile.value as any
-  const full = [p?.first_name, p?.last_name].filter(Boolean).join(' ').trim()
-  return full || 'Lando Norris'
-})
 
 const oscaNavItems: NavItem[] = [
   { label: 'Dashboard', to: '/barangay/dashboard', icon: DashboardIcon },
   { label: 'List', to: '/barangay/management', icon: BarangaysIcon },
   { label: 'Seniors', to: '/barangay/users', icon: ApplicationIcon },
   { label: 'Message', to: '/barangay/message', icon: ActivityIcon },
-  { label: 'Announcement', to: '/barangay/announcement', icon: AnnouncementIcon },
+  { label: 'Announcement', to: '/barangay/announcement', icon: AnnouncementIcon }
 ]
 
 /** UI state */
@@ -192,57 +171,121 @@ const title = ref('')
 const body = ref('')
 const expiresAt = ref<string>('')
 
-/** TEMP barangays list (replace with Supabase later) */
-const barangayOptions = ref([
-  { id: 'b-001', name: 'Barangay A' },
-  { id: 'b-002', name: 'Barangay B' },
-  { id: 'b-003', name: 'Barangay C' }
-])
+/** Barangays */
+type BarangayOption = { id: string; name: string }
+const barangayOptions = ref<BarangayOption[]>([])
 const selectedBarangayId = ref<string>('')
+
+const sending = ref(false)
 
 function selectTarget(t: UiTarget) {
   selectedTarget.value = t
-  // reset barangay pick when switching away
   if (t !== 'other_barangays') selectedBarangayId.value = ''
 }
 
 const targetLabel = computed(() => {
   if (selectedTarget.value === 'all_seniors') return 'All Senior Users'
-  if (selectedTarget.value === 'other_barangays') return 'Specific Barangay'
-  return 'All Barangays'
-})
-
-/** This is just a helpful preview of what you’ll insert later */
-const announcementRowPreview = computed(() => {
-  // announcements: { created_by, title, body, expires_at }
-  const t = title.value.trim() || '—'
-  const b = body.value.trim() ? 'Body set' : '—'
-  const ex = expiresAt.value ? 'With expiry' : 'No expiry'
-  return `announcements: { title: "${t}", body: ${b}, ${ex} }`
+  return 'Specific Barangay'
 })
 
 const sendDisabled = computed(() => {
+  if (sending.value) return true
   if (!title.value.trim()) return true
   if (!body.value.trim()) return true
   if (selectedTarget.value === 'other_barangays' && !selectedBarangayId.value) return true
   return false
 })
 
-function onSend() {
-  // Do NOT implement sending yet (per your note)
-  // This is just a stub so the button exists.
-  // Later you will:
-  // 1) insert into announcements
-  // 2) insert into announcement_targets depending on selectedTarget
-  //    - all_seniors: one row { target_type:'all_seniors' }
-  //    - barangay: one row { target_type:'barangay', barangay_id }
-  //    - all_barangays: multiple rows target_type:'barangay' for each barangay_id
-  console.log('Send not wired yet', {
-    selectedTarget: selectedTarget.value,
-    selectedBarangayId: selectedBarangayId.value,
-    title: title.value,
-    body: body.value,
-    expiresAt: expiresAt.value
-  })
+function toIsoOrNull(dtLocal: string): string | null {
+  if (!dtLocal) return null
+  const d = new Date(dtLocal) // interprets as local time
+  return isNaN(d.getTime()) ? null : d.toISOString()
 }
+
+async function loadBarangays() {
+  const myBarangayId = (profile.value as any)?.barangay_id || null
+
+  const { data, error } = await supabase
+    .from('barangays')
+    .select('id,name')
+    .order('name', { ascending: true })
+
+  if (error) {
+    console.error('Failed to load barangays:', error.message)
+    barangayOptions.value = []
+    return
+  }
+
+  // "other_barangays" dropdown: exclude own barangay
+  barangayOptions.value = (data ?? [])
+    .filter((b: any) => !myBarangayId || b.id !== myBarangayId)
+    .map((b: any) => ({ id: b.id, name: b.name }))
+}
+
+async function onSend() {
+  if (sendDisabled.value) return
+
+  sending.value = true
+  try {
+    const createdBy = (profile.value as any)?.id
+    if (!createdBy) throw new Error('Missing profile.id (created_by). Make sure useAuth loads profile.')
+
+    // 1) announcements insert
+    const { data: aRow, error: aErr } = await supabase
+      .from('announcements')
+      .insert({
+        created_by: createdBy,
+        title: title.value.trim(),
+        body: body.value.trim(),
+        expires_at: toIsoOrNull(expiresAt.value)
+      })
+      .select('id')
+      .single()
+
+    if (aErr) throw aErr
+    const announcementId = aRow.id as string
+
+    // 2) announcement_targets insert based on barangay UI rules
+    if (selectedTarget.value === 'all_seniors') {
+      const myBarangayId = (profile.value as any)?.barangay_id
+      if (!myBarangayId) throw new Error('Missing profile.barangay_id.')
+
+      const { error } = await supabase
+        .from('announcement_targets')
+        .insert({
+          announcement_id: announcementId,
+          target_type: 'barangay',
+          barangay_id: myBarangayId
+        })
+      if (error) throw error
+    } else {
+      const { error } = await supabase
+        .from('announcement_targets')
+        .insert({
+          announcement_id: announcementId,
+          target_type: 'barangay',
+          barangay_id: selectedBarangayId.value
+        })
+      if (error) throw error
+    }
+
+    // reset composer
+    title.value = ''
+    body.value = ''
+    expiresAt.value = ''
+    selectedBarangayId.value = ''
+    selectedTarget.value = 'all_seniors'
+
+    console.log('Barangay announcement sent:', { announcementId })
+  } catch (e: any) {
+    console.error('Send failed:', e?.message ?? e)
+    alert(`Failed to send announcement: ${e?.message ?? 'Unknown error'}`)
+  } finally {
+    sending.value = false
+  }
+}
+
+onMounted(() => {
+  loadBarangays()
+})
 </script>

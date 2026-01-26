@@ -1,51 +1,68 @@
-// src/composables/useSeniorFontSize.ts
-import { ref, readonly, watch } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 
-const MIN_SCALE = 0.9       // slight smaller (optional)
-const MAX_SCALE = 1.4       // larger for seniors
-const STEP = 0.1
+const STORAGE_KEY = 'senior_font_scale'
 
-// ✅ module-level ref = shared across ALL components that import this composable
-const fontScale = ref<number>(
-  Number(localStorage.getItem('senior-font-scale') || '1') || 1
-)
+// tweak these if you want
+const BASE_PX = 16
+const MIN_SCALE = 0.85
+const MAX_SCALE = 1.35
+const STEP = 0.05
 
-// Apply to CSS variable on load
-document.documentElement.style.setProperty(
-  '--senior-font-scale',
-  fontScale.value.toString()
-)
+const scale = ref<number>(1)
 
-// Persist + push to CSS var whenever it changes
-watch(fontScale, (value) => {
-  localStorage.setItem('senior-font-scale', String(value))
-  document.documentElement.style.setProperty(
-    '--senior-font-scale',
-    value.toString()
-  )
-})
-
-function increaseFont() {
-  if (fontScale.value < MAX_SCALE) {
-    fontScale.value = parseFloat((fontScale.value + STEP).toFixed(2))
-  }
+function clamp(n: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, n))
 }
 
-function decreaseFont() {
-  if (fontScale.value > MIN_SCALE) {
-    fontScale.value = parseFloat((fontScale.value - STEP).toFixed(2))
-  }
+function applyToRoot() {
+  // This makes Tailwind rem-based sizes scale everywhere
+  const px = BASE_PX * scale.value
+  document.documentElement.style.fontSize = `${px}px`
 }
 
-function resetFont() {
-  fontScale.value = 1
+function resetRoot() {
+  document.documentElement.style.fontSize = `${BASE_PX}px`
+}
+
+function load() {
+  const raw = localStorage.getItem(STORAGE_KEY)
+  const parsed = raw ? Number(raw) : 1
+  scale.value = Number.isFinite(parsed) ? clamp(parsed, MIN_SCALE, MAX_SCALE) : 1
+}
+
+function save() {
+  localStorage.setItem(STORAGE_KEY, String(scale.value))
 }
 
 export function useSeniorFontSize() {
+  const increaseFont = () => {
+    scale.value = clamp(Number((scale.value + STEP).toFixed(2)), MIN_SCALE, MAX_SCALE)
+    save()
+    applyToRoot()
+  }
+
+  const decreaseFont = () => {
+    scale.value = clamp(Number((scale.value - STEP).toFixed(2)), MIN_SCALE, MAX_SCALE)
+    save()
+    applyToRoot()
+  }
+
+  onMounted(() => {
+    // When you enter Senior pages (BottomNav exists), load + apply
+    load()
+    applyToRoot()
+  })
+
+  onUnmounted(() => {
+    // When you leave Senior pages (BottomNav disappears), reset to normal
+    resetRoot()
+  })
+
   return {
-    fontScale: readonly(fontScale),
+    scale,
     increaseFont,
     decreaseFont,
-    resetFont,
+    applyToRoot,
+    resetRoot,
   }
 }
