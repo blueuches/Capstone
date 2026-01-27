@@ -42,9 +42,11 @@
           {{ formMeta.name }}
         </p>
 
-        <button class="mt-2 w-full rounded-xl bg-[#42ad43] text-white text-xs font-extrabold py-2">
-          Tap here to answer using your voice
-        </button>
+        <button
+          class="mt-2 w-full rounded-xl bg-[#42ad43] text-white text-xs font-extrabold py-2"
+          @click="voiceActive ? voice.stopAll() : voice.start()"
+        >
+{{ voiceActive ? 'Stop voice assist' : 'Tap here to answer using your voice' }}        </button>
       </div>
 
       <!-- ✅ SCROLL AREA (only this scrolls) -->
@@ -85,9 +87,11 @@
 
           <button
             class="w-12 h-12 rounded-full border-2 border-gray-200 bg-white flex items-center justify-center"
+            :class="voiceActive ? 'ring-4 ring-[#42ad43]/30' : ''"
           >
-            <component :is="Mic" class="tile-icon w-5 h-5 text-black" />
+            <component :is="Mic" class="tile-icon w-5 h-5" :class="voiceActive ? 'text-[#42ad43]' : 'text-black'" />
           </button>
+
 
           <button
             class="w-10 h-10 rounded-full bg-[#42ad43] text-white flex items-center justify-center"
@@ -132,6 +136,20 @@
       @confirm="confirmDraft"
       @cancel="draftModalOpen = false"
     />
+
+    <SpellingModal
+      :open="voiceModalOpen"
+      :title="voiceModalTitle"
+      :message="voiceModalMessage"
+      :preview="voiceModalPreview"
+      :mode="voiceModalMode"
+      @stop="voice.stopAll"
+      @yes="voice.confirmYes"
+      @no="voice.confirmNo"
+      @stopSpelling="voice.stopSpelling()"
+      @clear="voiceModalPreview = ''"
+    />
+
   </div>
 </template>
 
@@ -149,6 +167,11 @@ import ConfirmModal from '@/components/ConfirmModal.vue'
 import Left from '@/assets/icons/senior/left-arrow.svg'
 import Right from '@/assets/icons/senior/right-arrow.svg'
 import Mic from '@/assets/icons/senior/mic.svg'
+
+import SpellingModal from '@/components/SpellingModal.vue'
+import { useFormVoiceAssistant } from '@/composables/useFormVoiceAssistant'
+import { useUnifiedSTT } from '@/composables/useUnifiedSTT'
+
 
 type FormFieldType =
   | 'text'
@@ -574,6 +597,62 @@ async function loadForm() {
   await nextTick()
   recalcFieldsPerStep()
 }
+
+const voiceModalOpen = ref(false)
+const voiceModalTitle = ref('Voice Assist')
+const voiceModalMessage = ref('')
+const voiceModalPreview = ref('')
+const voiceModalMode = ref<'listening' | 'confirm' | 'spelling' | 'finish'>('listening')
+
+// For STT transcript watching
+const stt = useUnifiedSTT()
+
+const voice = useFormVoiceAssistant({
+  stt,
+  fields: () => visibleFields.value as any,
+  answers,
+
+  onOpenModal: () => (voiceModalOpen.value = true),
+  onCloseModal: () => (voiceModalOpen.value = false),
+
+  setModalTitle: (t) => (voiceModalTitle.value = t),
+  setModalMessage: (t) => (voiceModalMessage.value = t),
+  setModalPreview: (t) => (voiceModalPreview.value = t),
+  setModalMode: (m) => (voiceModalMode.value = m),
+
+  onSubmit: async () => {
+    // reuse your existing submit routine
+    // IMPORTANT: this validates + saves + sets statuses
+    const ok = validateRequiredVisible()
+    if (!ok) return
+    await upsertApplicantAnswersAll()
+    await supabase.from('form_submissions').update({ status: 'submitted' }).eq('id', formSubmissionId.value)
+    await supabase.from('application_requirements').update({ status: 'submitted' }).eq('id', applicationRequirementId.value)
+  },
+
+  onGoSubmitList: () => {
+    goBackToSubmit()
+  },
+})
+
+const voiceActive = computed(() => voice.active.value)
+
+import { watchEffect } from 'vue'
+
+watchEffect(() => {
+  console.log('[VOICE] mode=', voice.mode.value, 'active=', voice.active.value)
+})
+
+
+// Watch for final transcript arriving, then feed assistant
+watch(
+  () => stt.finalTranscript.value,
+  async (val) => {
+    if (!val || !val.trim()) return
+    await voice.onFinalTranscript(val)
+  }
+)
+
 
 onMounted(async () => {
   await loadForm()
