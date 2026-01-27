@@ -299,7 +299,8 @@ async function loadRequirementsFromDb() {
     const kind = toKind(req?.requirement_kind)
 
     const docs = Array.isArray(r?.document_submissions) ? r.document_submissions : []
-    const forms = Array.isArray(r?.form_submissions) ? r.form_submissions : []
+    const formSub = r?.form_submissions
+    const forms = Array.isArray(formSub) ? formSub : (formSub?.id ? [formSub] : [])
 
     const hasRecord = kind === 'form' ? forms.length > 0 : docs.length > 0
     const recordCount = kind === 'form' ? forms.length : docs.length

@@ -52,7 +52,7 @@
       <!-- ✅ SCROLL AREA (only this scrolls) -->
       <section ref="formAreaRef" class="flex-1 min-h-0 overflow-y-auto pt-4 pb-6">
         <div class="space-y-4">
-          <div v-for="field in currentFields" :key="field.id" class="space-y-1">
+          <div v-for="field in currentFields" :key="field.id" class="space-y-1"  :data-field-key="field.field_key">
             <label class="text-xs font-bold text-gray-700">
               {{ field.label }}
               <span v-if="field.required" class="text-red-500">*</span>
@@ -148,6 +148,16 @@
       @no="voice.confirmNo"
       @stopSpelling="voice.stopSpelling()"
       @clear="voiceModalPreview = ''"
+    />
+
+    <ConfirmModal
+      :open="missedModalOpen"
+      title="Incomplete form"
+      :message="missedModalMessage"
+      confirm-text="Show me"
+      cancel-text="Close"
+      @cancel="missedModalOpen = false"
+      @confirm="handleMissedConfirm"
     />
 
   </div>
@@ -429,7 +439,8 @@ async function confirmFinish() {
 
   const ok = validateRequiredVisible()
   if (!ok) {
-    // optionally scroll to top of the step to show errors; keeping your UI unchanged
+    collectMissedRequired()
+    missedModalOpen.value = true
     return
   }
 
@@ -643,6 +654,49 @@ watchEffect(() => {
   console.log('[VOICE] mode=', voice.mode.value, 'active=', voice.active.value)
 })
 
+const missedModalOpen = ref(false)
+const missedRequiredLabels = ref<string[]>([])
+
+const missedModalMessage = computed(() => {
+  const n = missedRequiredLabels.value.length
+  if (n > 0) return `You missed ${n} required field(s). Please complete them before submitting.`
+  return 'You missed some required field(s). Please complete them before submitting.'
+})
+
+async function handleMissedConfirm() {
+  missedModalOpen.value = false
+  await jumpToFirstError()
+}
+
+function collectMissedRequired() {
+  // assumes: errors[field_key] is set by validateRequiredVisible()
+  const missed = visibleFields.value
+    .filter((f) => f.required && !!errors[f.field_key])
+    .map((f) => f.label || f.field_key)
+
+  missedRequiredLabels.value = missed
+}
+
+async function jumpToFirstError() {
+  const firstBad = visibleFields.value.find((f) => f.required && errors[f.field_key])
+  if (!firstBad) return
+
+  const idx = visibleFields.value.findIndex((f) => f.field_key === firstBad.field_key)
+  if (idx < 0) return
+
+  const stepSize = Math.max(1, fieldsPerStep.value)
+  const targetStep = Math.floor(idx / stepSize)
+  currentStep.value = Math.min(Math.max(targetStep, 0), steps.value.length - 1)
+
+  await nextTick()
+
+  const el = document.querySelector(
+    `[data-field-key="${firstBad.field_key}"]`
+  ) as HTMLElement | null
+
+  el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+}
+
 
 // Watch for final transcript arriving, then feed assistant
 watch(
@@ -652,7 +706,6 @@ watch(
     await voice.onFinalTranscript(val)
   }
 )
-
 
 onMounted(async () => {
   await loadForm()

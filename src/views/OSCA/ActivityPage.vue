@@ -46,14 +46,6 @@
                     class="flex items-center gap-3 border-2 rounded-lg px-3 py-2"
                     :style="{ borderColor: brand }"
                   >
-                    <!-- status dot -->
-                    <span
-                      class="w-2.5 h-2.5 rounded-full shrink-0"
-                      :class="a.isUnread ? 'opacity-100' : 'opacity-0'"
-                      :style="{ backgroundColor: '#f4d000' }"
-                      aria-hidden="true"
-                      title="Unread"
-                    />
 
                     <!-- message -->
                     <div class="min-w-0 flex-1">
@@ -102,10 +94,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import Sidebar, { type NavItem } from '@/components/Staff/Sidebar.vue'
 import Header from '@/components/Staff/Header.vue'
 import Pagination from '@/components/Staff/Pagination.vue'
+import { supabase } from '@/supabase/client' // <-- adjust path if needed
 
 import DashboardIcon from '/public/staff/dashboard.png'
 import BarangaysIcon from '/public/staff/barangays.png'
@@ -119,8 +112,10 @@ const sidebarCollapsed = ref(false)
 /** Pagination */
 const page = ref(1)
 const pageSize = ref(7)
+const totalItems = ref(0)
+const loading = ref(false)
 
-type ActivityType = 'submitted_file' | 'resubmitted_file' | 'started_application' | 'sent_form'
+type ActivityType = 'submitted_file' | 'started_application' | 'sent_form'
 type ActivityItem = {
   id: string
   type: ActivityType
@@ -128,49 +123,110 @@ type ActivityItem = {
   timeLabel: string
   isUnread: boolean
   to: string
+  happened_at: string
+  application_id: string
 }
 
-/** TEMP DATA (replace with Supabase later) */
-const activities = ref<ActivityItem[]>([
-  { id: 'a-001', type: 'resubmitted_file', message: 'User A re-submitted Document A', timeLabel: '2 mins ago', isUnread: true, to: '/osca/applicant-review/a-001' },
-  { id: 'a-002', type: 'submitted_file', message: 'User A submitted Document A', timeLabel: '10 mins ago', isUnread: false, to: '/osca/applicant-review/a-002' },
-  { id: 'a-003', type: 'submitted_file', message: 'User A submitted Document B', timeLabel: '25 mins ago', isUnread: false, to: '/osca/applicant-review/a-003' },
-  { id: 'a-004', type: 'sent_form', message: 'User A submitted Form A', timeLabel: '1 hour ago', isUnread: true, to: '/osca/applicant-review/a-004' },
-  { id: 'a-005', type: 'submitted_file', message: 'User G submitted Document A', timeLabel: '3 hours ago', isUnread: true, to: '/osca/applicant-review/a-005' },
-  { id: 'a-006', type: 'submitted_file', message: 'User F submitted Document A', timeLabel: 'Yesterday', isUnread: false, to: '/osca/applicant-review/a-006' },
-  { id: 'a-007', type: 'started_application', message: 'User S started an application', timeLabel: '2 days ago', isUnread: true, to: '/osca/programs' },
-  { id: 'a-008', type: 'submitted_file', message: 'User K submitted Barangay Certificate', timeLabel: '3 days ago', isUnread: false, to: '/osca/applicant-review/a-008' },
-  { id: 'a-009', type: 'sent_form', message: 'User M sent OSCA request form', timeLabel: '4 days ago', isUnread: false, to: '/osca/applicant-review/a-009' },
-  { id: 'a-010', type: 'resubmitted_file', message: 'User T re-submitted Affidavit of Loss', timeLabel: '5 days ago', isUnread: true, to: '/osca/applicant-review/a-010' }
-])
+const activities = ref<ActivityItem[]>([])
 
-const totalPages = computed(() => Math.max(1, Math.ceil(activities.value.length / pageSize.value)))
+function timeAgo(input: string) {
+  const d = new Date(input)
+  const diffMs = Date.now() - d.getTime()
+  const sec = Math.floor(diffMs / 1000)
+  const min = Math.floor(sec / 60)
+  const hr = Math.floor(min / 60)
+  const day = Math.floor(hr / 24)
 
-const pagedActivities = computed(() => {
-  const p = Math.min(Math.max(1, page.value), totalPages.value)
-  const start = (p - 1) * pageSize.value
-  return activities.value.slice(start, start + pageSize.value)
-})
+  if (sec < 60) return `${sec}s ago`
+  if (min < 60) return `${min}m ago`
+  if (hr < 24) return `${hr}h ago`
+  return `${day}d ago`
+}
+
+/** local unread (optional). If you want persistent unread per OSCA staff,
+ * we’ll connect this to notifications table later. */
+const unreadSet = ref<Set<string>>(new Set())
 
 function markRead(id: string) {
+  unreadSet.value.delete(id)
   const item = activities.value.find(x => x.id === id)
   if (item) item.isUnread = false
 }
 
 function prettyType(t: ActivityType) {
   switch (t) {
-    case 'submitted_file':
-      return 'Submitted File'
-    case 'resubmitted_file':
-      return 'Re-submitted File'
-    case 'started_application':
-      return 'Started Application'
-    case 'sent_form':
-      return 'Sent Form'
-    default:
-      return 'Activity'
+    case 'submitted_file': return 'Submitted Requirements'
+    case 'started_application': return 'Started Application'
+    case 'sent_form': return 'Submitted Form'
+    default: return 'Activity'
   }
 }
+
+const totalPages = computed(() => Math.max(1, Math.ceil(totalItems.value / pageSize.value)))
+
+const pagedActivities = computed(() => {
+  // we already fetch by page; keep template unchanged
+  return activities.value
+})
+
+async function fetchActivities() {
+  loading.value = true
+  try {
+    const limit = pageSize.value
+    const offset = (page.value - 1) * pageSize.value
+
+    const { data, error } = await supabase.rpc('get_osca_activity_feed', {
+      p_limit: limit,
+      p_offset: offset
+    })
+
+    if (error) throw error
+
+    const rows = (data ?? []) as Array<{
+      id: string
+      type: ActivityType
+      message: string
+      happened_at: string
+      application_id: string
+      total_count: number
+    }>
+
+    totalItems.value = rows[0]?.total_count ?? 0
+
+    activities.value = rows.map(r => {
+      const isUnread = unreadSet.value.has(r.id) || unreadSet.value.size === 0
+      // ^ optional: first load mark all unread; you can change behavior easily
+
+      // keep your router link format consistent with your route:
+      // { path: '/osca/applicant/:applicationId', name:'ApplicantReview', props:true ... }
+      const to = { name: 'ApplicantReview', params: { applicationId: r.application_id } }
+
+      // ensure set contains it if unread
+      if (isUnread) unreadSet.value.add(r.id)
+
+      return {
+        id: r.id,
+        type: r.type,
+        message: r.message,
+        timeLabel: timeAgo(r.happened_at),
+        isUnread,
+        to: (to as any),
+        happened_at: r.happened_at,
+        application_id: r.application_id
+      }
+    })
+  } finally {
+    loading.value = false
+  }
+}
+
+watch([page, pageSize], () => {
+  fetchActivities()
+})
+
+onMounted(() => {
+  fetchActivities()
+})
 
 const oscaNavItems: NavItem[] = [
   { label: 'Dashboard', to: '/osca/dashboard', icon: DashboardIcon },

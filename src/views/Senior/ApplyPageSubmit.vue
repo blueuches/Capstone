@@ -187,8 +187,10 @@ async function loadRequirements() {
     const title = req?.name ?? 'Requirement'
     const subtitle = req?.notes ?? undefined
     const kind = toKind(req?.requirement_kind)
+    
+const formSub = r?.form_submissions
+const hasForm = Array.isArray(formSub) ? formSub.length > 0 : !!formSub?.id
 
-    const hasForm = Array.isArray(r?.form_submissions) && r.form_submissions.length > 0
     const hasDocs = Array.isArray(r?.document_submissions) && r.document_submissions.length > 0
     const hasRecord = kind === 'form' ? hasForm : hasDocs
 
