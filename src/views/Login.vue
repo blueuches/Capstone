@@ -1,13 +1,13 @@
 <template>
   <div
-    class="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-100 via-emerald-50 to-white px-4 py-6"
+    class="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#e9f7ec] via-[#f3fbf5] to-white px-4 py-6"
   >
     <div
       class="w-full max-w-3xl bg-white rounded-3xl shadow-xl p-10 flex flex-col items-center relative"
     >
       <router-link
         to="/"
-        class="absolute top-4 left-4 inline-flex items-center gap-2 text-sm text-emerald-600 hover:text-emerald-800 font-semibold"
+        class="absolute top-4 left-4 inline-flex items-center gap-2 text-sm text-[#42ad43] hover:text-emerald-800 font-semibold"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -26,12 +26,12 @@
         Back to Home
       </router-link>
 
-      <h1 class="text-4xl font-extrabold text-emerald-700 text-center mb-2">Login</h1>
+      <h1 class="text-4xl font-extrabold text-[#42ad43] text-center mb-2">Login</h1>
       <p class="text-gray-600 text-center mb-8 text-lg">Welcome! Please log in to continue.</p>
 
       <form class="w-full flex flex-col gap-6">
         <div class="relative">
-          <span class="absolute left-4 top-3 text-emerald-500">
+          <span class="absolute left-4 top-3 text-[#42ad43]">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               class="h-6 w-6"
@@ -58,7 +58,7 @@
         </div>
 
         <div class="relative">
-          <span class="absolute left-4 top-3 text-emerald-500">
+          <span class="absolute left-4 top-3 text-[#42ad43]">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               class="h-6 w-6"
@@ -88,7 +88,7 @@
           @click="submit"
           type="submit"
           :disabled="loading"
-          class="w-full bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white py-3 text-xl rounded-xl font-bold shadow-md transition-all disabled:opacity-60"
+          class="w-full bg-gradient-to-r from-[#42ad43] to-green-500 hover:from-green-500 hover:to-green-600 text-white py-3 text-xl rounded-xl font-bold shadow-md transition-all disabled:opacity-60"
         >
           <span v-if="!loading">Login</span>
           <span v-else>Signing in…</span>
@@ -100,7 +100,7 @@
       <p class="mt-8 text-lg text-gray-700 text-center">
         Don’t have an account? <br />
         <router-link to="/signup">
-          <button class="text-emerald-700 font-bold underline">Register here</button>
+          <button class="text-[#42ad43] font-bold underline">Register here</button>
         </router-link>
       </p>
     </div>

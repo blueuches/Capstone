@@ -59,7 +59,7 @@ const handleSignup = async () => {
 
 <template>
   <div
-    class="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-100 via-emerald-50 to-white px-4 py-6"
+    class="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#e9f7ec] via-[#f3fbf5] to-white px-4 py-6"
   >
     <div
       class="w-full max-w-3xl bg-white rounded-3xl shadow-xl p-10 flex flex-col items-center relative"
@@ -67,7 +67,7 @@ const handleSignup = async () => {
       <!-- Back -->
       <router-link
         to="/"
-        class="absolute top-4 left-4 inline-flex items-center gap-2 text-sm text-emerald-600 hover:text-emerald-800 font-semibold"
+        class="absolute top-4 left-4 inline-flex items-center gap-2 text-sm text-[#42ad43] hover:text-emerald-800 font-semibold"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -81,7 +81,7 @@ const handleSignup = async () => {
         Back to Home
       </router-link>
 
-      <h1 class="text-4xl font-extrabold text-emerald-700 mb-2">
+      <h1 class="text-4xl font-extrabold text-[#42ad43]  mb-2">
         Signup
       </h1>
       <p class="text-gray-600 mb-8 text-lg text-center">
@@ -179,7 +179,7 @@ const handleSignup = async () => {
         <button
           type="submit"
           :disabled="loading || passwordMismatch"
-          class="md:col-span-3 w-full bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white py-3 text-xl rounded-xl font-bold shadow-md transition-all disabled:opacity-60"
+          class="md:col-span-3 w-full bg-gradient-to-r from-[#42ad43] to-green-500 hover:from-green-500 hover:to-green-600 text-white py-3 text-xl rounded-xl font-bold shadow-md transition-all disabled:opacity-60"
         >
           {{ loading ? 'Creating…' : 'Register' }}
         </button>
@@ -191,14 +191,14 @@ const handleSignup = async () => {
 
       <p class="mt-6 text-sm text-gray-600">
         Already have an account?
-        <router-link to="/signup-staff" class="text-emerald-700 font-bold underline">
+        <router-link to="/login" class="text-[#42ad43]  font-bold underline">
           Login here
         </router-link>
       </p>
 
       <p class="mt-2 text-sm text-gray-600">
         OSCA or Brgy Staff?
-        <router-link to="/signup-staff" class="text-emerald-700 font-bold underline">
+        <router-link to="/signup-staff" class="text-[#42ad43]  font-bold underline">
           Signup here
         </router-link>
       </p>

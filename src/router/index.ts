@@ -52,6 +52,7 @@ import BRGYProfile from '@/views/OSCA/StaffProfile.vue'
 
 //BRGY
 import SeniorManagement from '@/views/Barangay/SeniorManagement.vue'
+import SeniorManagementBuilder from '@/views/Barangay/SeniorManagementBuilder.vue'
 import SeniorView from '@/views/Barangay/SeniorView.vue'
 import SeniorList from '@/views/Barangay/SeniorList.vue'
 import BRGYAnnouncement from '@/views/Barangay/Announcement.vue'
@@ -143,6 +144,7 @@ const routes = [
   { path: '/barangay/about', component: BRGYAbout, meta: { requiresAuth: true, role: 'barangay_staff' }},
 
   //BRGY functions
+  { path: '/barangay/management/list/:listId', component: SeniorManagementBuilder, meta: { requiresAuth: true, role: 'barangay_staff' }},
 
   //ADMIN
   { path: '/admin/logs', component: Logs, meta: { requiresAuth: true, role: 'admin'}},

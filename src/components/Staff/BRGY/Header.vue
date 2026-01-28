@@ -50,7 +50,7 @@
     <div class="flex items-center gap-2">
       <!-- Notifications -->
       <RouterLink
-      :to="notificationTo"
+        :to="notificationTo"
         class="relative w-10 h-10 rounded-xl border border-gray-200 hover:bg-gray-50 active:bg-gray-100 transition flex items-center justify-center"
         aria-label="Notifications"
       >
@@ -70,7 +70,7 @@
         </svg>
 
         <span
-          v-if="notificationCount > 0"
+          v-if="liveUnreadCount > 0"
           class="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[11px] font-bold flex items-center justify-center border-2 border-white"
         >
           {{ displayNotif }}
@@ -142,7 +142,9 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
-import { useAuth } from '@/composables/useAuth' 
+import { useAuth } from '@/composables/useAuth'
+import { supabase } from '@/supabase/client'
+import type { RealtimeChannel } from '@supabase/supabase-js'
 
 const { logout } = useAuth()
 
@@ -150,8 +152,7 @@ const props = defineProps<{
   showSearch?: boolean
   notificationCount?: number
   search?: string
-
-    notificationTo?: string
+  notificationTo?: string
   profileTo?: string
   settingsTo?: string
   aboutTo?: string
@@ -160,7 +161,6 @@ const props = defineProps<{
 const notificationTo = computed(() => props.notificationTo ?? '/barangay/notification')
 const profileTo = computed(() => props.profileTo ?? '/barangay/profile')
 const aboutTo = computed(() => props.aboutTo ?? '/barangay/about')
-
 
 defineEmits<{
   (e: 'toggle-sidebar'): void
@@ -171,8 +171,12 @@ const searchValue = ref(props.search ?? '')
 const profileOpen = ref(false)
 const profileWrap = ref<HTMLElement | null>(null)
 
-const notificationCount = computed(() => props.notificationCount ?? 0)
-const displayNotif = computed(() => (notificationCount.value > 99 ? '99+' : String(notificationCount.value)))
+// ✅ LIVE unread notif count (self-contained)
+const liveUnreadCount = ref<number>(props.notificationCount ?? 0)
+const displayNotif = computed(() => (liveUnreadCount.value > 99 ? '99+' : String(liveUnreadCount.value)))
+
+let channel: RealtimeChannel | null = null
+let currentUserId: string | null = null
 
 function toggleProfile() {
   profileOpen.value = !profileOpen.value
@@ -185,6 +189,80 @@ function onDocClick(e: MouseEvent) {
   if (!el.contains(e.target as Node)) profileOpen.value = false
 }
 
-onMounted(() => document.addEventListener('click', onDocClick))
-onBeforeUnmount(() => document.removeEventListener('click', onDocClick))
+async function refreshUnreadCount() {
+  if (!currentUserId) return
+
+  const { count, error } = await supabase
+    .from('notifications')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', currentUserId)
+    .is('read_at', null)
+
+  if (error) {
+    console.error('BRGY Header unread count error:', error)
+    return
+  }
+
+  liveUnreadCount.value = count ?? 0
+}
+
+async function setupNotifRealtime() {
+  const { data: sessionRes, error: sessErr } = await supabase.auth.getSession()
+  if (sessErr) console.error('BRGY Header getSession error:', sessErr)
+
+  const user = sessionRes.session?.user
+  if (!user) return
+
+  currentUserId = user.id
+
+  // initial load
+  await refreshUnreadCount()
+
+  // cleanup old channel
+  if (channel) {
+    await supabase.removeChannel(channel)
+    channel = null
+  }
+
+  channel = supabase
+    .channel(`brgy_header_notif_${user.id}`)
+    .on(
+      'postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` },
+      payload => {
+        const n = payload.new as any
+        if (n.read_at == null) liveUnreadCount.value += 1
+      }
+    )
+    .on(
+      'postgres_changes',
+      { event: 'UPDATE', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` },
+      payload => {
+        const oldRow = payload.old as any
+        const newRow = payload.new as any
+
+        if (oldRow?.read_at == null && newRow?.read_at != null) {
+          liveUnreadCount.value = Math.max(0, liveUnreadCount.value - 1)
+        } else if (oldRow?.read_at != null && newRow?.read_at == null) {
+          liveUnreadCount.value += 1
+        }
+      }
+    )
+    .subscribe(async status => {
+      if (status === 'SUBSCRIBED') await refreshUnreadCount()
+    })
+}
+
+onMounted(async () => {
+  document.addEventListener('click', onDocClick)
+  await setupNotifRealtime()
+})
+
+onBeforeUnmount(async () => {
+  document.removeEventListener('click', onDocClick)
+  if (channel) {
+    await supabase.removeChannel(channel)
+    channel = null
+  }
+})
 </script>

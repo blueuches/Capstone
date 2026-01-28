@@ -61,7 +61,7 @@ const handleSignup = async () => {
 </script>
 
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-100 via-emerald-50 to-white p-6">
+  <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#e9f7ec] via-[#f3fbf5] to-white p-6">
     <div class="w-full max-w-xl bg-white rounded-3xl shadow-xl p-8 sm:p-10 relative">
 
       <!-- Back -->
@@ -75,7 +75,7 @@ const handleSignup = async () => {
         Home
       </router-link>
 
-      <h1 class="text-3xl sm:text-4xl font-extrabold text-emerald-700 text-center mb-2">
+      <h1 class="text-3xl sm:text-4xl font-extrabold text-[#42ad43] text-center mb-2">
         Sign Up (Staff)
       </h1>
       <p class="text-gray-600 text-center mb-6">
@@ -195,8 +195,7 @@ const handleSignup = async () => {
         <button
           type="submit"
           :disabled="loading || passwordMismatch"
-          class="w-full bg-gradient-to-r from-emerald-500 to-green-600
-                 hover:from-emerald-600 hover:to-green-700
+          class="w-full bg-gradient-to-r from-[#42ad43] to-green-500 hover:from-green-500 hover:to-green-600
                  text-white py-3 text-xl rounded-xl font-bold
                  shadow-md transition-all disabled:opacity-60"
         >
@@ -210,14 +209,14 @@ const handleSignup = async () => {
 
       <p class="mt-6 text-sm text-gray-600">
         Already have an account?
-        <router-link to="/signup" class="text-emerald-700 font-semibold underline">
+        <router-link to="/signup" class="text-[#42ad43]  font-semibold underline">
           Login here
         </router-link>
       </p>
       <!-- Footer links -->
       <p class="mt-2 text-sm text-gray-600">
         Are you a senior citizen?
-        <router-link to="/signup" class="text-emerald-700 font-semibold underline">
+        <router-link to="/signup" class="text-[#42ad43]  font-semibold underline">
           Sign up here
         </router-link>
       </p>

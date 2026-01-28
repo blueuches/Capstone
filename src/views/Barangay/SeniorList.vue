@@ -58,7 +58,7 @@
                         {{ a.message }}
                       </p>
                       <p class="text-[11px] text-gray-500">
-                        {{ a.timeLabel }} • {{ prettyType(a.reviewState) }}
+                        {{ a.timeLabel }} • {{ prettyType(a) }}
                       </p>
                     </div>
 
@@ -95,8 +95,6 @@ import ApplicationIcon from '/public/staff/application.png'
 import ActivityIcon from '/public/staff/activity.png'
 import AnnouncementIcon from '/public/staff/announcement.png'
 import Pagination from '@/components/Staff/Pagination.vue'
-
-// ✅ Change this to your actual Supabase client import
 import { supabase } from '@/supabase/client'
 
 const brand = '#42ad43'
@@ -114,34 +112,49 @@ type ActivityItem = {
   message: string
   timeLabel: string
   reviewState: ReviewState
+  assignedLabel: string
 }
 
 const activities = ref<ActivityItem[]>([])
 const loading = ref(false)
 
 /**
- * Supabase embedded relations often come back as arrays in TS.
- * We type them as arrays and pick [0].
+ * applications.status is an enum in your schema:
+ * draft, submitted, under_review, needs_correction, approved, rejected, released
  */
+type ApplicationStatus =
+  | 'draft'
+  | 'submitted'
+  | 'under_review'
+  | 'needs_correction'
+  | 'approved'
+  | 'rejected'
+  | 'released'
+
+type DbProfile = { first_name: string | null; last_name: string | null }
+
 type DbRow = {
   id: string
   created_at: string
   submitted_at: string | null
-  status: string | null
+  status: ApplicationStatus | null
   assigned_osca_id: string | null
-  senior: { first_name: string | null; last_name: string | null }[] | null
-  issuance: { name: string | null }[] | null
+
+  senior: DbProfile | DbProfile[] | null
+  issuance: { name: string | null } | { name: string | null }[] | null
+  assigned_osca: DbProfile | DbProfile[] | null
 }
 
-function pickOne<T>(v: T[] | null | undefined): T | null {
-  return Array.isArray(v) && v.length ? v[0] : null
+function pickRel<T>(v: T | T[] | null | undefined): T | null {
+  if (!v) return null
+  return Array.isArray(v) ? (v.length ? v[0] : null) : v
 }
 
 function formatName(p?: { first_name?: string | null; last_name?: string | null } | null) {
   const first = (p?.first_name || '').trim()
   const last = (p?.last_name || '').trim()
   const full = `${first} ${last}`.trim()
-  return full || 'Unknown User'
+  return full || 'Unknown Senior'
 }
 
 function formatTimeLabel(iso: string) {
@@ -149,9 +162,20 @@ function formatTimeLabel(iso: string) {
   return d.toLocaleString()
 }
 
-function buildMessageWithIndex(userName: string, issuanceName: string, indexNum?: number) {
-  const suffix = typeof indexNum === 'number' ? `.${indexNum}` : ''
-  return `${userName} made an Application ${issuanceName}${suffix}`
+function resolveReviewState(status: ApplicationStatus | null, assignedOscoId: string | null): ReviewState {
+  // ✅ your note: if not reviewed NOR assigned => "Not reviewed yet"
+  // We'll treat only draft/submitted (and no assigned) as not reviewed yet.
+  if (!assignedOscoId && (status === 'draft' || status === 'submitted' || status === null)) {
+    return 'not_reviewed'
+  }
+  return 'currently_reviewing'
+}
+
+function resolveAssignedLabel(assignedOscoId: string | null, assignedProfile: DbProfile | null) {
+  if (!assignedOscoId) return 'Not assigned yet'
+  const name = formatName(assignedProfile)
+  // if assigned but missing profile fields, still show something stable:
+  return name === 'Unknown Senior' ? 'Assigned to: (Unknown OSCA Staff)' : `Assigned to: ${name}`
 }
 
 async function fetchApplyingSeniors() {
@@ -164,7 +188,6 @@ async function fetchApplyingSeniors() {
 
   loading.value = true
   try {
-    // ✅ INCLUDE drafts now (no status/submitted_at filtering)
     const { data, error } = await supabase
       .from('applications')
       .select(
@@ -175,7 +198,8 @@ async function fetchApplyingSeniors() {
         status,
         assigned_osca_id,
         senior:profiles!applications_senior_id_fkey(first_name,last_name),
-        issuance:issuance_types!applications_issuance_type_id_fkey(name)
+        issuance:issuance_types!applications_issuance_type_id_fkey(name),
+        assigned_osca:profiles!applications_assigned_osca_id_fkey(first_name,last_name)
       `
       )
       .eq('barangay_id', barangayId)
@@ -186,43 +210,28 @@ async function fetchApplyingSeniors() {
 
     const rows = (data ?? []) as unknown as DbRow[]
 
-    // Count per (user + issuance) so we can add ".1/.2" only when needed
-    const counts = new Map<string, number>()
-    for (const r of rows) {
-      const seniorOne = pickOne(r.senior)
-      const issuanceOne = pickOne(r.issuance)
+    console.log('rows sample:', rows[0])
 
-      const userName = formatName(seniorOne)
-      const issuanceName = (issuanceOne?.name || '').trim() || 'Unknown'
-      const key = `${userName}||${issuanceName}`
-
-      counts.set(key, (counts.get(key) || 0) + 1)
-    }
-
-    // Assign numbering in display order
-    const seen = new Map<string, number>()
     const finalMapped: ActivityItem[] = rows.map(r => {
-      const seniorOne = pickOne(r.senior)
-      const issuanceOne = pickOne(r.issuance)
+      const seniorOne = pickRel(r.senior)
+      const issuanceOne = pickRel(r.issuance)
+      const assignedOscoOne = pickRel(r.assigned_osca)
 
-      const userName = formatName(seniorOne)
-      const issuanceName = (issuanceOne?.name || '').trim() || 'Unknown'
-      const key = `${userName}||${issuanceName}`
 
-      const idx = (seen.get(key) || 0) + 1
-      seen.set(key, idx)
+      const seniorName = formatName(seniorOne)
+      const issuanceName = (issuanceOne?.name || '').trim() || 'Unknown Issuance'
 
-      const total = counts.get(key) || 1
-      const msg =
-        total > 1
-          ? buildMessageWithIndex(userName, issuanceName, idx)
-          : `${userName} made an Application ${issuanceName}`
+      const reviewState = resolveReviewState(r.status, r.assigned_osca_id)
+      const assignedLabel = resolveAssignedLabel(r.assigned_osca_id, assignedOscoOne)
 
       return {
         id: r.id,
-        message: msg,
+        // ✅ make sure “Application Unknown” becomes the issuance name
+        message: `${seniorName} applied for ${issuanceName}`,
         timeLabel: formatTimeLabel(r.created_at),
-        reviewState: r.assigned_osca_id ? 'currently_reviewing' : 'not_reviewed',
+        reviewState,
+        // ✅ replace “Edited by Staff Divina…”
+        assignedLabel,
       }
     })
 
@@ -234,11 +243,13 @@ async function fetchApplyingSeniors() {
   } finally {
     loading.value = false
   }
+
+  
 }
 
-onMounted(() => {
-  fetchApplyingSeniors()
-})
+
+
+onMounted(() => fetchApplyingSeniors())
 
 watch(
   () => (profile as any)?.value?.barangay_id,
@@ -254,18 +265,10 @@ const pagedActivities = computed(() => {
   return activities.value.slice(start, start + pageSize.value)
 })
 
-function prettyType(state: ReviewState) {
-  // per notes:
-  // - if no assigned_osca_id => Not Yet Reviewed
-  // - else => Currently Reviewing
-  switch (state) {
-    case 'not_reviewed':
-      return 'Edited by Staff Divina • Not Yet Reviewed'
-    case 'currently_reviewing':
-      return 'Edited by Staff Divina • Currently Reviewing'
-    default:
-      return 'Edited by Staff Divina'
-  }
+function prettyType(a: ActivityItem) {
+  // ✅ line should be: Assigned label • review label
+  const reviewLabel = a.reviewState === 'not_reviewed' ? 'Not reviewed yet' : 'Currently reviewing'
+  return `${a.assignedLabel} • ${reviewLabel}`
 }
 
 const oscaNavItems: NavItem[] = [

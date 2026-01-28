@@ -9,11 +9,11 @@
         <!-- Logo: big icon on the far left -->
         <div class="flex items-center gap-2">
           <img
-            src="/icon.png"
+            src="/logo1.png"
             alt="SeniorGo logo"
             class="h-10 w-auto md:h-12 object-contain flex-shrink-0"
           />
-          <h1 class="text-base md:text-lg font-bold text-emerald-600">
+          <h1 class="text-base md:text-lg font-bold text-[#42ad43] ">
             SeniorGo
           </h1>
         </div>
@@ -27,24 +27,23 @@
 
         <!-- Auth actions (desktop) -->
         <div class="hidden md:flex items-center gap-3">
-          <router-link to="/login" class="px-4 py-2 bg-emerald-600 text-white rounded-xl font-semibold shadow hover:bg-emerald-700 transition">Log In</router-link>
-          <router-link to="/signup" class="px-4 py-2 border border-emerald-600 text-emerald-700 rounded-xl font-semibold shadow hover:bg-emerald-50 transition">Sign Up</router-link>
+          <!-- if logged in -->
+          <button
+            v-if="isLoggedIn"
+            @click="goToDashboard"
+            class="px-4 py-2 bg-emerald-600 text-white rounded-xl font-semibold shadow hover:bg-emerald-700 transition"
+          >
+            Go to Dashboard
+          </button>
+
+          <!-- if NOT logged in -->
+          <template v-else>
+            <router-link to="/login" class="px-4 py-2 bg-emerald-600 text-white rounded-xl font-semibold shadow hover:bg-emerald-700 transition">Log In</router-link>
+            <router-link to="/signup" class="px-4 py-2 border border-emerald-600 text-emerald-700 rounded-xl font-semibold shadow hover:bg-emerald-50 transition">Sign Up</router-link>
+          </template>
         </div>
 
-        <!-- Mobile menu button -->
-        <button
-          class="md:hidden inline-flex items-center justify-center p-2 rounded-lg border border-gray-200 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-          @click="menuOpen = !menuOpen"
-          :aria-expanded="menuOpen.toString()"
-          aria-label="Toggle navigation"
-        >
-          <svg v-if="!menuOpen" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
-          </svg>
-          <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-          </svg>
-        </button>
+
       </div>
 
       <!-- Mobile Nav Panel -->
@@ -56,9 +55,20 @@
         <a href="#testimonials" @click="closeMenu" class="block py-2 rounded hover:bg-emerald-50">Testimonials</a>
         <a href="#top" @click="closeMenu" class="block py-2 rounded hover:bg-emerald-50">Back to Top</a>
         <div class="pt-2 flex gap-3">
-          <router-link to="/login" class="flex-1 text-center px-4 py-2 bg-emerald-600 text-white rounded-xl font-semibold shadow hover:bg-emerald-700 transition">Log In</router-link>
-          <router-link to="/signup" class="flex-1 text-center px-4 py-2 border border-emerald-600 text-emerald-700 rounded-xl font-semibold shadow hover:bg-emerald-50 transition">Sign Up</router-link>
+          <button
+            v-if="isLoggedIn"
+            @click="goToDashboard(); closeMenu()"
+            class="flex-1 text-center px-4 py-2 bg-emerald-600 text-white rounded-xl font-semibold shadow hover:bg-emerald-700 transition"
+          >
+            Go to Dashboard
+          </button>
+
+          <template v-else>
+            <router-link to="/login" class="flex-1 text-center px-4 py-2 bg-emerald-600 text-white rounded-xl font-semibold shadow hover:bg-emerald-700 transition">Log In</router-link>
+            <router-link to="/signup" class="flex-1 text-center px-4 py-2 border border-emerald-600 text-emerald-700 rounded-xl font-semibold shadow hover:bg-emerald-50 transition">Sign Up</router-link>
+          </template>
         </div>
+
       </div>
     </header>
 
@@ -69,21 +79,31 @@
     <!-- Hero -->
     <section class="relative min-h-[92vh] flex flex-col items-center justify-center px-6 sm:px-10 pt-28 pb-16">
         <div class="md:w-1/2 space-y-6 text-center z-10">
-            <h2 class="text-4xl md:text-6xl font-extrabold text-emerald-700 leading-tight drop-shadow">
-                Welcome to <span class="text-emerald-600">SeniorGo</span>
+            <h2 class="text-4xl md:text-6xl font-extrabold text-[#42ad43] leading-tight drop-shadow">
+                Welcome to <span class="text-[#42ad43]">SeniorGo</span>
             </h2>
             <p class="text-lg md:text-xl text-gray-700 max-w-xl mx-auto">
-                A digital companion for Butuan’s beloved seniors. Access support programs with just your voice and a smile.
+                A digital companion for Butuan’s beloved seniors.
             </p>
             <div class="flex justify-center gap-4 flex-wrap pt-2">
-                <router-link to="/login" class="px-6 py-3 bg-emerald-600 text-white text-lg rounded-xl font-semibold shadow hover:bg-emerald-700 transition">Log In</router-link>
-                <router-link to="/signup" class="px-6 py-3 border border-emerald-600 text-emerald-700 text-lg rounded-xl font-semibold shadow hover:bg-emerald-100 transition">Sign Up</router-link>
+              <button
+                v-if="isLoggedIn"
+                @click="goToDashboard"
+                class="px-6 py-3 bg-[#42ad43] text-white text-lg rounded-xl font-semibold shadow hover:bg-green-500 transition"
+              >
+                Go to Dashboard
+              </button>
+
+              <template v-else>
+                <router-link to="/login" class="px-6 py-3 bg-[#42ad43] text-white text-lg rounded-xl font-semibold shadow hover:bg-green-500 transition">Log In</router-link>
+                <router-link to="/signup" class="px-6 py-3 border border-[#42ad43] text-[#42ad43] text-lg rounded-xl font-semibold shadow hover:bg-emerald-100 transition">Sign Up</router-link>
+              </template>
             </div>
         </div>
     </section>
 
     <!-- Footer -->
-    <footer class="bg-emerald-700 text-white text-center text-sm py-6">
+    <footer class="bg-[#42ad43]  text-white text-center text-sm py-6">
       &copy; 2026 SeniorGo · Made for Butuan Seniors 
     </footer>
   </div>
@@ -91,12 +111,20 @@
 
 <script setup>
 import { onMounted, onBeforeUnmount, ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
+import { supabase } from '@/supabase/client' 
+
+const router = useRouter()
 
 const menuOpen = ref(false)
 const isScrolled = ref(false)
 const fontScale = ref(1) // simple accessibility control
 
 const closeMenu = () => { menuOpen.value = false }
+
+const session = ref(null)
+const userRole = ref(null)
+const isLoggedIn = computed(() => !!session.value?.user)
 
 // scroll state for subtle border
 const onScroll = () => { isScrolled.value = window.scrollY > 4 }
@@ -108,6 +136,68 @@ const scaledFontStyle = computed(() => ({
   fontSize: `${fontScale.value}rem`
 }))
 
+async function loadSessionAndRole() {
+  const { data } = await supabase.auth.getSession()
+  session.value = data.session
+
+  if (!data.session?.user) {
+    userRole.value = null
+    return
+  }
+
+  // ✅ get role from profiles
+  const { data: profile, error } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', data.session.user.id)
+    .single()
+
+  if (error) {
+    console.error('Failed to load role:', error)
+    userRole.value = null
+    return
+  }
+
+  userRole.value = profile?.role ?? null
+}
+
+function roleToDashboardPath(role) {
+  // ✅ Adjust these to match YOUR real routes
+  switch (role) {
+    case 'senior': return '/senior/dashboard'
+    case 'barangay_staff': return '/barangay/dashboard'
+    case 'osca_staff': return '/osca/dashboard'
+    case 'admin': return '/admin/dashboard'
+    default: return '/login' // fallback if role missing
+  }
+}
+
+async function goToDashboard() {
+  // Ensure role is loaded (in case user opened welcome page directly)
+  if (isLoggedIn.value && !userRole.value) {
+    await loadSessionAndRole()
+  }
+  router.push(roleToDashboardPath(userRole.value))
+}
+
+let authUnsub = null
+onMounted(async () => {
+  await loadSessionAndRole()
+
+  const { data } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
+    session.value = newSession
+    if (!newSession?.user) {
+      userRole.value = null
+      return
+    }
+    await loadSessionAndRole()
+  })
+  authUnsub = data?.subscription
+})
+
+onBeforeUnmount(() => {
+  authUnsub?.unsubscribe?.()
+})
 </script>
 
 <style>
@@ -116,9 +206,13 @@ html { scroll-behavior: smooth; }
 
 /* Background gradient */
 .gradient-bg {
-  background: linear-gradient(to bottom right, #d1fae5, #f0fdf4);
+  background: linear-gradient(
+    to bottom right,
+    #e9f7ec,
+    #f3fbf5,
+    #ffffff
+  );
 }
-
 /* Decorative blobs */
 .blob {
   position: fixed;
