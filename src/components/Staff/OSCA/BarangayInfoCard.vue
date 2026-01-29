@@ -1,7 +1,11 @@
 <template>
-  <section class="w-full rounded-xl overflow-hidden shadow-sm border border-gray-200 bg-white">
+  <section
+    class="w-full rounded-xl overflow-hidden shadow-sm border border-gray-200 bg-white
+           flex flex-col min-h-0"
+    :class="cardHeightClass"
+  >
     <!-- Green Header -->
-    <div class="bg-[#42ad43] text-white px-4 py-3 flex items-center justify-between">
+    <div class="bg-[#42ad43] text-white px-4 py-3 flex items-center justify-between shrink-0">
       <h3 class="font-extrabold tracking-wide text-sm sm:text-base">
         {{ title }}
       </h3>
@@ -11,90 +15,93 @@
       </span>
     </div>
 
-    <!-- List Area -->
-    <div class="p-3 sm:p-4">
+    <!-- Body: make it a column so footer stays visible -->
+    <div class="p-3 sm:p-4 flex flex-col min-h-0 flex-1">
       <!-- Loading -->
       <div v-if="loading" class="text-sm text-gray-500">
         Loading...
       </div>
 
       <!-- Empty -->
-      <div v-else-if="rows.length === 0" class="text-sm text-gray-500 py-6 text-center">
+      <div
+        v-else-if="rows.length === 0"
+        class="text-sm text-gray-500 py-6 text-center flex-1 flex items-center justify-center"
+      >
         {{ emptyText }}
       </div>
 
-      <!-- Rows -->
-      <ul v-else class="space-y-2">
-        <li
-          v-for="r in rows"
-          :key="r.id"
-          class="flex items-center justify-between gap-3 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2"
-        >
-          <div class="min-w-0">
-            <div class="font-semibold text-gray-900 truncate">
-              {{ r.full_name }}
+      <!-- Rows (scroll area) -->
+      <div v-else class="flex-1 min-h-0 overflow-y-auto pr-1">
+        <ul class="space-y-2">
+          <li
+            v-for="r in rows"
+            :key="r.id"
+            class="flex items-center justify-between gap-3 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2"
+          >
+            <div class="min-w-0">
+              <div class="font-semibold text-gray-900 truncate">
+                {{ r.full_name }}
+              </div>
             </div>
-          </div>
 
-          <!-- Row Arrow -->
-          <RouterLink
-            v-if="r.to"
-            :to="r.to"
-            class="shrink-0 w-7 h-7 rounded-full bg-[#42ad43] text-white
-                   flex items-center justify-center
-                   hover:brightness-105 active:brightness-95 transition"
-            aria-label="View"
-          >
-            <svg
-              class="w-4 h-4"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2.5"
-              stroke-linecap="round"
-              stroke-linejoin="round"
+            <!-- Row Arrow -->
+            <RouterLink
+              v-if="r.to"
+              :to="r.to"
+              class="shrink-0 w-7 h-7 rounded-full bg-[#42ad43] text-white
+                     flex items-center justify-center
+                     hover:brightness-105 active:brightness-95 transition"
+              aria-label="View"
             >
-              <path d="M9 18l6-6-6-6" />
-            </svg>
-          </RouterLink>
+              <svg
+                class="w-4 h-4"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M9 18l6-6-6-6" />
+              </svg>
+            </RouterLink>
 
-          <!-- Disabled if no route -->
-          <button
-            v-else
-            type="button"
-            class="shrink-0 w-7 h-7 rounded-full bg-[#42ad43]/50 text-white
-                   flex items-center justify-center cursor-not-allowed"
-            title="No route configured"
-          >
-            <svg
-              class="w-4 h-4"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2.5"
-              stroke-linecap="round"
-              stroke-linejoin="round"
+            <!-- Disabled if no route -->
+            <button
+              v-else
+              type="button"
+              class="shrink-0 w-7 h-7 rounded-full bg-[#42ad43]/50 text-white
+                     flex items-center justify-center cursor-not-allowed"
+              title="No route configured"
             >
-              <path d="M9 18l6-6-6-6" />
-            </svg>
-          </button>
-        </li>
-      </ul>
+              <svg
+                class="w-4 h-4"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M9 18l6-6-6-6" />
+              </svg>
+            </button>
+          </li>
+        </ul>
+      </div>
 
-      <!-- Footer: Total + Pagination -->
-      <div class="mt-4 flex items-center justify-between gap-3">
-        <div class="text-xs sm:text-sm text-gray-700">
-          <span class="font-semibold">Total:</span>
-          <span class="font-bold">{{ total }}</span>
-        </div>
-
+      <!-- Footer: Total + Pagination (always pinned) -->
+      <div class="mt-4 flex items-center justify-between gap-3 shrink-0">
         <Pagination
-          v-if="totalPages > 1"
           v-model="page"
           :total-items="total"
           :page-size="pageSize"
           :max-buttons="5"
         />
+        <div class="text-xs sm:text-sm text-gray-700">
+          <span class="font-semibold">Total:</span>
+          <span class="font-bold">{{ total }}</span>
+        </div>
       </div>
     </div>
   </section>
@@ -118,10 +125,18 @@ const props = withDefaults(
     mode: 'seniors_applying' | 'all_users' | 'staff'
     pageSize?: number
     emptyText?: string
+
+    /**
+     * Controls card height so the list becomes scrollable and footer stays visible.
+     * You can override per card if needed.
+     */
+    cardHeightClass?: string
   }>(),
   {
     pageSize: 10,
-    emptyText: 'No records yet'
+    emptyText: 'No records yet',
+    // tuned for your page layout: Header + back link + paddings
+    cardHeightClass: 'h-[calc(100vh-220px)]'
   }
 )
 
@@ -136,14 +151,24 @@ function makeFullName(first?: string, last?: string) {
   return [first, last].filter(Boolean).join(' ').trim() || 'Unnamed'
 }
 
+/**
+ * Seniors Applying:
+ * - driven by applications under this barangay
+ * - if same senior has multiple applications under the SAME issuance, label as:
+ *   Juan Dela Cruz - 1, Juan Dela Cruz - 2
+ *
+ * Note: We count in the order returned (created_at desc) on the current page.
+ * If you want numbering across ALL pages globally, that requires a server-side rank/window function.
+ */
 async function fetchSeniorsApplying(from: number, to: number) {
-  // REAL: applications filtered by barangay_id; arrow -> ApplicantReview(applicationId)
   const { data, count, error } = await supabase
     .from('applications')
     .select(
       `
       id,
       senior_id,
+      issuance_type_id,
+      created_at,
       profiles:profiles!applications_senior_id_fkey (
         first_name,
         last_name
@@ -158,16 +183,26 @@ async function fetchSeniorsApplying(from: number, to: number) {
   if (error) throw error
 
   total.value = count ?? 0
-  rows.value = (data ?? []).map((a: any) => ({
-    id: a.id, // application id
-    full_name: makeFullName(a?.profiles?.first_name, a?.profiles?.last_name),
-    to: { name: 'ApplicantReview', params: { applicationId: a.id } }
-  }))
+
+  // number duplicates per (senior_id + issuance_type_id)
+  const seq = new Map<string, number>()
+
+  rows.value = (data ?? []).map((a: any) => {
+    const base = makeFullName(a?.profiles?.first_name, a?.profiles?.last_name)
+    const key = `${a?.senior_id ?? ''}:${a?.issuance_type_id ?? ''}`
+    const next = (seq.get(key) ?? 0) + 1
+    seq.set(key, next)
+
+    return {
+      id: a.id, // application id
+      full_name: `${base} - ${next}`,
+      to: { name: 'ApplicantReview', params: { applicationId: a.id } }
+    }
+  })
 }
 
 async function fetchAllUsers(from: number, to: number) {
-  // REAL: all seniors + barangay_staff under the barangay (with/without applications)
-  // Also: if senior has an application, arrow -> ApplicantReview(applicationId), else disabled
+  // seniors + barangay_staff under this barangay (with/without applications)
   const { data, count, error } = await supabase
     .from('profiles')
     .select(
@@ -193,7 +228,6 @@ async function fetchAllUsers(from: number, to: number) {
 
   total.value = count ?? 0
   rows.value = (data ?? []).map((p: any) => {
-    // find latest application under THIS barangay (if any)
     const apps = Array.isArray(p.applications) ? p.applications : []
     const latest = apps
       .filter((x: any) => x?.barangay_id === props.barangayId)
@@ -202,15 +236,12 @@ async function fetchAllUsers(from: number, to: number) {
     return {
       id: p.id,
       full_name: makeFullName(p.first_name, p.last_name),
-      to: latest
-        ? { name: 'ApplicantReview', params: { applicationId: latest.id } }
-        : undefined
+      to: latest ? { name: 'ApplicantReview', params: { applicationId: latest.id } } : undefined
     }
   })
 }
 
 async function fetchStaff(from: number, to: number) {
-  // REAL: barangay_staff only (no route required unless you have BRGY staff profile page)
   const { data, count, error } = await supabase
     .from('profiles')
     .select('id, first_name, last_name', { count: 'exact' })
@@ -225,7 +256,7 @@ async function fetchStaff(from: number, to: number) {
   rows.value = (data ?? []).map((p: any) => ({
     id: p.id,
     full_name: makeFullName(p.first_name, p.last_name),
-    to: undefined // keep arrow disabled unless you add a route
+    to: undefined
   }))
 }
 

@@ -49,6 +49,7 @@ import OSCASettings from '@/views/OSCA/Settings.vue'
 import OSCAAbout from '@/views/OSCA/About.vue'
 import BRGYMessage from '@/views/OSCA/BRGYMessage.vue'
 import BRGYProfile from '@/views/OSCA/StaffProfile.vue'
+import UserProfile from '@/views/OSCA/UserProfile.vue'
 
 //BRGY
 import SeniorManagement from '@/views/Barangay/SeniorManagement.vue'
@@ -126,6 +127,7 @@ const routes = [
   //OSCA functions
   { path: '/osca/applicant/:applicationId', name:'ApplicantReview',props:true ,component: ApplicantReview, meta: { requiresAuth: true, role: 'osca_staff' }},
   { path: '/osca/applicant/message/:applicationId',name:'osca-message', component: OSCAMessagePage, props: true, meta: { requiresAuth: true, role: 'osca_staff' }},
+  { path: '/osca/applicant/profile/:profileId',name:'UserProfile', component: UserProfile, props: true, meta: { requiresAuth: true, role: 'osca_staff' }},
   { path: '/osca/barangay/message/:barangayId',name: 'BRGYMessage',props:true, component: BRGYMessage, meta: { requiresAuth: true, role: 'osca_staff' }},
   { path: '/osca/barangay/staff/profile/:staffId',name: 'BRGYProfile',props:true, component: BRGYProfile, meta: { requiresAuth: true, role: 'osca_staff' }},
   { path: '/osca/barangayView/:barangayId', name: 'barangay-info', props:true, component: BarangaysPageInfo, meta: { requiresAuth: true, role: 'osca_staff' }},

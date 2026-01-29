@@ -65,16 +65,16 @@
                     </div>
 
                     <!-- action -->
-                    <RouterLink
-                      :to="a.to"
+                    <button
+                      type="button"
                       class="shrink-0 inline-flex items-center justify-center
-                             px-3 py-1.5 rounded-md text-sm font-bold text-white
-                             hover:brightness-105 active:brightness-95 transition"
-                      :style="{ backgroundColor: brand }"
-                      @click="markRead(a.id)"
+                            px-3 py-1.5 rounded-md text-sm font-bold text-white transition"
+                      :style="{ backgroundColor: a.link?.disabled ? '#9ca3af' : brand }"
+                      :class="a.link?.disabled ? 'cursor-not-allowed opacity-80' : 'hover:brightness-105 active:brightness-95'"
+                      @click="handleView(a)"
                     >
-                      View
-                    </RouterLink>
+                      {{ a.link?.disabled ? 'Assigned' : 'View' }}
+                    </button>
                   </div>
                 </div>
 
@@ -101,16 +101,21 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import Sidebar, { type NavItem } from '@/components/Staff/Sidebar.vue'
-import Header from '@/components/Staff/Header.vue'
+import Header from '@/components/Staff/Header.vue' // ✅ change this
 import Pagination from '@/components/Staff/Pagination.vue'
+import { supabase } from '@/supabase/client'
+import type { RealtimeChannel } from '@supabase/supabase-js'
+
 import DashboardIcon from '/public/staff/dashboard.png'
 import BarangaysIcon from '/public/staff/barangays.png'
 import ApplicationIcon from '/public/staff/application.png'
 import ActivityIcon from '/public/staff/activity.png'
 import AnnouncementIcon from '/public/staff/announcement.png'
 
+const router = useRouter()
 const brand = '#42ad43'
 const sidebarCollapsed = ref(false)
 
@@ -118,63 +123,165 @@ const sidebarCollapsed = ref(false)
 const page = ref(1)
 const pageSize = ref(7)
 
-type ActivityType = 'submitted_file' | 'resubmitted_file' | 'started_application' | 'sent_form'
-type ActivityItem = {
+type NotifRow = {
   id: string
-  type: ActivityType
+  type: string
+  title: string
+  body: string | null
+  link: any
+  created_at: string
+  read_at: string | null
+}
+
+type RowVM = {
+  id: string
+  type: string
   message: string
   timeLabel: string
   isUnread: boolean
-  to: string
+  link: any
 }
 
-/** TEMP DATA (replace with Supabase later) */
-const activities = ref<ActivityItem[]>([
-  { id: 'a-001', type: 'resubmitted_file', message: 'User A re-submitted Document A', timeLabel: '2 mins ago', isUnread: true, to: '/osca/applicant-review/a-001' },
-  { id: 'a-002', type: 'submitted_file', message: 'User A submitted Document A', timeLabel: '10 mins ago', isUnread: false, to: '/osca/applicant-review/a-002' },
-  { id: 'a-003', type: 'submitted_file', message: 'User A submitted Document B', timeLabel: '25 mins ago', isUnread: false, to: '/osca/applicant-review/a-003' },
-  { id: 'a-004', type: 'sent_form', message: 'User A submitted Form A', timeLabel: '1 hour ago', isUnread: true, to: '/osca/applicant-review/a-004' },
-  { id: 'a-005', type: 'submitted_file', message: 'User G submitted Document A', timeLabel: '3 hours ago', isUnread: true, to: '/osca/applicant-review/a-005' },
-  { id: 'a-006', type: 'submitted_file', message: 'User F submitted Document A', timeLabel: 'Yesterday', isUnread: false, to: '/osca/applicant-review/a-006' },
-  { id: 'a-007', type: 'started_application', message: 'User S started an application', timeLabel: '2 days ago', isUnread: true, to: '/osca/programs' },
-  { id: 'a-008', type: 'submitted_file', message: 'User K submitted Barangay Certificate', timeLabel: '3 days ago', isUnread: false, to: '/osca/applicant-review/a-008' },
-  { id: 'a-009', type: 'sent_form', message: 'User M sent OSCA request form', timeLabel: '4 days ago', isUnread: false, to: '/osca/applicant-review/a-009' },
-  { id: 'a-010', type: 'resubmitted_file', message: 'User T re-submitted Affidavit of Loss', timeLabel: '5 days ago', isUnread: true, to: '/osca/applicant-review/a-010' }
-])
+const activities = ref<RowVM[]>([])
+const loading = ref(false)
+
+function timeAgo(iso: string) {
+  const t = new Date(iso).getTime()
+  const diff = Date.now() - t
+  const mins = Math.floor(diff / 60000)
+  if (mins < 1) return 'just now'
+  if (mins < 60) return `${mins} min ago`
+  const hrs = Math.floor(mins / 60)
+  if (hrs < 24) return `${hrs} hr ago`
+  const days = Math.floor(hrs / 24)
+  return `${days} day${days > 1 ? 's' : ''} ago`
+}
+
+function prettyType(t: string) {
+  if (t === 'osca_brgy_message') return 'Barangay Message'
+  if (t === 'osca_senior_message') return 'Senior Message'
+  if (t === 'osca_taken') return 'Assigned'
+  return 'Notification'
+}
+
+async function loadNotifications() {
+  loading.value = true
+  try {
+    const { data: auth } = await supabase.auth.getUser()
+    const user = auth.user
+    if (!user) {
+      activities.value = []
+      return
+    }
+
+    const { data, error } = await supabase
+      .from('notifications')
+      .select('id,type,title,body,link,created_at,read_at')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(200)
+
+    if (error) throw error
+
+    const rows = (data ?? []) as NotifRow[]
+    activities.value = rows.map(r => ({
+      id: r.id,
+      type: r.type,
+      message: r.title + (r.body ? ` — ${r.body}` : ''),
+      timeLabel: timeAgo(r.created_at),
+      isUnread: !r.read_at,
+      link: r.link
+    }))
+  } finally {
+    loading.value = false
+  }
+}
+
+async function markRead(id: string) {
+  const idx = activities.value.findIndex(x => x.id === id)
+  if (idx === -1) return
+  if (!activities.value[idx].isUnread) return
+
+  activities.value[idx].isUnread = false
+  const now = new Date().toISOString()
+  await supabase.from('notifications').update({ read_at: now }).eq('id', id)
+}
+
+async function handleView(a: RowVM) {
+  // disabled = do nothing (your “OSCA staff A already assigned…” rule)
+  if (a.link?.disabled) return
+
+  await markRead(a.id)
+
+  const link = a.link || {}
+  if (link?.name) {
+    await router.push({ name: link.name, params: link.params || {} })
+    return
+  }
+}
 
 const totalPages = computed(() => Math.max(1, Math.ceil(activities.value.length / pageSize.value)))
-
 const pagedActivities = computed(() => {
   const p = Math.min(Math.max(1, page.value), totalPages.value)
   const start = (p - 1) * pageSize.value
   return activities.value.slice(start, start + pageSize.value)
 })
 
-function markRead(id: string) {
-  const item = activities.value.find(x => x.id === id)
-  if (item) item.isUnread = false
-}
+// realtime
+let channel: RealtimeChannel | null = null
 
-function prettyType(t: ActivityType) {
-  switch (t) {
-    case 'submitted_file':
-      return 'Submitted File'
-    case 'resubmitted_file':
-      return 'Re-submitted File'
-    case 'started_application':
-      return 'Started Application'
-    case 'sent_form':
-      return 'Sent Form'
-    default:
-      return 'Activity'
+async function setupRealtime() {
+  const { data: auth } = await supabase.auth.getUser()
+  const user = auth.user
+  if (!user) return
+
+  if (channel) {
+    await supabase.removeChannel(channel)
+    channel = null
   }
+
+  channel = supabase
+    .channel(`osca_notif_${user.id}`)
+    .on(
+      'postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` },
+      payload => {
+        const n = payload.new as NotifRow
+        activities.value = [
+          {
+            id: n.id,
+            type: n.type,
+            message: n.title + (n.body ? ` — ${n.body}` : ''),
+            timeLabel: timeAgo(n.created_at),
+            isUnread: !n.read_at,
+            link: n.link
+          },
+          ...activities.value
+        ]
+      }
+    )
+    .subscribe()
 }
 
+onMounted(async () => {
+  await loadNotifications()
+  await setupRealtime()
+})
+
+onBeforeUnmount(async () => {
+  if (channel) {
+    await supabase.removeChannel(channel)
+    channel = null
+  }
+})
+
+// nav items (fix these to OSCA paths; yours are barangay paths right now)
 const oscaNavItems: NavItem[] = [
   { label: 'Dashboard', to: '/osca/dashboard', icon: DashboardIcon },
   { label: 'Barangays', to: '/osca/barangays', icon: BarangaysIcon },
-  { label: 'Application', to: '/osca/programs', icon: ApplicationIcon },
+  { label: 'Applications', to: '/osca/programs', icon: ApplicationIcon },
   { label: 'Activity', to: '/osca/activity', icon: ActivityIcon },
   { label: 'Announcement', to: '/osca/announcement', icon: AnnouncementIcon }
 ]
 </script>
+

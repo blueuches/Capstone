@@ -47,7 +47,7 @@
         <!-- Page title -->
         <div class="min-w-0 text-right">
           <h1 class="text-xl sm:text-2xl font-extrabold text-gray-900 leading-tight">
-            Review {{ seniorFullName ? `[${seniorFullName}]` : '' }}
+            Review {{ seniorFullName ? `${seniorFullName}` : '' }}
           </h1>
         </div>
       </div>
@@ -161,6 +161,26 @@
       @cancel="openApproveModal = false"
       @confirm="approveApplication"
     />
+
+        <!-- Document viewer -->
+    <ViewDocument
+      :open="openDocModal"
+      :title="docModalPayload?.title"
+      :storagePath="docModalPayload?.storagePath"
+      :fileName="docModalPayload?.fileName"
+      :mimeType="docModalPayload?.mimeType"
+      bucketFallback="documents"
+      @close="openDocModal = false"
+    />
+
+    <!-- Form answers (floating/draggable, does NOT block clicks on right-side form) -->
+    <ViewForm
+      :open="openFormModal"
+      :title="formModalPayload?.title"
+      :formSubmissionId="formModalPayload?.formSubmissionId"
+      @close="openFormModal = false"
+    />
+
   </div>
 </template>
 
@@ -181,12 +201,8 @@ import ApplicationIcon from '/public/staff/application.png'
 import ActivityIcon from '/public/staff/activity.png'
 import AnnouncementIcon from '/public/staff/announcement.png'
 
-/**
- * NOTE:
- * - LEFT side now uses real DB data:
- *   applications + application_requirements + (document_submissions | form_submissions)
- * - RIGHT side Form fetching stays the same as your current code.
- */
+import ViewDocument from '@/components/Staff/ViewDocument.vue'
+import ViewForm from '@/components/Staff/ViewForm.vue'
 
 const { profile } = useAuth()
 const route = useRoute()
@@ -194,9 +210,6 @@ const route = useRoute()
 const sidebarCollapsed = ref(false)
 const openApproveModal = ref(false)
 
-// ---------- ROUTE PARAM (application id) ----------
-// Preferred route: /osca/applicant/:applicationId
-// Fallback if your router is still /osca/applicant/:seniorId
 const applicationId = computed(() => String(route.params.applicationId || route.params.seniorId || ''))
 
 // ---------- HEADER / BACK CONTEXT ----------
@@ -255,6 +268,22 @@ const statusStyles = computed(() => {
     dot: 'bg-gray-400',
   }
 })
+
+const openDocModal = ref(false)
+const openFormModal = ref(false)
+
+const docModalPayload = ref<{
+  title: string
+  storagePath: string
+  fileName?: string | null
+  mimeType?: string | null
+} | null>(null)
+
+const formModalPayload = ref<{
+  title: string
+  formSubmissionId: string
+} | null>(null)
+
 
 // ---------- REQUIREMENTS (REAL) ----------
 type ReqUI = {
@@ -449,15 +478,19 @@ async function fetchSubmittedRequirements() {
 reqPage.value = 1
 
 function viewRequirement(req: ReqUI) {
-  // Still simple for now; later you can generate signed URL for doc files
   if (req.kind === 'document') {
     if (!req.doc?.storage_path) {
       alert(`No document uploaded yet for:\n${req.label}`)
       return
     }
-    alert(
-      `Document submission:\n${req.label}\n\nFile: ${req.doc.file_name}\nPath: ${req.doc.storage_path}\n\nNext: open via signed URL from Supabase Storage.`
-    )
+
+    docModalPayload.value = {
+      title: req.label,
+      storagePath: req.doc.storage_path,
+      fileName: req.doc.file_name,
+      mimeType: req.doc.mime_type ?? null,
+    }
+    openDocModal.value = true
     return
   }
 
@@ -466,9 +499,12 @@ function viewRequirement(req: ReqUI) {
       alert(`No form submission yet for:\n${req.label}`)
       return
     }
-    alert(
-      `Form submission:\n${req.label}\n\nForm Submission ID: ${req.form.id}\nStatus: ${req.form.status}\n\nNext: load answers using form_submission_id.`
-    )
+
+    formModalPayload.value = {
+      title: req.label,
+      formSubmissionId: req.form.id,
+    }
+    openFormModal.value = true
     return
   }
 
