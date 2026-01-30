@@ -225,8 +225,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref, watch, watchEffect } from 'vue'
+import { computed, reactive, ref, watch, watchEffect, onMounted } from 'vue'
 import ConfirmationModal from '@/components/ConfirmModal.vue'
+import { supabase } from '@/supabase/client'
 
 export type FieldType =
   | 'text'
@@ -253,40 +254,45 @@ export type FormField = {
   field_type: FieldType
   required?: boolean
   sort_order?: number
-  options?: any // DB jsonb: { choices: [...], pdf_mapping: {...} }
+  options?: any
   depends_on?: DependsOn | null
   placeholder?: string | null
 }
 
 const props = defineProps<{
   fields: FormField[]
-  onlySection: string
+  onlySection: 'A_APPLICANT' | 'B_OSCA' | string
   reviewerName?: string
   loading?: boolean
+
+  // NEW
+  formSubmissionId: string
+  applicationRequirementId: string
+  currentUserId: string
+  lockOnSubmit?: boolean // if true, set form_submissions.status='locked' on submit
 }>()
 
 type Choice = { label: string; value: string }
 
-// Your DB options structure is: { choices: [{label,value}], pdf_mapping: {...} }
 function getChoices(field: FormField): Choice[] {
   const raw = field.options
   if (!raw) return []
-  if (Array.isArray(raw)) return raw as Choice[] // fallback if you ever store array directly
+  if (Array.isArray(raw)) return raw as Choice[]
   if (Array.isArray(raw.choices)) return raw.choices as Choice[]
-  if (Array.isArray(raw.options)) return raw.options as Choice[] // extra fallback
+  if (Array.isArray(raw.options)) return raw.options as Choice[]
   return []
 }
 
-// ---- state ----
+// ---------------- state ----------------
 const values = reactive<Record<string, any>>({})
 const reviewedBy = ref('')
+const saving = ref(false)
 
-// prefill reviewedBy
 watchEffect(() => {
   if (!reviewedBy.value && props.reviewerName) reviewedBy.value = props.reviewerName
 })
 
-// ensure multiselect fields are arrays
+// ensure multiselect fields are arrays, checkbox is boolean
 watch(
   () => props.fields,
   () => {
@@ -302,10 +308,10 @@ watch(
   { immediate: true }
 )
 
-// ---- depends_on evaluation ----
+// ---------------- depends_on ----------------
 function isFieldVisible(field: FormField): boolean {
   if (!field.depends_on) return true
-  const d = field.depends_on as any
+  const d: any = field.depends_on
   const parentVal = values[d.field_key]
 
   if (d.op === 'equals') return parentVal === d.value
@@ -316,9 +322,7 @@ function isFieldVisible(field: FormField): boolean {
   }
 
   if (d.op === 'contains') {
-    // common for multiselect / checkbox group
     if (Array.isArray(parentVal)) return parentVal.includes(d.value)
-    // allow string contains too
     if (typeof parentVal === 'string') return parentVal.includes(d.value)
     return false
   }
@@ -330,7 +334,7 @@ function isFieldVisible(field: FormField): boolean {
   return true
 }
 
-// ---- filter + sort + apply depends_on ----
+// ---------------- fields lists ----------------
 const filteredFields = computed(() =>
   (props.fields || [])
     .filter((f) => f.section === props.onlySection)
@@ -340,17 +344,8 @@ const filteredFields = computed(() =>
 
 const visibleFieldsSorted = computed(() => filteredFields.value.filter((f) => isFieldVisible(f)))
 
-// If dependencies change, make sure currentStep is valid
-watch(
-  () => visibleFieldsSorted.value.length,
-  () => {
-    if (currentStep.value > steps.value.length - 1) currentStep.value = Math.max(0, steps.value.length - 1)
-  }
-)
-
-// ---- multistep ----
+// ---------------- multistep ----------------
 const MAX_PER_STEP = 4
-
 const steps = computed(() => {
   const arr = visibleFieldsSorted.value
   if (arr.length <= MAX_PER_STEP) return [arr]
@@ -362,6 +357,13 @@ const steps = computed(() => {
 const currentStep = ref(0)
 const isMultiStep = computed(() => steps.value.length > 1)
 const currentFields = computed(() => steps.value[currentStep.value] ?? [])
+
+watch(
+  () => steps.value.length,
+  () => {
+    if (currentStep.value > steps.value.length - 1) currentStep.value = Math.max(0, steps.value.length - 1)
+  }
+)
 
 const stepHint = computed(() => {
   if (!isMultiStep.value) return 'All fields'
@@ -377,7 +379,7 @@ function prevStep() {
   currentStep.value = Math.max(currentStep.value - 1, 0)
 }
 
-// ---- validation ----
+// ---------------- validation ----------------
 const fieldErrors = reactive<Record<string, string>>({})
 
 function validateRequired() {
@@ -397,7 +399,7 @@ function validateRequired() {
     if (empty) fieldErrors[f.field_key] = 'This field is required.'
   }
 
-  if (!reviewedBy.value.trim()) fieldErrors.__reviewedBy = 'Reviewer name is required.'
+  // Optional: keep reviewer name optional because it isn't stored in DB directly
   return Object.keys(fieldErrors).length === 0
 }
 
@@ -410,24 +412,146 @@ function badgeClass(field: FormField) {
     : 'border-gray-200 bg-gray-50 text-gray-600'
 }
 
-// ---- modals ----
+// ---------------- modals ----------------
 const openDraftModal = ref(false)
 const openSubmitModal = ref(false)
 
-function saveDraft() {
-  openDraftModal.value = false
-  alert(
-    `Saved draft (temporary).\n\nValues: ${JSON.stringify(values)}\nReviewed By: ${reviewedBy.value}\n\nHook this to Supabase later.`
-  )
+// ---------------- data loading ----------------
+// Load ALL answers for this submission (A + B) so depends_on works.
+async function loadExistingAnswers() {
+  if (!props.formSubmissionId) return
+
+  const { data, error } = await supabase
+    .from('form_answers')
+    .select(
+      `
+      id,
+      field_id,
+      value,
+      answered_by,
+      field:form_fields(id, field_key, section)
+    `
+    )
+    .eq('form_submission_id', props.formSubmissionId)
+
+  if (error) {
+    console.error('loadExistingAnswers error:', error)
+    return
+  }
+
+  for (const row of data || []) {
+    const fieldKey = (row as any)?.field?.field_key
+    if (!fieldKey) continue
+    values[fieldKey] = row.value
+  }
 }
 
-function submitForm() {
+onMounted(loadExistingAnswers)
+
+watch(
+  () => props.formSubmissionId,
+  async (id) => {
+    if (!id) return
+    await loadExistingAnswers()
+  },
+  { immediate: true }
+)
+
+// normalize after loading to match input types
+for (const f of props.fields || []) {
+  if (f.field_type === 'checkbox') {
+    values[f.field_key] = !!values[f.field_key]
+  }
+  if (f.field_type === 'multiselect') {
+    if (!Array.isArray(values[f.field_key])) {
+      values[f.field_key] = values[f.field_key] ? [values[f.field_key]] : []
+    }
+  }
+}
+
+// ---------------- save logic ----------------
+function getOschaEditableFields() {
+  return (props.fields || []).filter((f) => f.section === props.onlySection)
+}
+
+async function saveOschaSection(statusAfter: 'draft' | 'locked') {
+  if (!props.formSubmissionId || !props.currentUserId) {
+    alert('Missing formSubmissionId / user context.')
+    return
+  }
+
+  const editableFields = getOschaEditableFields()
+  const fieldIds = editableFields.map((f) => f.id)
+
+  saving.value = true
+  try {
+    // 1) Don't allow writing if already locked
+    const { data: sub, error: subErr } = await supabase
+      .from('form_submissions')
+      .select('id,status')
+      .eq('id', props.formSubmissionId)
+      .single()
+    if (subErr) throw subErr
+
+    if (String(sub.status).toLowerCase() === 'locked') {
+      alert('This form is already locked.')
+      return
+    }
+
+    // 2) Delete previous OSCA answers (to avoid duplicates without a unique constraint)
+    if (fieldIds.length > 0) {
+      const { error: delErr } = await supabase
+        .from('form_answers')
+        .delete()
+        .eq('form_submission_id', props.formSubmissionId)
+        .eq('answered_by', props.currentUserId)
+        .in('field_id', fieldIds)
+      if (delErr) throw delErr
+    }
+
+    // 3) Insert fresh answers
+    const payload = editableFields.map((f) => ({
+      form_submission_id: props.formSubmissionId,
+      field_id: f.id,
+      value: values[f.field_key] ?? null,
+      answered_by: props.currentUserId,
+    }))
+
+    if (payload.length > 0) {
+      const { error: insErr } = await supabase.from('form_answers').insert(payload)
+      if (insErr) throw insErr
+    }
+
+    // 4) Update form_submissions.status
+    const nextStatus = statusAfter
+    const { error: updErr } = await supabase
+      .from('form_submissions')
+      .update({ status: nextStatus, updated_at: new Date().toISOString() })
+      .eq('id', props.formSubmissionId)
+    if (updErr) throw updErr
+
+    alert(statusAfter === 'draft' ? 'Draft saved.' : 'OSCA section submitted & locked.')
+  } catch (e: any) {
+    console.error('saveOschaSection error:', e)
+    alert(e?.message || 'Failed to save.')
+  } finally {
+    saving.value = false
+  }
+}
+
+async function saveDraft() {
+  openDraftModal.value = false
+  await saveOschaSection('draft')
+}
+
+async function submitForm() {
   const ok = validateRequired()
   if (!ok) {
     openSubmitModal.value = false
 
+    // focus step with first error
     if (isMultiStep.value) {
-      const errKey = Object.keys(fieldErrors).find((k) => k !== '__reviewedBy')
+      const errKey = Object.keys(fieldErrors)[0]
       if (errKey) {
         const idx = visibleFieldsSorted.value.findIndex((f) => f.field_key === errKey)
         if (idx >= 0) currentStep.value = Math.floor(idx / MAX_PER_STEP)
@@ -439,8 +563,7 @@ function submitForm() {
   }
 
   openSubmitModal.value = false
-  alert(
-    `Submitted (temporary).\n\nValues: ${JSON.stringify(values)}\nReviewed By: ${reviewedBy.value}\n\nHook this to Supabase later.`
-  )
+  await saveOschaSection(props.lockOnSubmit ? 'locked' : 'draft')
 }
 </script>
+

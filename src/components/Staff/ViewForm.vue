@@ -70,10 +70,6 @@
                 <span v-if="a.required" class="text-red-500">*</span>
               </p>
 
-              <p class="text-[11px] text-gray-500 mb-2">
-                {{ a.field_type.toUpperCase() }}
-              </p>
-
               <div class="text-sm text-gray-900 whitespace-pre-wrap break-words">
                 <template v-if="a.display_value">
                   {{ a.display_value }}
@@ -82,10 +78,10 @@
                   <span class="text-gray-400 italic">No answer</span>
                 </template>
               </div>
-
+<!-- 
               <div v-if="a.answered_at" class="mt-2 text-[11px] text-gray-500">
                 Answered: {{ formatDateTime(a.answered_at) }}
-              </div>
+              </div> -->
             </div>
           </div>
         </div>

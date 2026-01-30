@@ -14,19 +14,19 @@
         @toggle-sidebar="sidebarCollapsed = !sidebarCollapsed"
       />
 
-            <div class="flex items-center justify-between mt-2 ml-3 mr-3 mb-4">
+      <div class="flex items-center justify-between mt-2 ml-3 mr-3 mb-4">
         <!-- Back -->
-          <RouterLink
-            v-if="issuanceTypeId"
-            :to="{ name: 'issuance-info', params: { issuanceTypeId } }"
-            class="inline-flex items-center gap-2
-                  text-gray-700 hover:text-[#42ad43]
-                  group shrink-0"
-          >
+        <RouterLink
+          v-if="issuanceTypeId"
+          :to="{ name: 'issuance-info', params: { issuanceTypeId } }"
+          class="inline-flex items-center gap-2
+                text-gray-700 hover:text-[#42ad43]
+                group shrink-0"
+        >
           <span
             class="shrink-0 w-7 h-7 rounded-full bg-[#42ad43]
-                   flex items-center justify-center text-white
-                   transition group-hover:brightness-105"
+                  flex items-center justify-center text-white
+                  transition group-hover:brightness-105"
             aria-hidden="true"
           >
             <svg
@@ -73,15 +73,13 @@
                   </span>
                 </div>
 
-                <!-- Requirements list (temporary data) -->
-                  <div class="space-y-3">
-                    <div
-                      v-for="req in pagedSubmittedRequirements"
-                      :key="req.id"
-                      class="border-2 rounded-xl flex items-center justify-between px-3 py-2"
-                      :class="req.missing ? 'border-yellow-400 bg-yellow-50/40' : 'border-[#42ad43] bg-white'"
-                    >
-
+                <div class="space-y-3">
+                  <div
+                    v-for="req in pagedSubmittedRequirements"
+                    :key="req.id"
+                    class="border-2 rounded-xl flex items-center justify-between px-3 py-2"
+                    :class="req.missing ? 'border-yellow-400 bg-yellow-50/40' : 'border-[#42ad43] bg-white'"
+                  >
                     <div class="min-w-0">
                       <p class="text-xs font-extrabold text-gray-900 truncate">
                         {{ req.label }}
@@ -91,16 +89,33 @@
                       </p>
                     </div>
 
-                    <button
-                      class="shrink-0 ml-3 px-3 py-1.5 rounded-lg text-xs font-extrabold border-2 border-[#42ad43] text-[#42ad43] hover:bg-[#42ad43] hover:text-white transition"
-                      @click="viewRequirement(req)"
-                    >
-                      View
-                    </button>
+                    <!-- Buttons -->
+                    <div class="shrink-0 ml-3 flex items-center gap-2">
+                      <!-- Default View -->
+                      <button
+                        class="px-3 py-1.5 rounded-lg text-xs font-extrabold border-2 border-[#42ad43] text-[#42ad43] hover:bg-[#42ad43] hover:text-white transition disabled:opacity-50 disabled:cursor-not-allowed"
+                        @click="viewRequirement(req)"
+                        :disabled="req.kind === 'form' && !req.form?.id"
+                        :title="req.kind === 'form' && !req.form?.id ? 'No form submission yet' : 'View'"
+                      >
+                        View
+                      </button>
+
+                      <!-- View PDF (only for FORM requirements) -->
+                      <button
+                        v-if="req.kind === 'form'"
+                        class="px-3 py-1.5 rounded-lg text-xs font-extrabold border-2 border-gray-300 text-gray-800 hover:bg-gray-900 hover:text-white hover:border-gray-900 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                        @click="openFormPDF(req)"
+                        :disabled="!req.form?.id"
+                        :title="!req.form?.id ? 'No form submission yet' : 'View PDF'"
+                      >
+                        View PDF
+                      </button>
+                    </div>
                   </div>
                 </div>
 
-                <!-- Pagination for Submitted Requirements (prevents overflow) -->
+                <!-- Pagination for Submitted Requirements -->
                 <div class="mt-4">
                   <Pagination
                     v-model="reqPage"
@@ -110,8 +125,7 @@
                   />
                 </div>
 
-
-                <!-- Bottom controls row like prototype -->
+                <!-- Bottom controls row -->
                 <div class="mt-5 flex items-center gap-2">
                   <div
                     class="px-3 py-2 rounded-xl text-xs font-extrabold border-2"
@@ -144,6 +158,10 @@
                 :onlySection="'B_OSCA'"
                 :reviewerName="staffName"
                 :loading="fieldsLoading"
+                :formSubmissionId="activeFormSubmissionId"
+                :applicationRequirementId="activeFormRequirementId"
+                :currentUserId="(profile as any)?.id"
+                :lockOnSubmit="false"
               />
             </section>
           </div>
@@ -162,7 +180,7 @@
       @confirm="approveApplication"
     />
 
-        <!-- Document viewer -->
+    <!-- Document viewer -->
     <ViewDocument
       :open="openDocModal"
       :title="docModalPayload?.title"
@@ -173,13 +191,21 @@
       @close="openDocModal = false"
     />
 
-    <!-- Form answers (floating/draggable, does NOT block clicks on right-side form) -->
+    <!-- Form answers -->
     <ViewForm
       :open="openFormModal"
       :title="formModalPayload?.title"
       :formSubmissionId="formModalPayload?.formSubmissionId"
       @close="openFormModal = false"
     />
+
+    <!-- ✅ Form PDF viewer -->
+<ViewFormPDF
+  :open="openFormPDFModal"
+  :title="formPDFPayload?.title"
+  :formSubmissionId="formPDFPayload?.formSubmissionId ?? null"
+  @close="openFormPDFModal = false"
+/>
 
   </div>
 </template>
@@ -203,6 +229,7 @@ import AnnouncementIcon from '/public/staff/announcement.png'
 
 import ViewDocument from '@/components/Staff/ViewDocument.vue'
 import ViewForm from '@/components/Staff/ViewForm.vue'
+import ViewFormPDF from '@/components/Staff/ViewFormPDF.vue'
 
 const { profile } = useAuth()
 const route = useRoute()
@@ -219,7 +246,7 @@ const seniorFullName = ref<string>('') // for "Review [Name]" title
 // DB status (from applications.status)
 const dbApplicationStatus = ref<string>('draft')
 
-// Map DB status → your 3 UI badges (so design stays same)
+// Map DB status → your 3 UI badges
 const applicationStatus = computed<'reviewed' | 'pending' | 'needs_update'>(() => {
   const s = (dbApplicationStatus.value || '').toLowerCase()
   if (s === 'needs_correction' || s === 'rejected') return 'needs_update'
@@ -284,6 +311,13 @@ const formModalPayload = ref<{
   formSubmissionId: string
 } | null>(null)
 
+const activeFormSubmissionId = ref<string>('')
+const activeFormId = ref<string>('')
+const activeFormRequirementId = ref<string>('') // application_requirements.id of the form req
+
+// ✅ PDF modal state
+const openFormPDFModal = ref(false)
+const formPDFPayload = ref<{ title: string; formSubmissionId: string } | null>(null)
 
 // ---------- REQUIREMENTS (REAL) ----------
 type ReqUI = {
@@ -302,12 +336,13 @@ type ReqUI = {
     id: string
     status: string
     created_at: string
+    form_id?: string
   } | null
 }
 
 // ---- Submitted Requirements Pagination ----
 const reqPage = ref(1)
-const reqPageSize = ref(2) // adjust if you want 5/6 etc.
+const reqPageSize = ref(2)
 
 const pagedSubmittedRequirements = computed(() => {
   const start = (reqPage.value - 1) * reqPageSize.value
@@ -382,17 +417,18 @@ async function fetchSubmittedRequirements() {
             notes
           )
         ),
-        document_submissions(
+        doc_submissions:document_submissions(
           id,
           storage_path,
           file_name,
           mime_type,
           created_at
         ),
-        form_submissions(
+        form_submission:form_submissions(
           id,
           status,
-          created_at
+          created_at,
+          form_id
         )
       `
       )
@@ -413,8 +449,11 @@ async function fetchSubmittedRequirements() {
       const label = req?.name || 'Unnamed Requirement'
       const kind = (req?.requirement_kind || 'info_only') as ReqUI['kind']
 
-      const doc = r?.document_submissions?.[0] ?? null
-      const form = r?.form_submissions?.[0] ?? null
+      const docEmbed = r?.doc_submissions
+      const doc = Array.isArray(docEmbed) ? (docEmbed[0] ?? null) : (docEmbed ?? null)
+
+      const formEmbed = r?.form_submission
+      const form = Array.isArray(formEmbed) ? (formEmbed[0] ?? null) : (formEmbed ?? null)
 
       let note = ''
       let missing = false
@@ -440,7 +479,6 @@ async function fetchSubmittedRequirements() {
         missing = false
       }
 
-      // Keep missing when application_requirement is pending and no submission exists
       const arStatus = String(r?.status || '').toLowerCase()
       if ((kind === 'document' || kind === 'form') && arStatus === 'pending') {
         missing = missing || (!doc && !form)
@@ -465,6 +503,7 @@ async function fetchSubmittedRequirements() {
               id: form.id,
               status: form.status,
               created_at: form.created_at,
+              form_id: form.form_id,
             }
           : null,
       } as ReqUI
@@ -511,8 +550,22 @@ function viewRequirement(req: ReqUI) {
   alert(`${req.label}\n\n${req.note}`)
 }
 
+// ✅ NEW: Open Form PDF modal
+function openFormPDF(req: ReqUI) {
+  if (req.kind !== 'form') return
+  if (!req.form?.id) {
+    alert(`No form submission yet for:\n${req.label}`)
+    return
+  }
+
+  formPDFPayload.value = {
+    title: req.label,
+    formSubmissionId: req.form.id,
+  }
+  openFormPDFModal.value = true
+}
+
 function approveApplication() {
-  // DON'T TOUCH per your note; leaving your placeholder behavior
   openApproveModal.value = false
   alert('Approved (temporary). Hook this to Supabase update later.')
 }
@@ -528,10 +581,8 @@ const oscaNavItems: NavItem[] = [
 
 // ---------- RIGHT SIDE FORM (UNCHANGED) ----------
 type FieldType = 'text' | 'number' | 'date' | 'checkbox' | 'radio' | 'select' | 'multiselect'
-
 function normalizeFieldType(t: string): FieldType {
   const x = (t || '').toLowerCase()
-
   if (x === 'text') return 'text'
   if (x === 'number') return 'number'
   if (x === 'date') return 'date'
@@ -539,44 +590,33 @@ function normalizeFieldType(t: string): FieldType {
   if (x === 'radio') return 'radio'
   if (x === 'select') return 'select'
   if (x === 'multiselect') return 'multiselect'
-
   return 'text'
 }
 
-// OPTION B: if you don’t have route params yet, hardcode temporarily
 const formId = ref('575bf644-e473-464c-aff1-c57b0fbee7a5')
 
 const formFields = ref<FormField[]>([])
 const fieldsLoading = ref(false)
 
-async function fetchFormFields() {
+async function fetchFormFields(formId?: string) {
+  const id = formId || activeFormId.value
+  if (!id) {
+    formFields.value = []
+    return
+  }
+
   fieldsLoading.value = true
   try {
-    const q = supabase
+    const { data, error } = await supabase
       .from('form_fields')
       .select('*')
-      .eq('section', 'B_OSCA')
+      .eq('form_id', id)
       .order('sort_order', { ascending: true })
 
-    const { data, error } = formId.value ? await q.eq('form_id', formId.value) : await q
     if (error) throw error
-
-    formFields.value = (data || []).map((r: any): FormField => ({
-      id: r.id,
-      form_id: r.form_id,
-      section: r.section,
-      label: r.label,
-      field_key: r.field_key,
-      pdf_field_name: r.pdf_field_name,
-      field_type: normalizeFieldType(r.field_type),
-      required: r.required,
-      sort_order: r.sort_order,
-      options: r.options,
-      depends_on: r.depends_on,
-      placeholder: r.placeholder,
-    }))
-  } catch (e: any) {
-    console.error('fetchFormFields error:', e?.message || e)
+    formFields.value = data || []
+  } catch (e) {
+    console.error('fetchFormFields error:', e)
     formFields.value = []
   } finally {
     fieldsLoading.value = false
@@ -584,16 +624,17 @@ async function fetchFormFields() {
 }
 
 onMounted(async () => {
-  // Right side stays
-  fetchFormFields()
-
-  // Left side now real
   await fetchApplicantHeaderAndIssuance()
   await fetchSubmittedRequirements()
-})
 
-// ✅ Expose these for template usage (you will bind in template):
-// - applicationId (for Send Update link)
-// - issuanceTypeId (for back button to issuance-info)
-// - seniorFullName (for title)
+  const firstFormReq = submittedRequirements.value.find(r => r.kind === 'form' && r.form?.id)
+  if (firstFormReq?.form?.id) {
+    activeFormSubmissionId.value = firstFormReq.form.id
+    activeFormId.value = (firstFormReq.form as any).form_id || ''
+    activeFormRequirementId.value = firstFormReq.id
+    await fetchFormFields(activeFormId.value)
+  } else {
+    formFields.value = []
+  }
+})
 </script>

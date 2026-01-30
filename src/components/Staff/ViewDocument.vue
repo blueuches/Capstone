@@ -151,15 +151,13 @@ import { supabase } from '@/supabase/client'
 const props = defineProps<{
   open: boolean
   title?: string
-  bucketFallback?: string // optional default bucket if path doesn't include bucket
-  storagePath?: string | null // expected: "bucket/path/to/file.ext" OR "path/to/file.ext"
+  bucketFallback?: string
+  storagePath?: string | null
   fileName?: string | null
   mimeType?: string | null
 }>()
 
-const emit = defineEmits<{
-  (e: 'close'): void
-}>()
+const emit = defineEmits<{ (e: 'close'): void }>()
 
 const loading = ref(false)
 const errorMsg = ref('')
@@ -191,22 +189,44 @@ const isImage = computed(() => {
   )
 })
 
+/**
+ * ✅ SAFE bucket/path parsing:
+ * - If storagePath is "bucket::path/to/file" → use that
+ * - Else if first segment is a known bucket name → treat as bucket/path
+ * - Else → treat entire string as "path inside bucketFallback"
+ */
+const KNOWN_BUCKETS = new Set([
+  'documents',
+  'public',
+  'private',
+  'avatars',
+  'uploads',
+])
+
 function splitBucketAndPath(storagePath: string) {
-  // If user stored "bucket/path/..."
-  const parts = storagePath.split('/').filter(Boolean)
-  if (parts.length >= 2) {
-    const bucket = parts[0]
-    const path = parts.slice(1).join('/')
-    return { bucket, path }
+  const clean = storagePath.replace(/^\/+/, '').trim()
+
+  // Explicit format: "bucket::path/to/file"
+  if (clean.includes('::')) {
+    const [bucket, ...rest] = clean.split('::')
+    return { bucket, path: rest.join('::') }
   }
-  // fallback: no bucket in string
-  return { bucket: props.bucketFallback || 'documents', path: storagePath }
+
+  const parts = clean.split('/').filter(Boolean)
+  const first = parts[0]
+
+  // Only treat first segment as bucket if it matches known buckets
+  if (parts.length >= 2 && KNOWN_BUCKETS.has(first)) {
+    return { bucket: first, path: parts.slice(1).join('/') }
+  }
+
+  // Otherwise, it's a path inside the fallback bucket
+  return { bucket: props.bucketFallback || 'documents', path: clean }
 }
 
 async function loadSignedUrl() {
   errorMsg.value = ''
   signedUrl.value = ''
-
   if (!props.storagePath) return
 
   loading.value = true
@@ -215,7 +235,7 @@ async function loadSignedUrl() {
 
     const { data, error } = await supabase.storage
       .from(bucket)
-      .createSignedUrl(path, 60 * 10) // 10 minutes
+      .createSignedUrl(path, 60 * 10)
 
     if (error) throw error
     signedUrl.value = data?.signedUrl || ''
