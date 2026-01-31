@@ -565,10 +565,23 @@ function openFormPDF(req: ReqUI) {
   openFormPDFModal.value = true
 }
 
-function approveApplication() {
+async function approveApplication() {
   openApproveModal.value = false
-  alert('Approved (temporary). Hook this to Supabase update later.')
+
+  const appId = applicationId.value
+  if (!appId) return alert('Missing application id.')
+
+  const { error } = await supabase
+    .from('applications')
+    .update({ status: 'approved', updated_at: new Date().toISOString() })
+    .eq('id', appId)
+
+  if (error) return alert(error.message)
+
+  dbApplicationStatus.value = 'approved'
+  alert('Approved.')
 }
+
 
 // ---------- NAV ----------
 const oscaNavItems: NavItem[] = [
