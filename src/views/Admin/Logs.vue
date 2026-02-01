@@ -17,21 +17,17 @@
       <main class="flex-1 overflow-y-auto">
         <div class="px-4 sm:px-8 py-6">
           <div class="max-w-6xl mx-auto">
-            <!-- ✅ make the whole card height-controlled and flex column -->
             <section
               class="bg-white border-[5px] border-[#2e6b38] overflow-hidden flex flex-col"
               style="border-radius: 2px"
             >
-              <!-- Title bar (fixed) -->
               <div class="bg-white border-b-[5px] border-[#2e6b38] shrink-0">
                 <div class="py-3 text-center font-extrabold tracking-wide text-gray-800">
                   Audit and Logs
                 </div>
               </div>
 
-              <!-- ✅ content area with controlled height -->
               <div class="p-3 sm:p-4 flex flex-col min-h-0">
-                <!-- ✅ table area scrolls, pagination stays visible -->
                 <div
                   class="min-h-0 overflow-y-auto border border-gray-300"
                   style="max-height: calc(100vh - 240px);"
@@ -86,16 +82,19 @@
                   </div>
                 </div>
 
-                <!-- ✅ pagination pinned under the table -->
                 <div class="mt-4 shrink-0">
                   <Pagination
                     v-model="page"
-                    :totalItems="logs.length"
+                    :totalItems="totalItems"
                     :pageSize="pageSize"
                   />
                 </div>
               </div>
             </section>
+
+            <div v-if="errorMsg" class="max-w-6xl mx-auto mt-3 text-sm text-red-600">
+              {{ errorMsg }}
+            </div>
           </div>
         </div>
       </main>
@@ -104,11 +103,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import Sidebar from '@/components/Admin/Sidebar.vue'
 import Header from '@/components/Admin/Header.vue'
 import Pagination from '@/components/Admin/Pagination.vue'
 import { useAuth } from '@/composables/useAuth'
+import { supabase } from '@/supabase/client'
 
 import IconDashboard  from '/public/admin/dashboard.png'
 import IconLogs from '/public/admin/logs.png'
@@ -124,13 +124,11 @@ const navItems = computed(() => [
   { label: 'Edit', to: '/admin/edit', icon: IconEdit },
   { label: 'Form Builder', to: '/admin/formbuilder', icon: IconForm },
   { label: 'Backups', to: '/admin/backup', icon: IconBackup }
-
 ])
 
 const { profile } = useAuth()
 const sidebarCollapsed = ref(false)
 
-// (Optional) keeping your pattern, in case you’ll show “who is logged in” later
 const staffName = computed(() => {
   const p = profile.value as any
   const full = [p?.first_name, p?.last_name].filter(Boolean).join(' ').trim()
@@ -140,8 +138,13 @@ const staffName = computed(() => {
 /** Pagination state */
 const page = ref(1)
 const pageSize = 10
+const totalItems = ref(0)
 
-/** Placeholder data (replace with real audit_logs later) */
+/** UI state */
+const loading = ref(false)
+const errorMsg = ref('')
+
+/** Render rows */
 type LogRow = {
   _key: string
   actor_id: string
@@ -150,22 +153,77 @@ type LogRow = {
   changes: string
 }
 
-const logs = ref<LogRow[]>(
-  Array.from({ length: 50 }).map((_, i) => ({
-    _key: `log-${i + 1}`,
-    actor_id: i % 3 === 0 ? 'OSCA-1029' : i % 3 === 1 ? 'BRGY-4410' : 'ADMIN-0001',
-    action: i % 4 === 0 ? 'INSERT' : i % 4 === 1 ? 'UPDATE' : i % 4 === 2 ? 'DELETE' : 'LOGIN',
-    table: i % 3 === 0 ? 'applications' : i % 3 === 1 ? 'profiles' : 'requests',
-    changes: '— placeholder for diff JSON / summary —'
-  }))
-)
+const logs = ref<LogRow[]>([])
 
-const totalPages = computed(() => Math.max(1, Math.ceil(logs.value.length / pageSize)))
+function safeStringify(v: any) {
+  try {
+    if (v === null || v === undefined) return '—'
+    // keep it readable (not super long)
+    const s = JSON.stringify(v)
+    return s.length > 280 ? s.slice(0, 280) + '…' : s
+  } catch {
+    return '—'
+  }
+}
 
-const visibleRows = computed(() => {
-  // clamp page just in case
-  const p = Math.min(Math.max(1, page.value), totalPages.value)
-  const start = (p - 1) * pageSize
-  return logs.value.slice(start, start + pageSize)
+async function fetchTotalCount() {
+  // HEAD query for count only
+  const { count, error } = await supabase
+    .from('audit_logs')
+    .select('id', { count: 'exact', head: true })
+
+  if (error) throw error
+  totalItems.value = count ?? 0
+}
+
+async function fetchPageRows() {
+  const from = (page.value - 1) * pageSize
+  const to = from + pageSize - 1
+
+  const { data, error } = await supabase
+    .from('audit_logs')
+    .select('id, actor_id, action, entity, changes, created_at')
+    .order('created_at', { ascending: false })
+    .range(from, to)
+
+  if (error) throw error
+
+  logs.value =
+    (data ?? []).map((r: any) => ({
+      _key: r.id,
+      actor_id: r.actor_id ?? '—',
+      action: r.action ?? '—',
+      table: r.entity ?? '—',
+      changes: safeStringify(r.changes)
+    }))
+}
+
+async function refresh() {
+  loading.value = true
+  errorMsg.value = ''
+  try {
+    await fetchTotalCount()
+    await fetchPageRows()
+
+    // If user is on a page beyond the last page (e.g., logs deleted), clamp
+    const lastPage = Math.max(1, Math.ceil(totalItems.value / pageSize))
+    if (page.value > lastPage) page.value = lastPage
+  } catch (e: any) {
+    errorMsg.value = e?.message || 'Failed to load logs.'
+    logs.value = []
+    totalItems.value = 0
+  } finally {
+    loading.value = false
+  }
+}
+
+const visibleRows = computed(() => logs.value)
+
+watch(page, () => {
+  refresh()
+})
+
+onMounted(() => {
+  refresh()
 })
 </script>
