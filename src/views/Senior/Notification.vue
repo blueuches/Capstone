@@ -45,19 +45,20 @@
       <div class="flex-1 overflow-y-auto space-y-4 pb-24 overscroll-contain">
 
             <ul class="space-y-3">
-              <li
-                v-for="n in filtered"
-                :key="n.id"
-                class="bg-white rounded-2xl p-4 shadow-sm ring-1"
-                :class="n.read_at ? 'ring-gray-200' : 'ring-yellow-200'"
-              >
+            <li
+              v-for="n in filtered"
+              :key="n.id"
+              class="bg-white rounded-2xl p-4 shadow-sm ring-1 overflow-hidden"
+              :class="n.read_at ? 'ring-gray-200' : 'ring-yellow-200'"
+            >
+
                 <div class="flex items-start justify-between gap-3">
-                  <div class="min-w-0 cursor-pointer" @click="handleClick(n)">
+                  <div class="min-w-0 flex-1 cursor-pointer overflow-hidden" @click="handleClick(n)">
                     <div class="flex items-center gap-2">
                       <span v-if="!n.read_at" class="inline-flex h-2.5 w-2.5 rounded-full bg-yellow-500"></span>
                       <p class="font-bold text-gray-900">{{ n.title }}</p>
                     </div>
-                    <p class="text-sm text-gray-700 mt-1 whitespace-pre-line">
+                    <p class="text-sm text-gray-700 mt-1 whitespace-pre-line break-words break-all">
                       {{ n.body || '' }}
                     </p>
                     <p class="text-xs text-gray-500 mt-2">

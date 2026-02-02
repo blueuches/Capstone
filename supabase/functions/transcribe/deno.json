@@ -1,9 +1,0 @@
-{
-  "imports": {},
-    "permissions": {
-    "allowedOrigins": ["*"]
-  },
-  "env": {
-    "IS_PUBLIC": "true"
-  }
-}

@@ -380,3 +380,14 @@ entrypoint = "./functions/fill-osca-pdf/index.ts"
 # Specifies static files to be bundled with the function. Supports glob patterns.
 # For example, if you want to serve static HTML pages in your function:
 # static_files = [ "./functions/fill-osca-pdf/*.html" ]
+
+[functions.temp-phone-signup]
+enabled = true
+verify_jwt = true
+import_map = "./functions/temp-phone-signup/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/temp-phone-signup/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/temp-phone-signup/*.html" ]

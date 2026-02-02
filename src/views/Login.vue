@@ -29,7 +29,32 @@
       <h1 class="text-4xl font-extrabold text-[#42ad43] text-center mb-2">Login</h1>
       <p class="text-gray-600 text-center mb-8 text-lg">Welcome! Please log in to continue.</p>
 
-      <form class="w-full flex flex-col gap-6">
+      <!-- ✅ Method toggle -->
+      <div class="w-full flex gap-2 mb-6">
+        <button
+          type="button"
+          @click="method = 'phone'"
+          class="flex-1 py-2 rounded-xl font-semibold border transition"
+          :class="method === 'phone'
+            ? 'bg-[#42ad43] text-white border-[#42ad43]'
+            : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'"
+        >
+          Use Phone
+        </button>
+        <button
+          type="button"
+          @click="method = 'email'"
+          class="flex-1 py-2 rounded-xl font-semibold border transition"
+          :class="method === 'email'
+            ? 'bg-[#42ad43] text-white border-[#42ad43]'
+            : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'"
+        >
+          Use Email
+        </button>
+      </div>
+
+      <form class="w-full flex flex-col gap-6" @submit.prevent="submit">
+        <!-- ✅ Email/Phone input -->
         <div class="relative">
           <span class="absolute left-4 top-3 text-[#42ad43]">
             <svg
@@ -47,7 +72,9 @@
               />
             </svg>
           </span>
+
           <input
+            v-if="method === 'email'"
             id="email"
             type="email"
             placeholder="Email"
@@ -55,8 +82,19 @@
             class="w-full pl-12 pr-4 py-3 text-lg border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-400 focus:outline-none text-gray-700"
             autocomplete="username"
           />
+
+          <input
+            v-else
+            id="phone"
+            type="tel"
+            placeholder="Phone (09xxxxxxxxx)"
+            v-model="phone"
+            class="w-full pl-12 pr-4 py-3 text-lg border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-400 focus:outline-none text-gray-700"
+            autocomplete="username"
+          />
         </div>
 
+        <!-- Password -->
         <div class="relative">
           <span class="absolute left-4 top-3 text-[#42ad43]">
             <svg
@@ -74,6 +112,7 @@
               />
             </svg>
           </span>
+
           <input
             id="password"
             type="password"
@@ -84,10 +123,15 @@
           />
         </div>
 
+        <!-- ✅ Phone validation -->
+        <p v-if="method === 'phone' && phone && !phoneLooksValid" class="text-red-600 text-sm">
+          Enter a valid PH number like 09xxxxxxxxx.
+        </p>
+
+        <!-- Submit -->
         <button
-          @click="submit"
           type="submit"
-          :disabled="loading"
+          :disabled="loading || (method === 'phone' && !!phone && !phoneLooksValid)"
           class="w-full bg-gradient-to-r from-[#42ad43] to-green-500 hover:from-green-500 hover:to-green-600 text-white py-3 text-xl rounded-xl font-bold shadow-md transition-all disabled:opacity-60"
         >
           <span v-if="!loading">Login</span>
@@ -108,20 +152,48 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useAuth } from '@/composables/useAuth'
 
+const method = ref<'phone' | 'email'>('phone')
+
 const email = ref('')
+const phone = ref('')
 const password = ref('')
 const errorMsg = ref('')
-const { login, loading } = useAuth()
+
+const { login, loginWithPhone, loading } = useAuth()
+
+// ✅ same normalizer as signup
+const normalizePHPhone = (raw: string) => {
+  const s = (raw || '').trim().replace(/\s+/g, '').replace(/-/g, '')
+  if (!s) return ''
+  if (s.startsWith('+')) return s
+  if (/^09\d{9}$/.test(s)) return '+63' + s.slice(1)
+  if (/^9\d{9}$/.test(s)) return '+63' + s
+  if (/^63\d{10}$/.test(s)) return '+' + s
+  return s
+}
+
+const normalizedPhone = computed(() => normalizePHPhone(phone.value))
+const phoneLooksValid = computed(() => /^\+\d{10,15}$/.test(normalizedPhone.value))
 
 const submit = async () => {
   errorMsg.value = ''
   try {
-    await login(email.value, password.value)
+    if (method.value === 'email') {
+      await login(email.value.trim(), password.value)
+      return
+    }
+
+    if (!phoneLooksValid.value) {
+      errorMsg.value = 'Enter a valid PH number like 09xxxxxxxxx.'
+      return
+    }
+
+    await loginWithPhone(normalizedPhone.value, password.value)
   } catch (err: any) {
-    errorMsg.value = err.message
+    errorMsg.value = err?.message || 'Login failed.'
   }
 }
 </script>

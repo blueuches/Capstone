@@ -101,6 +101,22 @@ export function useAuth() {
     }
   }
 
+  const loginWithPhone = async (phone: string, password: string) => {
+  loading.value = true
+  try {
+    const { error } = await supabase.auth.signInWithPassword({
+      phone,
+      password
+    })
+    if (error) throw error
+
+    await loadSession()
+    redirectByRole()
+  } finally {
+    loading.value = false
+  }
+}
+
   const signup = async (payload: SignupPayload) => {
     loading.value = true
     try {
@@ -187,6 +203,7 @@ barangay_id: needsBarangay ? (payload.barangay_id ?? null) : null,
     profile,
     loading,
     login,
+    loginWithPhone,
     signup,
     logout,
     loadSession
