@@ -28,11 +28,12 @@
 
             <button
               class="px-3 py-2 rounded-xl text-sm font-semibold bg-[#42ad43] text-white hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
-              :disabled="generatedExists"
+              :disabled="checking || !formSubmissionId"
               @click="generatePdf"
             >
-              Generate PDF
+              {{ generatedExists ? 'Regenerate PDF' : 'Generate PDF' }}
             </button>
+
 
             <button
               class="px-3 py-2 rounded-xl text-sm font-semibold border border-gray-200 hover:bg-gray-50"
@@ -171,9 +172,23 @@ async function generatePdf() {
     generatedUrl.value = data.url
     pdfUrl.value = data.url
     zoom.value = 1
-  } catch (e: any) {
+} catch (e: any) {
+  console.error('Generate error full:', e)
+
+  // ✅ FunctionsHttpError: fetch the actual JSON body returned by the edge function
+  const ctx = e?.context
+  const body = ctx?.body
+
+  if (body) {
+    // body might be string or object
+    errorMsg.value =
+      typeof body === 'string' ? body : JSON.stringify(body, null, 2)
+  } else if (ctx?.status) {
+    errorMsg.value = `Edge error (status ${ctx.status}). Check Network tab for response body.`
+  } else {
     errorMsg.value = e?.message ?? String(e)
-  } finally {
+  }
+}finally {
     checking.value = false
   }
 }

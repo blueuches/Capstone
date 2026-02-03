@@ -1,4 +1,3 @@
-// supabase/functions/fill-osca-pdf/index.ts
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { PDFDocument } from "https://esm.sh/pdf-lib@1.17.1";
@@ -7,7 +6,8 @@ type Json = null | boolean | number | string | Json[] | { [key: string]: Json };
 
 const corsHeaders: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
@@ -35,8 +35,35 @@ function isTruthy(v: any): boolean {
   return v === true || v === "true" || v === 1 || v === "1" || v === "yes";
 }
 
+async function listHasFile(
+  supabase: any,
+  bucket: string,
+  folder: string,
+  filename: string,
+): Promise<boolean> {
+  const { data, error } = await supabase.storage.from(bucket).list(folder, {
+    search: filename,
+    limit: 20,
+  });
+  if (error) return false;
+  return (data ?? []).some((x: any) => x?.name === filename);
+}
+
+async function signedUrl(
+  supabase: any,
+  bucket: string,
+  path: string,
+  seconds = 60 * 10,
+): Promise<string | null> {
+  const { data, error } = await supabase.storage.from(bucket).createSignedUrl(
+    path,
+    seconds,
+  );
+  if (error || !data?.signedUrl) return null;
+  return data.signedUrl;
+}
+
 serve(async (req) => {
-  // ✅ CORS preflight
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
@@ -47,87 +74,235 @@ serve(async (req) => {
 
     if (!supabaseUrl || !serviceKey) {
       return jsonResponse(
-        { ok: false, error: "Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY" },
+        {
+          ok: false,
+          error: "Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY",
+        },
         500,
       );
     }
 
     const supabase = createClient(supabaseUrl, serviceKey);
 
-    // ---------------------------
-    // ✅ Parse request payload
-    // ---------------------------
     const payload = await req.json().catch(() => ({}));
-    const action = payload?.action ?? "generate"; // "template" | "generate" (default)
+    const action: string = payload?.action ?? "generate";
     const form_submission_id: string | undefined = payload?.form_submission_id;
 
+    // role hint used by action="best"
+    const roleHint: string = payload?.role ?? "senior"; // "senior" | "osca_staff" | "barangay_staff"
+    const maybeFormId: string | undefined = payload?.form_id;
+
     // ---------------------------
-    // ✅ ACTION: return template signed URL
-    // (Use service role so client doesn't need template bucket access)
+    // Helpers: load submission/app/form template path
+    // ---------------------------
+    async function loadSubmissionAndApp(submissionId: string) {
+      const { data: sub, error: subErr } = await supabase
+        .from("form_submissions")
+        .select("id, form_id, application_id, created_at")
+        .eq("id", submissionId)
+        .single();
+
+      if (subErr || !sub) {
+        return {
+          ok: false,
+          status: 404,
+          error: "Form submission not found",
+          details: subErr?.message ?? null,
+        };
+      }
+
+      const { data: app, error: appErr } = await supabase
+        .from("applications")
+        .select("id, senior_id")
+        .eq("id", sub.application_id)
+        .single();
+
+      if (appErr || !app) {
+        return {
+          ok: false,
+          status: 404,
+          error: "Application not found",
+          details: appErr?.message ?? null,
+        };
+      }
+
+      return {
+        ok: true,
+        sub,
+        app,
+        seniorId: String(app.senior_id),
+        applicationId: String(app.id),
+        formId: String(sub.form_id),
+      };
+    }
+
+    async function resolveTemplatePath(formId?: string) {
+      const FALLBACK_BUCKET = "template";
+      const FALLBACK_PATH = "OSCAForm-Softcopy-Fillable.pdf";
+
+      if (!formId) {
+        return { bucket: FALLBACK_BUCKET, path: FALLBACK_PATH };
+      }
+
+      const { data: formRow, error: formErr } = await supabase
+        .from("forms")
+        .select("id, pdf_template_storage_path")
+        .eq("id", formId)
+        .maybeSingle();
+
+      if (formErr) {
+        // fallback if query fails
+        return { bucket: FALLBACK_BUCKET, path: FALLBACK_PATH };
+      }
+
+      const p = formRow?.pdf_template_storage_path;
+      if (p && typeof p === "string" && p.length > 0) {
+        return { bucket: FALLBACK_BUCKET, path: p };
+      }
+
+      return { bucket: FALLBACK_BUCKET, path: FALLBACK_PATH };
+    }
+
+    // ---------------------------
+    // ACTION: template
     // ---------------------------
     if (action === "template") {
-      const TEMPLATE_BUCKET = "template";
-      const TEMPLATE_PATH = "OSCAForm-Softcopy-Fillable.pdf";
+      const tpl = await resolveTemplatePath(maybeFormId);
+      const url = await signedUrl(supabase, tpl.bucket, tpl.path);
 
-      const { data: signed, error: signErr } = await supabase.storage
-        .from(TEMPLATE_BUCKET)
-        .createSignedUrl(TEMPLATE_PATH, 60 * 10); // 10 min
-
-      if (signErr || !signed?.signedUrl) {
-        console.error(signErr);
+      if (!url) {
         return jsonResponse(
           {
             ok: false,
             error: "Template signed URL failed",
-            template: { bucket: TEMPLATE_BUCKET, path: TEMPLATE_PATH },
-            details: String((signErr as any)?.message ?? signErr ?? "unknown"),
+            template: tpl,
           },
           500,
         );
       }
 
-      return jsonResponse({
-        ok: true,
-        url: signed.signedUrl,
-        template: { bucket: TEMPLATE_BUCKET, path: TEMPLATE_PATH },
-      });
+      return jsonResponse({ ok: true, kind: "template", url, template: tpl });
     }
 
-    // ---------------------------
-    // ✅ ACTION: generate filled PDF
-    // ---------------------------
+    // All other actions require form_submission_id
     if (!form_submission_id) {
       return jsonResponse({ ok: false, error: "Missing form_submission_id" }, 400);
     }
 
-    // 1) Load submission (to get application_id + form_id)
-    const { data: sub, error: subErr } = await supabase
-      .from("form_submissions")
-      .select("id, form_id, application_id, created_at")
-      .eq("id", form_submission_id)
-      .single();
-
-    if (subErr || !sub) {
-      console.error(subErr);
-      return jsonResponse({ ok: false, error: "Form submission not found" }, 404);
+    const loaded = await loadSubmissionAndApp(form_submission_id);
+    if (!loaded.ok) {
+      return jsonResponse({ ok: false, ...loaded }, loaded.status);
     }
 
-    // 2) Load application (to get senior_id for storage alignment)
-    const { data: app, error: appErr } = await supabase
-      .from("applications")
-      .select("id, senior_id")
-      .eq("id", sub.application_id)
-      .single();
+    const { seniorId, applicationId, formId } = loaded as any;
+    const tpl = await resolveTemplatePath(formId);
 
-    if (appErr || !app) {
-      console.error(appErr);
-      return jsonResponse({ ok: false, error: "Application not found" }, 404);
+    const OUT_BUCKET = "pdfs-storage";
+    const baseDir = `osca-forms/${seniorId}/${applicationId}`;
+    const filename = `osca_form_${form_submission_id}.pdf`;
+
+    // New preferred paths
+    const finalPath = `${baseDir}/final/${filename}`;
+    const draftPath = `${baseDir}/draft/${filename}`;
+
+    // Legacy support (your existing path)
+    const legacyPath = `${baseDir}/${filename}`;
+
+    // ---------------------------
+    // ACTION: generated (FINAL exists? else legacy)
+    // ---------------------------
+    if (action === "generated") {
+      const hasFinal = await listHasFile(
+        supabase,
+        OUT_BUCKET,
+        `${baseDir}/final`,
+        filename,
+      );
+
+      if (hasFinal) {
+        const url = await signedUrl(supabase, OUT_BUCKET, finalPath);
+        return jsonResponse({ ok: true, exists: true, kind: "final", url });
+      }
+
+      const hasLegacy = await listHasFile(supabase, OUT_BUCKET, baseDir, filename);
+      if (hasLegacy) {
+        const url = await signedUrl(supabase, OUT_BUCKET, legacyPath);
+        return jsonResponse({ ok: true, exists: true, kind: "legacy", url });
+      }
+
+      return jsonResponse({ ok: true, exists: false });
     }
 
-    const seniorId = String(app.senior_id);
-    const applicationId = String(app.id);
+    // ---------------------------
+    // ACTION: draft_generated (DRAFT exists?)
+    // ---------------------------
+    if (action === "draft_generated") {
+      const hasDraft = await listHasFile(
+        supabase,
+        OUT_BUCKET,
+        `${baseDir}/draft`,
+        filename,
+      );
 
-    // 3) Load answers + their field definitions
+      if (!hasDraft) return jsonResponse({ ok: true, exists: false });
+
+      const url = await signedUrl(supabase, OUT_BUCKET, draftPath);
+      return jsonResponse({ ok: true, exists: true, kind: "draft", url });
+    }
+
+    // ---------------------------
+    // ACTION: best
+    // Senior: final > legacy > draft > template
+    // Staff: final > legacy > template  (no draft by default)
+    // ---------------------------
+    if (action === "best") {
+      const hasFinal = await listHasFile(
+        supabase,
+        OUT_BUCKET,
+        `${baseDir}/final`,
+        filename,
+      );
+      if (hasFinal) {
+        const url = await signedUrl(supabase, OUT_BUCKET, finalPath);
+        if (!url) return jsonResponse({ ok: false, error: "Signed URL failed" }, 500);
+        return jsonResponse({ ok: true, kind: "final", url, template: tpl });
+      }
+
+      const hasLegacy = await listHasFile(supabase, OUT_BUCKET, baseDir, filename);
+      if (hasLegacy) {
+        const url = await signedUrl(supabase, OUT_BUCKET, legacyPath);
+        if (!url) return jsonResponse({ ok: false, error: "Signed URL failed" }, 500);
+        return jsonResponse({ ok: true, kind: "legacy", url, template: tpl });
+      }
+
+      if (roleHint === "senior") {
+        const hasDraft = await listHasFile(
+          supabase,
+          OUT_BUCKET,
+          `${baseDir}/draft`,
+          filename,
+        );
+        if (hasDraft) {
+          const url = await signedUrl(supabase, OUT_BUCKET, draftPath);
+          if (!url) return jsonResponse({ ok: false, error: "Signed URL failed" }, 500);
+          return jsonResponse({ ok: true, kind: "draft", url, template: tpl });
+        }
+      }
+
+      const templateUrl = await signedUrl(supabase, tpl.bucket, tpl.path);
+      if (!templateUrl) {
+        return jsonResponse(
+          { ok: false, error: "Template signed URL failed", template: tpl },
+          500,
+        );
+      }
+
+      return jsonResponse({ ok: true, kind: "template", url: templateUrl, template: tpl });
+    }
+
+    // ---------------------------
+    // Load answers + fields
+    // ---------------------------
     const { data: rows, error: rowsErr } = await supabase
       .from("form_answers")
       .select(`
@@ -135,6 +310,7 @@ serve(async (req) => {
         value,
         field:form_fields(
           id,
+          section,
           field_key,
           field_type,
           pdf_field_name,
@@ -145,11 +321,12 @@ serve(async (req) => {
       .eq("form_submission_id", form_submission_id);
 
     if (rowsErr) {
-      console.error(rowsErr);
-      return jsonResponse({ ok: false, error: "Failed to load form_answers" }, 500);
+      return jsonResponse(
+        { ok: false, error: "Failed to load form_answers", details: rowsErr.message },
+        500,
+      );
     }
 
-    // Build answersByKey: field_key -> value
     const answersByKey: Record<string, any> = {};
     for (const r of rows ?? []) {
       const f = (r as any).field;
@@ -157,9 +334,6 @@ serve(async (req) => {
       answersByKey[String(f.field_key)] = (r as any).value;
     }
 
-    // depends_on evaluation supports your patterns:
-    // - { op:"=", field_key:"x", value:"y" }
-    // - { op:"contains", field_key:"x", value:"y" }  // for multiselect arrays
     function dependsSatisfied(dep: any): boolean {
       if (!dep) return true;
 
@@ -176,27 +350,23 @@ serve(async (req) => {
         return false;
       }
 
-      // Unknown op => don't block filling
       return true;
     }
 
-    // 4) Download template PDF from Storage
-    // ✅ CONFIRMED: bucket "template", root file "OSCAForm-Softcopy-Fillable.pdf"
-    const TEMPLATE_BUCKET = "template";
-    const TEMPLATE_PATH = "OSCAForm-Softcopy-Fillable.pdf";
-
+    // ---------------------------
+    // Download template
+    // ---------------------------
     const { data: file, error: dlErr } = await supabase.storage
-      .from(TEMPLATE_BUCKET)
-      .download(TEMPLATE_PATH);
+      .from(tpl.bucket)
+      .download(tpl.path);
 
     if (dlErr || !file) {
-      console.error(dlErr);
       return jsonResponse(
         {
           ok: false,
           error: "Template download failed",
-          template: { bucket: TEMPLATE_BUCKET, path: TEMPLATE_PATH },
-          details: String((dlErr as any)?.message ?? dlErr ?? "unknown"),
+          details: dlErr?.message ?? null,
+          template: tpl,
         },
         500,
       );
@@ -204,134 +374,173 @@ serve(async (req) => {
 
     const templateBytes = await file.arrayBuffer();
 
-    // 5) Fill PDF
-    const pdfDoc = await PDFDocument.load(templateBytes);
-    const pdfForm = pdfDoc.getForm();
+    // ---------------------------
+    // Fill & Upload
+    // ---------------------------
+    async function generatePdf(kind: "draft" | "final") {
+      const pdfDoc = await PDFDocument.load(templateBytes);
+      const pdfForm = pdfDoc.getForm();
 
-    const filled: string[] = [];
-    const skipped: string[] = [];
+      const filled: string[] = [];
+      const skipped: string[] = [];
 
-    function setCheckbox(pdfFieldName: string, checked: boolean) {
-      try {
-        const cb = pdfForm.getCheckBox(pdfFieldName);
-        if (checked) cb.check();
-        else cb.uncheck();
-        filled.push(pdfFieldName);
-      } catch {
-        skipped.push(pdfFieldName);
-      }
-    }
-
-    function setText(pdfFieldName: string, text: string) {
-      try {
-        const tf = pdfForm.getTextField(pdfFieldName);
-        tf.setText(text);
-        filled.push(pdfFieldName);
-      } catch {
-        skipped.push(pdfFieldName);
-      }
-    }
-
-    for (const r of rows ?? []) {
-      const f = (r as any).field;
-      if (!f) continue;
-
-      // respect depends_on
-      if (!dependsSatisfied(f.depends_on)) continue;
-
-      const fieldKey = String(f.field_key || "");
-      const fieldType = String(f.field_type || "text").toLowerCase();
-      const value = answersByKey[fieldKey];
-
-      // A) Direct mapping
-      if (f.pdf_field_name) {
-        const pdfName = String(f.pdf_field_name);
-
-        // Direct checkbox fields (if you ever create them)
-        if (fieldType === "checkbox") {
-          setCheckbox(pdfName, isTruthy(value));
-        } else {
-          // text / number / date
-          setText(pdfName, toText(value as any));
+      function setCheckbox(pdfFieldName: string, checked: boolean) {
+        try {
+          const cb = pdfForm.getCheckBox(pdfFieldName);
+          if (checked) cb.check();
+          else cb.uncheck();
+          filled.push(pdfFieldName);
+        } catch {
+          skipped.push(pdfFieldName);
         }
-        continue;
       }
 
-      // B) Your checkbox-group mapping via options.pdf_mapping
-      const opts = f.options || {};
-      const mapping = opts?.pdf_mapping;
+      function setText(pdfFieldName: string, text: string) {
+        try {
+          const tf = pdfForm.getTextField(pdfFieldName);
+          tf.setText(text);
+          filled.push(pdfFieldName);
+        } catch {
+          skipped.push(pdfFieldName);
+        }
+      }
 
-      if (mapping?.type === "checkbox_group" && mapping?.checkboxes) {
-        const checkboxes: Record<string, string> = mapping.checkboxes;
+      for (const r of rows ?? []) {
+        const f = (r as any).field;
+        if (!f) continue;
 
-        // Multiselect => value should be array of selected keys
-        if (fieldType === "multiselect") {
-          const selected = Array.isArray(value) ? value.map(String) : [];
-          for (const [choiceKey, pdfCbName] of Object.entries(checkboxes)) {
-            setCheckbox(String(pdfCbName), selected.includes(String(choiceKey)));
+        // Draft fills only A_APPLICANT
+        if (kind === "draft" && String(f.section) !== "A_APPLICANT") continue;
+
+        // respect depends_on
+        if (!dependsSatisfied(f.depends_on)) continue;
+
+        const fieldKey = String(f.field_key || "");
+        const fieldType = String(f.field_type || "text").toLowerCase();
+        const value = answersByKey[fieldKey];
+
+        // A) Direct pdf field mapping
+        if (f.pdf_field_name) {
+          const pdfName = String(f.pdf_field_name);
+
+          if (fieldType === "checkbox") {
+            setCheckbox(pdfName, isTruthy(value));
+          } else {
+            setText(pdfName, toText(value as any));
           }
           continue;
         }
 
-        // Radio/select => value is one key (string)
-        const chosen = value === null || value === undefined ? "" : String(value);
-        for (const [choiceKey, pdfCbName] of Object.entries(checkboxes)) {
-          setCheckbox(String(pdfCbName), String(choiceKey) === chosen);
+        // B) checkbox group mapping via options.pdf_mapping
+        const opts = f.options || {};
+        const mapping = opts?.pdf_mapping;
+
+        if (mapping?.type === "checkbox_group" && mapping?.checkboxes) {
+          const checkboxes: Record<string, string> = mapping.checkboxes;
+
+          if (fieldType === "multiselect") {
+            const selected = Array.isArray(value) ? value.map(String) : [];
+            for (const [choiceKey, pdfCbName] of Object.entries(checkboxes)) {
+              setCheckbox(String(pdfCbName), selected.includes(String(choiceKey)));
+            }
+            continue;
+          }
+
+          const chosen = value === null || value === undefined ? "" : String(value);
+          for (const [choiceKey, pdfCbName] of Object.entries(checkboxes)) {
+            setCheckbox(String(pdfCbName), String(choiceKey) === chosen);
+          }
+          continue;
         }
-        continue;
       }
 
-      // No direct pdf field and no mapping => skip
+      // Flatten so it becomes a normal PDF (safer for viewing)
+      pdfForm.flatten();
+
+      const outBytes = await pdfDoc.save();
+
+      const path = kind === "draft" ? draftPath : finalPath;
+
+      // ✅ IMPORTANT: upsert so OSCA can regenerate anytime
+      const { error: upErr } = await supabase.storage
+        .from(OUT_BUCKET)
+        .upload(path, outBytes, {
+          contentType: "application/pdf",
+          upsert: true,
+        });
+
+      if (upErr) {
+        return {
+          ok: false,
+          error: "Upload failed",
+          details: String((upErr as any)?.message ?? upErr ?? "unknown"),
+          storage: { bucket: OUT_BUCKET, path },
+        };
+      }
+
+      const url = await signedUrl(supabase, OUT_BUCKET, path);
+      if (!url) {
+        return { ok: false, error: "Signed URL failed", storage: { bucket: OUT_BUCKET, path } };
+      }
+
+      return {
+        ok: true,
+        kind,
+        url,
+        storage: { bucket: OUT_BUCKET, path },
+        filled_count: filled.length,
+        skipped,
+      };
     }
 
-    // Flatten => make it non-editable
-    pdfForm.flatten();
-    const outBytes = await pdfDoc.save();
+    // ---------------------------
+    // ACTION: generate_draft
+    // ---------------------------
+    if (action === "generate_draft") {
+      const res = await generatePdf("draft");
+      if (!res.ok) return jsonResponse({ ok: false, ...res }, 500);
 
-    // 6) Upload generated PDF to your desired bucket aligned with senior + application
-    const OUT_BUCKET = "pdfs-storage";
-    const outPath = `osca-forms/${seniorId}/${applicationId}/osca_form_${form_submission_id}.pdf`;
-
-    const { error: upErr } = await supabase.storage
-      .from(OUT_BUCKET)
-      .upload(outPath, outBytes, { contentType: "application/pdf", upsert: true });
-
-    if (upErr) {
-      console.error(upErr);
-      return jsonResponse(
-        { ok: false, error: "Upload failed", details: String((upErr as any)?.message ?? upErr ?? "unknown") },
-        500,
-      );
+      return jsonResponse({
+        ok: true,
+        ...res,
+        meta: {
+          senior_id: seniorId,
+          application_id: applicationId,
+          form_submission_id,
+          template: tpl,
+        },
+      });
     }
 
-    // 7) Return signed URL for viewing (generated)
-    const { data: signed, error: signErr } = await supabase.storage
-      .from(OUT_BUCKET)
-      .createSignedUrl(outPath, 60 * 10); // 10 minutes
+    // ---------------------------
+    // ACTION: generate (FINAL)
+    // ---------------------------
+    if (action === "generate") {
+      const res = await generatePdf("final");
+      if (!res.ok) return jsonResponse({ ok: false, ...res }, 500);
 
-    if (signErr || !signed?.signedUrl) {
-      console.error(signErr);
-      return jsonResponse(
-        { ok: false, error: "Signed URL failed", details: String((signErr as any)?.message ?? signErr ?? "unknown") },
-        500,
-      );
+      return jsonResponse({
+        ok: true,
+        ...res,
+        meta: {
+          senior_id: seniorId,
+          application_id: applicationId,
+          form_submission_id,
+          template: tpl,
+        },
+      });
     }
 
-    return jsonResponse({
-      ok: true,
-      url: signed.signedUrl,
-      storage: { bucket: OUT_BUCKET, path: outPath },
-      meta: {
-        senior_id: seniorId,
-        application_id: applicationId,
-        form_submission_id,
-        template: { bucket: TEMPLATE_BUCKET, path: TEMPLATE_PATH },
-      },
-      filled_count: filled.length,
-      skipped,
-    });
-  } catch (e) {
+    return jsonResponse({ ok: false, error: `Unknown action: ${action}` }, 400);
+  } catch (e: any) {
     console.error(e);
-    return jsonResponse({ ok: false, error: String(e) }, 500);
+    return jsonResponse(
+      {
+        ok: false,
+        error: "Unhandled exception",
+        details: e?.message ?? String(e),
+      },
+      500,
+    );
   }
 });

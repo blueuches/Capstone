@@ -1,4 +1,4 @@
-<!-- views/Senior/RequirementsPageList.vue -->
+<!-- src/views/Senior/RequirementsPageList.vue -->
 <template>
   <!-- LOCK the page scroll -->
   <div class="h-screen overflow-hidden bg-gray-50 font-poppins pb-16 flex flex-col">
@@ -59,6 +59,7 @@
 
       <!-- ✅ ONLY SCROLLABLE AREA -->
       <div class="flex-1 min-h-0 overflow-y-auto pr-1">
+        <!-- We pass the "list item" shape, but store richer data internally -->
         <RequirementList
           :items="requirements"
           @view="onView"
@@ -78,7 +79,7 @@
 
     <BottomNav />
 
-    <!-- ✅ VIEW MODAL (preview submitted docs) -->
+    <!-- ✅ VIEW MODAL (preview submitted docs OR "View PDF" for form) -->
     <div v-if="viewOpen" class="fixed inset-0 z-50">
       <div class="absolute inset-0 bg-black/40" @click="closeView"></div>
 
@@ -133,14 +134,26 @@
                   alt="preview"
                 />
 
-                <!-- pdf/others preview -->
-                <iframe
-                  v-else
-                  :src="f.url"
-                  class="w-full h-64 rounded-xl border"
-                ></iframe>
+                <div v-else class="mt-2">
+                  <button
+                    class="w-full rounded-2xl py-3 text-sm font-extrabold bg-[#42ad43] text-white active:scale-[0.99]"
+                    @click="
+                      f.url === 'EDGE'
+                        ? openFormPdfViaEdge(f.storage_path, viewTitle)
+                        : openPdf(f.file_name || 'PDF File', f.url)
+                    "
+                  >
+                    View PDF
+                  </button>
 
+                  <div v-if="f.url === 'EDGE'" class="mt-2 text-[11px] text-gray-500">
+                    This opens your application form preview.
+                  </div>
+                </div>
+
+                <!-- only show "Open in new tab" for normal signed urls -->
                 <a
+                  v-if="f.url !== 'EDGE'"
                   :href="f.url"
                   target="_blank"
                   class="mt-2 inline-block text-xs font-bold text-[#42ad43]"
@@ -166,22 +179,48 @@
         </div>
       </div>
     </div>
-    <!-- /VIEW MODAL -->
+
+    <!-- ✅ Senior-friendly PDF viewer modal -->
+    <ViewPdfModal
+      :open="pdfModalOpen"
+      :title="pdfModalTitle"
+      :url="pdfModalUrl"
+      @close="closePdf"
+    />
+
+    <!-- ✅ Replace / upload a document requirement -->
+    <SelectFile
+      v-model="selectOpen"
+      :title="selectTitle"
+      :subtitle="selectSubtitle"
+      :accept="selectAccept"
+      :maxSizeMB="selectMaxSizeMB"
+      @confirm="onSelectConfirm"
+      @cancel="onSelectCancel"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import Header from '@/components/Senior/Header.vue'
 import SideBurger from '@/components/Senior/SideBurger.vue'
 import BottomNav from '@/components/Senior/BottomNav.vue'
 import RequirementList from '@/components/Senior/RequirementList.vue'
 import Left from '@/assets/icons/senior/left-arrow.svg'
 import { supabase } from '@/supabase/client'
+import ViewPdfModal from '@/components/Senior/ViewPdfModal.vue'
+import SelectFile from '@/components/SelectFile.vue'
 
-type RequirementItem = {
-  id: string // application_requirement_id
+/**
+ * ✅ IMPORTANT:
+ * RequirementList.vue likely expects this "basic" item shape.
+ * So our event handlers accept RequirementListItem.
+ * Internally we store a richer version (RequirementRowItem).
+ */
+type RequirementListItem = {
+  id: string
   title: string
   subtitle?: string
   hasRecord: boolean
@@ -189,11 +228,24 @@ type RequirementItem = {
   updatedAt?: string
 }
 
+type RequirementKind = 'form' | 'file'
+
+type RequirementRowItem = RequirementListItem & {
+  kind: RequirementKind
+  formSubmissionId?: string | null
+}
+
+type ViewFile = {
+  file_name: string | null
+  storage_path: string
+  url?: string // signed url OR "EDGE"
+}
+
 const DOC_BUCKET = 'documents'
 
 const open = ref(false)
-const router = useRouter()
 const route = useRoute()
+const router = useRouter()
 const applicationId = route.params.applicationId as string
 
 const loading = ref(false)
@@ -203,7 +255,89 @@ const listError = ref('')
 const appTitle = ref<string>('')
 const appStatus = ref<string>('draft')
 
-const requirements = ref<RequirementItem[]>([])
+/** We store full items here (includes kind + formSubmissionId) */
+const requirements = ref<RequirementRowItem[]>([])
+
+/** helper: given emitted list item, find the full one */
+function getFullItem(item: RequirementListItem): RequirementRowItem | null {
+  return requirements.value.find((r) => r.id === item.id) ?? null
+}
+
+/** ✅ PDF modal state */
+const pdfModalOpen = ref(false)
+const pdfModalTitle = ref('')
+const pdfModalUrl = ref<string | null>(null)
+
+function openPdf(title: string, url: string) {
+  pdfModalTitle.value = title
+  pdfModalUrl.value = url
+  pdfModalOpen.value = true
+}
+function closePdf() {
+  pdfModalOpen.value = false
+  pdfModalTitle.value = ''
+  pdfModalUrl.value = null
+}
+
+/** ✅ SelectFile modal state (for document requirements) */
+const selectOpen = ref(false)
+const selectTitle = ref('Upload Document')
+const selectSubtitle = ref('Choose a file to replace your previous upload.')
+const selectAccept = ref('.pdf,image/*')
+const selectMaxSizeMB = ref(10)
+
+const editingRequirement = ref<RequirementRowItem | null>(null)
+
+function openSelectFor(full: RequirementRowItem) {
+  editingRequirement.value = full
+  selectTitle.value = `Upload: ${full.title}`
+  selectSubtitle.value = 'This will upload a new file for this requirement.'
+  selectOpen.value = true
+}
+
+/** ✅ Open application form PDF via edge function (best: final > draft > template) */
+async function openFormPdfViaEdge(formSubmissionId: string, title = 'Application Form') {
+  pdfModalTitle.value = title
+  pdfModalUrl.value = null
+  pdfModalOpen.value = true
+
+  try {
+    // 1) Try best first
+    const bestRes = await supabase.functions.invoke('fill-osca-pdf', {
+      body: {
+        action: 'best',
+        form_submission_id: formSubmissionId,
+        role: 'senior'
+      }
+    })
+
+    if (bestRes.error) throw bestRes.error
+    if (!bestRes.data?.ok) throw new Error(bestRes.data?.error ?? 'Failed to load PDF.')
+
+    // If best returns a generated file, show it
+    if (bestRes.data?.url && bestRes.data?.kind !== 'template') {
+      pdfModalUrl.value = bestRes.data.url
+      return
+    }
+
+    // 2) If it's template, generate draft preview (A_APPLICANT only)
+    const draftRes = await supabase.functions.invoke('fill-osca-pdf', {
+      body: {
+        action: 'generate_draft',
+        form_submission_id: formSubmissionId
+      }
+    })
+
+    if (draftRes.error) throw draftRes.error
+    if (!draftRes.data?.ok) throw new Error(draftRes.data?.error ?? 'Failed to generate preview.')
+
+    if (!draftRes.data?.url) throw new Error('No PDF URL returned.')
+    pdfModalUrl.value = draftRes.data.url
+  } catch (e: any) {
+    console.error(e)
+    viewError.value = e?.message ?? 'Failed to load PDF.'
+  }
+}
 
 /** Pretty status */
 function prettyStatus(s?: string) {
@@ -219,7 +353,7 @@ const statusClass = computed(() => {
   return 'text-emerald-700'
 })
 
-function toKind(requirementKind: string | null | undefined): 'form' | 'file' {
+function toKind(requirementKind: string | null | undefined): RequirementKind {
   const k = (requirementKind ?? '').toLowerCase()
   return k === 'form' ? 'form' : 'file'
 }
@@ -236,7 +370,9 @@ function formatIsoToYmd(iso?: string | null) {
 function humanSubtitle(count: number, updated?: string) {
   if (!count) return 'No file yet'
   const dt = updated ? formatIsoToYmd(updated) : ''
-  return dt ? `Uploaded: ${count} file${count > 1 ? 's' : ''} • Updated: ${dt}` : `Uploaded: ${count} file${count > 1 ? 's' : ''}`
+  return dt
+    ? `Uploaded: ${count} file${count > 1 ? 's' : ''} • Updated: ${dt}`
+    : `Uploaded: ${count} file${count > 1 ? 's' : ''}`
 }
 
 /** Load application header (issuance name + status) */
@@ -300,25 +436,30 @@ async function loadRequirementsFromDb() {
 
     const docs = Array.isArray(r?.document_submissions) ? r.document_submissions : []
     const formSub = r?.form_submissions
-    const forms = Array.isArray(formSub) ? formSub : (formSub?.id ? [formSub] : [])
+    const forms = Array.isArray(formSub) ? formSub : formSub?.id ? [formSub] : []
 
     const hasRecord = kind === 'form' ? forms.length > 0 : docs.length > 0
     const recordCount = kind === 'form' ? forms.length : docs.length
 
-    // For updated time: use latest submission time if present
+    // ✅ latest form submission id for edge function
+    const latestFormSubmissionId = forms?.[0]?.id ?? null
+
     const latestDocTime = docs?.[0]?.created_at ?? null
     const latestFormTime = forms?.[0]?.updated_at ?? null
     const updatedAt = latestDocTime || latestFormTime || r?.updated_at || null
 
-    return {
+    const item: RequirementRowItem = {
       id: r.id,
       title,
-      // keep your design: show notes if no record, else show uploaded info
       subtitle: hasRecord ? humanSubtitle(recordCount, updatedAt) : notes ?? 'No file yet',
       hasRecord,
       recordCount,
-      updatedAt: updatedAt ? formatIsoToYmd(updatedAt) : undefined
-    } satisfies RequirementItem
+      updatedAt: updatedAt ? formatIsoToYmd(updatedAt) : undefined,
+      kind,
+      formSubmissionId: latestFormSubmissionId
+    }
+
+    return item
   })
 }
 
@@ -330,7 +471,6 @@ async function refreshList() {
   } catch (e: any) {
     console.error(e)
     const msg = e?.message ?? 'Failed to refresh.'
-    // decide where to show it
     if (!appTitle.value) headerError.value = msg
     else listError.value = msg
   } finally {
@@ -343,9 +483,19 @@ const viewOpen = ref(false)
 const viewTitle = ref('')
 const viewLoading = ref(false)
 const viewError = ref('')
-const viewFiles = ref<
-  { file_name: string | null; storage_path: string; url?: string }[]
->([])
+const viewFiles = ref<ViewFile[]>([])
+
+/** ✅ SelectFile modal state (for document-type requirements) */
+const filePickerOpen = ref(false)
+const filePickerTitle = ref('Upload Document')
+const filePickerSubtitle = ref('Choose a new file to replace your previous upload.')
+const filePickerAccept = ref('.pdf,image/*')
+const filePickerMaxSizeMB = ref(10)
+
+function closeFilePicker() {
+  filePickerOpen.value = false
+  editingRequirement.value = null
+}
 
 function closeView() {
   viewOpen.value = false
@@ -366,20 +516,43 @@ function isImage(name?: string | null) {
   )
 }
 
-async function onView(item: RequirementItem) {
-  // View can be a modal so the user can see the document sent ✅
+/**
+ * ✅ Handlers accept RequirementListItem (basic type),
+ * then we lookup the richer item (kind/formSubmissionId).
+ */
+async function onView(item: RequirementListItem) {
+  const full = getFullItem(item)
+  if (!full) return
+
   viewOpen.value = true
-  viewTitle.value = item.title
+  viewTitle.value = full.title
   viewLoading.value = true
   viewError.value = ''
   viewFiles.value = []
 
   try {
-    // fetch recent doc submissions for this requirement
+    // ✅ FORM requirement: show single "View PDF" that calls edge function
+    if (full.kind === 'form') {
+      if (!full.formSubmissionId) {
+        viewError.value = 'No form submission found yet.'
+        return
+      }
+
+      viewFiles.value = [
+        {
+          file_name: `${full.title}.pdf`,
+          storage_path: full.formSubmissionId, // store form_submission_id here
+          url: 'EDGE'
+        }
+      ]
+      return
+    }
+
+    // ✅ FILE requirement: load uploaded documents
     const { data, error } = await supabase
       .from('document_submissions')
       .select('file_name, storage_path, created_at')
-      .eq('application_requirement_id', item.id)
+      .eq('application_requirement_id', full.id)
       .order('created_at', { ascending: false })
       .limit(10)
 
@@ -390,12 +563,11 @@ async function onView(item: RequirementItem) {
       storage_path: d.storage_path as string
     }))
 
-    // signed urls for preview (private bucket)
-    const signed: { file_name: string | null; storage_path: string; url?: string }[] = []
+    const signed: ViewFile[] = []
     for (const f of base) {
       const { data: signedData, error: signErr } = await supabase.storage
         .from(DOC_BUCKET)
-        .createSignedUrl(f.storage_path, 60 * 5) // 5 minutes
+        .createSignedUrl(f.storage_path, 60 * 5)
 
       if (!signErr && signedData?.signedUrl) signed.push({ ...f, url: signedData.signedUrl })
       else signed.push({ ...f })
@@ -411,13 +583,90 @@ async function onView(item: RequirementItem) {
   }
 }
 
-function onEdit(_item: RequirementItem) {
-  // don't make edit functional for now ✅
-  alert('Edit is not available yet.')
+function onEdit(item: RequirementListItem) {
+  const full = getFullItem(item)
+  if (!full) return
+
+  // ✅ FORM: go to ApplyPageForm route
+  if (full.kind === 'form') {
+    // We pass the application_requirement_id as :id.
+    router.push({
+  name: 'ApplyForm',
+  params: { id: full.id },       
+  query: { applicationId }        
+})
+
+    return
+  }
+
+  // ✅ DOCUMENT: open SelectFile modal (replace upload)
+  openSelectFor(full)
 }
 
-function onDelete(_item: RequirementItem) {
-  // don't make delete functional for now ✅
+async function onSelectConfirm(files: File[]) {
+  const full = editingRequirement.value
+  if (!full) return
+  const file = files?.[0]
+  if (!file) return
+
+  // keep view/list errors separate; show error in list area for now
+  listError.value = ''
+  loading.value = true
+
+  try {
+    const { data: userRes, error: userErr } = await supabase.auth.getUser()
+    if (userErr) throw userErr
+    const userId = userRes?.user?.id
+    if (!userId) throw new Error('Not signed in.')
+
+    // storage path (avoid ':' from ISO in filenames)
+    const ts = new Date().toISOString().replace(/[:.]/g, '-')
+    const cleanName = file.name.replace(/\s+/g, '_')
+    const storagePath = `${applicationId}/${full.id}/${ts}_${cleanName}`
+
+    // 1) Upload to bucket
+    const upRes = await supabase.storage.from(DOC_BUCKET).upload(storagePath, file, {
+      cacheControl: '3600',
+      upsert: false
+    })
+    if (upRes.error) throw upRes.error
+
+    // 2) Add a new submission row (keeps history)
+    const insRes = await supabase.from('document_submissions').insert({
+      application_requirement_id: full.id,
+      uploaded_by: userId,
+      storage_path: storagePath,
+      file_name: file.name,
+      mime_type: file.type || null,
+      file_size: file.size
+    })
+    if (insRes.error) throw insRes.error
+
+    // 3) Mark requirement as submitted
+    const updRes = await supabase
+      .from('application_requirements')
+      .update({ status: 'submitted', updated_at: new Date().toISOString() })
+      .eq('id', full.id)
+    if (updRes.error) throw updRes.error
+
+    // Refresh list UI
+    await loadRequirementsFromDb()
+  } catch (e: any) {
+    console.error(e)
+    listError.value = e?.message ?? 'Failed to upload file.'
+  } finally {
+    loading.value = false
+    editingRequirement.value = null
+  }
+}
+
+function onSelectCancel() {
+  editingRequirement.value = null
+}
+
+function onDelete(item: RequirementListItem) {
+  const full = getFullItem(item)
+  if (!full) return
   alert('Delete is not available yet.')
 }
 

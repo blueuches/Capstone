@@ -5,11 +5,18 @@ import { useAuth } from '@/composables/useAuth'
 
 const { signup, loading } = useAuth()
 
+const STAFF_KEYS = {
+  osca_staff: 'OSCA2026k3yc0de',
+  barangay_staff: 'BRGY2026k3yc0de'
+} as const
+
+
 const barangays = ref<{ id: string; name: string }[]>([])
 const errorMsg = ref('')
 
 const form = ref({
   role: 'osca_staff' as 'osca_staff' | 'barangay_staff',
+  key_code: '',
   first_name: '',
   middle_name: '',
   last_name: '',
@@ -34,9 +41,17 @@ onMounted(async () => {
 
 const handleSignup = async () => {
   errorMsg.value = ''
+
   if (passwordMismatch.value) {
     errorMsg.value = 'Passwords do not match.'
     return
+  }
+
+  const expectedKey = STAFF_KEYS[form.value.role]
+
+  if (form.value.key_code.trim() !== expectedKey) {
+    errorMsg.value = 'Invalid staff key code. Signup is not allowed.'
+    return // 🚫 ABSOLUTE BLOCK
   }
 
   try {
@@ -50,9 +65,7 @@ const handleSignup = async () => {
       birthdate: form.value.birthdate,
       gender: form.value.gender,
       contact_no: form.value.contact_no || null,
-      // IMPORTANT: barangay only when barangay_staff
-      barangay_id: needsBarangay.value ? form.value.barangay_id : null,
-      // optional fields not required for staff
+      barangay_id: needsBarangay.value ? form.value.barangay_id : null
     })
   } catch (err: any) {
     errorMsg.value = err.message
@@ -156,6 +169,24 @@ const handleSignup = async () => {
             class="input"
           />
         </div>
+
+        <!-- Staff Key Code -->
+<div>
+  <label class="block text-sm font-semibold text-gray-700 mb-1">
+    Staff Key Code
+  </label>
+  <input
+    v-model.trim="form.key_code"
+    type="password"
+    required
+    placeholder="Enter staff key code"
+    class="input"
+  />
+  <p class="text-xs text-gray-500 mt-1">
+    This key is required to register as {{ form.role === 'osca_staff' ? 'OSCA' : 'Barangay' }} staff.
+  </p>
+</div>
+
 
         <!-- Email -->
         <div>

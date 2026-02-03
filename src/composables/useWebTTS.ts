@@ -23,65 +23,48 @@ export function useWebTTS() {
   }
 
   const speak = async (text: string): Promise<void> => {
-    if (!text || !text.trim()) return
-
-    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
-      console.warn('Web TTS not supported in this environment')
-      return
-    }
+    if (!text?.trim()) return
+    if (!('speechSynthesis' in window)) return
 
     await loadVoices()
-    if (!availableVoices.length) {
-      console.warn('No TTS voices available')
-      return
-    }
+    if (!availableVoices.length) return
 
-    // cancel any ongoing speech
     window.speechSynthesis.cancel()
 
     const utter = new SpeechSynthesisUtterance(text)
 
-    // Prefer Indonesian female voice (can tweak this later)
-    const indonesianVoice = availableVoices.find(
-      (v) =>
-        (v.lang === 'id-ID' || v.name.toLowerCase().includes('bahasa')) &&
-        !v.name.toLowerCase().includes('male')
-    )
+    // 🎯 Prefer natural US English voices
+    const englishVoice =
+      availableVoices.find(v => v.lang === 'en-US' && v.name.includes('Google')) ||
+      availableVoices.find(v => v.lang === 'en-US' && v.name.includes('Samantha')) ||
+      availableVoices.find(v => v.lang === 'en-US' && v.name.includes('Alex')) ||
+      availableVoices.find(v => v.lang.startsWith('en'))
 
-    // Fallbacks
-    const femaleEnglish = availableVoices.find(
-      (v) =>
-        v.name.toLowerCase().includes('female') ||
-        v.name.toLowerCase().includes('zira')
-    )
-
-    const chosen = indonesianVoice || femaleEnglish || availableVoices[0]
-
-    if (chosen) {
-      utter.voice = chosen
-      utter.lang = chosen.lang || 'id-ID'
+    if (englishVoice) {
+      utter.voice = englishVoice
+      utter.lang = 'en-US'
     } else {
-      utter.lang = 'id-ID'
+      utter.lang = 'en-US'
     }
 
-    utter.rate = 1
-    utter.pitch = 1.2
+    // 👂 Natural-sounding settings
+    utter.rate = 0.95
+    utter.pitch = 1
+    utter.volume = 1
 
     window.speechSynthesis.speak(utter)
   }
 
-  const stop = (): void => {
-    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return
-    window.speechSynthesis.cancel()
+  const stop = () => {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel()
+    }
   }
-
-  const supported = (): boolean =>
-    typeof window !== 'undefined' && 'speechSynthesis' in window
 
   return {
     speak,
     stop,
-    supported,
+    supported: () => 'speechSynthesis' in window,
     type: 'web',
   }
 }

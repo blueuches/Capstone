@@ -46,13 +46,19 @@
           class="mt-2 w-full rounded-xl bg-[#42ad43] text-white text-xs font-extrabold py-2"
           @click="voiceActive ? voice.stopAll() : voice.start()"
         >
-{{ voiceActive ? 'Stop voice assist' : 'Tap here to answer using your voice' }}        </button>
+          {{ voiceActive ? 'Stop voice assist' : 'Tap here to answer using your voice' }}
+        </button>
       </div>
 
       <!-- ✅ SCROLL AREA (only this scrolls) -->
       <section ref="formAreaRef" class="flex-1 min-h-0 overflow-y-auto pt-4 pb-6">
         <div class="space-y-4">
-          <div v-for="field in currentFields" :key="field.id" class="space-y-1"  :data-field-key="field.field_key">
+          <div
+            v-for="field in currentFields"
+            :key="field.id"
+            class="space-y-1"
+            :data-field-key="field.field_key"
+          >
             <label class="text-xs font-bold text-gray-700">
               {{ field.label }}
               <span v-if="field.required" class="text-red-500">*</span>
@@ -68,7 +74,6 @@
       </section>
 
       <!-- Bottom controls (fixed inside page) -->
-      <!-- ✅ shrink-0 so it never overlaps the form; add safe-area padding -->
       <div class="shrink-0 pt-2 pb-[calc(env(safe-area-inset-bottom)+84px)]">
         <div class="h-2 rounded-full bg-gray-200 overflow-hidden mb-3">
           <div
@@ -89,9 +94,12 @@
             class="w-12 h-12 rounded-full border-2 border-gray-200 bg-white flex items-center justify-center"
             :class="voiceActive ? 'ring-4 ring-[#42ad43]/30' : ''"
           >
-            <component :is="Mic" class="tile-icon w-5 h-5" :class="voiceActive ? 'text-[#42ad43]' : 'text-black'" />
+            <component
+              :is="Mic"
+              class="tile-icon w-5 h-5"
+              :class="voiceActive ? 'text-[#42ad43]' : 'text-black'"
+            />
           </button>
-
 
           <button
             class="w-10 h-10 rounded-full bg-[#42ad43] text-white flex items-center justify-center"
@@ -159,7 +167,6 @@
       @cancel="missedModalOpen = false"
       @confirm="handleMissedConfirm"
     />
-
   </div>
 </template>
 
@@ -181,7 +188,7 @@ import Mic from '@/assets/icons/senior/mic.svg'
 import SpellingModal from '@/components/SpellingModal.vue'
 import { useFormVoiceAssistant } from '@/composables/useFormVoiceAssistant'
 import { useUnifiedSTT } from '@/composables/useUnifiedSTT'
-
+import { watchEffect } from 'vue'
 
 type FormFieldType =
   | 'text'
@@ -234,8 +241,11 @@ const draftModalOpen = ref(false)
 const formSubmissionId = ref<string>('')
 const userIdRef = ref<string>('')
 
-// ✅ barangay dropdown choices
+// ✅ barangay dropdown choices (id + name)
 const barangayChoices = ref<Array<{ label: string; value: string }>>([])
+
+// ✅ NEW: store the senior's barangay_id from profile for prefilling
+const profileBarangayId = ref<string>('')
 
 // =======================
 // AUTO STEP SIZE (fit to space)
@@ -284,7 +294,6 @@ const applicantFieldsAll = computed(() =>
     .sort((a, b) => adjustedSortOrder(a) - adjustedSortOrder(b))
     .filter((f) => f.section === 'A_APPLICANT')
 )
-
 
 const currentStep = ref(0)
 
@@ -389,19 +398,47 @@ function validateRequiredVisible(): boolean {
 }
 
 // =======================
-// SAVE/UPSERT ANSWERS (Option B)
+// ✅ BARANGAY HELPERS (ID <-> NAME)
+// Dropdown uses ID; DB stores NAME so PDF prints name without edge changes.
+// =======================
+function barangayNameFromId(id: string | null | undefined) {
+  if (!id) return ''
+  const found = barangayChoices.value.find((b) => b.value === id)
+  return found?.label ?? ''
+}
+
+function barangayIdFromName(name: string | null | undefined) {
+  if (!name) return ''
+  const needle = String(name).trim().toLowerCase()
+  const found = barangayChoices.value.find((b) => String(b.label).trim().toLowerCase() === needle)
+  return found?.value ?? ''
+}
+
+// =======================
+// SAVE/UPSERT ANSWERS
 // Save ONLY A_APPLICANT fields (including hidden depends_on fields)
+// ✅ Special-case: barangay -> store NAME (string)
 // =======================
 async function upsertApplicantAnswersAll() {
   if (!formSubmissionId.value || !userIdRef.value) return
   if (!fields.value.length) return
 
-  const rows = applicantFieldsAll.value.map((f) => ({
-    form_submission_id: formSubmissionId.value,
-    field_id: f.id,
-    value: answers[f.field_key] ?? null, // includes empty
-    answered_by: userIdRef.value
-  }))
+  const rows = applicantFieldsAll.value.map((f) => {
+    let v = answers[f.field_key] ?? null
+
+    // ✅ store barangay NAME instead of UUID (so PDF prints name)
+    if (f.field_key === 'barangay') {
+      v = barangayNameFromId(answers.barangay)
+      if (!v) v = null
+    }
+
+    return {
+      form_submission_id: formSubmissionId.value,
+      field_id: f.id,
+      value: v, // includes empty
+      answered_by: userIdRef.value
+    }
+  })
 
   const { error } = await supabase
     .from('form_answers')
@@ -421,12 +458,8 @@ async function confirmDraft() {
   try {
     await upsertApplicantAnswersAll()
 
-
     // status stays draft
-    await supabase
-      .from('form_submissions')
-      .update({ status: 'draft' })
-      .eq('id', formSubmissionId.value)
+    await supabase.from('form_submissions').update({ status: 'draft' }).eq('id', formSubmissionId.value)
 
     goBackToSubmit()
   } catch (e) {
@@ -447,16 +480,10 @@ async function confirmFinish() {
   try {
     await upsertApplicantAnswersAll()
 
-    await supabase
-      .from('form_submissions')
-      .update({ status: 'submitted' })
-      .eq('id', formSubmissionId.value)
+    await supabase.from('form_submissions').update({ status: 'submitted' }).eq('id', formSubmissionId.value)
 
     // ✅ important: mark requirement submitted too
-    await supabase
-      .from('application_requirements')
-      .update({ status: 'submitted' })
-      .eq('id', applicationRequirementId.value)
+    await supabase.from('application_requirements').update({ status: 'submitted' }).eq('id', applicationRequirementId.value)
 
     goBackToSubmit()
   } catch (e) {
@@ -471,6 +498,16 @@ async function loadBarangays() {
   const { data, error } = await supabase.from('barangays').select('id, name').order('name')
   if (error) return console.error(error)
   barangayChoices.value = (data ?? []).map((b: any) => ({ label: b.name, value: b.id }))
+}
+
+// ✅ NEW: fetch senior's barangay_id from profiles for prefilling
+async function loadProfileBarangayId(userId: string) {
+  const { data, error } = await supabase.from('profiles').select('barangay_id').eq('id', userId).maybeSingle()
+  if (error) {
+    console.error(error)
+    return
+  }
+  profileBarangayId.value = (data as any)?.barangay_id ?? ''
 }
 
 function applyFieldOverridesForUX() {
@@ -517,8 +554,11 @@ async function loadForm() {
   if (!userId) return
   userIdRef.value = userId
 
-  // ✅ load barangays early
+  // ✅ load barangays early (so dropdown choices exist for mapping)
   await loadBarangays()
+
+  // ✅ load profile barangay id for prefill
+  await loadProfileBarangayId(userId)
 
   // 1) Get or create form_submissions row (unique by application_requirement_id)
   let { data: submission, error: subErr } = await supabase
@@ -587,6 +627,7 @@ async function loadForm() {
 
   initAnswersDefaults()
 
+  // 4) Existing answers
   const { data: ansRows, error: ansErr } = await supabase
     .from('form_answers')
     .select('field_id, value')
@@ -597,18 +638,36 @@ async function loadForm() {
   const fieldIdToKey = new Map(fields.value.map((f) => [f.id, f.field_key]))
   for (const row of ansRows ?? []) {
     const key = fieldIdToKey.get((row as any).field_id)
-    if (key) answers[key] = (row as any).value
+    if (!key) continue
+
+    // ✅ barangay is stored as NAME in DB -> convert to ID for dropdown selection
+    if (key === 'barangay') {
+      const savedName = (row as any).value
+      const id = barangayIdFromName(savedName)
+      answers.barangay = id || '' // keep v-model as ID
+      continue
+    }
+
+    answers[key] = (row as any).value
   }
 
   // ✅ ensure defaults still apply if DB returned empty
   if (!answers.citizenship) answers.citizenship = 'Filipino'
   if (!answers.civil_status) answers.civil_status = 'married'
 
+  // ✅ PREFILL barangay if no saved answer yet
+  if (!answers.barangay && profileBarangayId.value) {
+    answers.barangay = profileBarangayId.value
+  }
+
   // after mount
   await nextTick()
   recalcFieldsPerStep()
 }
 
+// =======================
+// VOICE ASSIST
+// =======================
 const voiceModalOpen = ref(false)
 const voiceModalTitle = ref('Voice Assist')
 const voiceModalMessage = ref('')
@@ -632,8 +691,6 @@ const voice = useFormVoiceAssistant({
   setModalMode: (m) => (voiceModalMode.value = m),
 
   onSubmit: async () => {
-    // reuse your existing submit routine
-    // IMPORTANT: this validates + saves + sets statuses
     const ok = validateRequiredVisible()
     if (!ok) return
     await upsertApplicantAnswersAll()
@@ -643,17 +700,18 @@ const voice = useFormVoiceAssistant({
 
   onGoSubmitList: () => {
     goBackToSubmit()
-  },
+  }
 })
 
 const voiceActive = computed(() => voice.active.value)
-
-import { watchEffect } from 'vue'
 
 watchEffect(() => {
   console.log('[VOICE] mode=', voice.mode.value, 'active=', voice.active.value)
 })
 
+// =======================
+// MISSED REQUIRED MODAL
+// =======================
 const missedModalOpen = ref(false)
 const missedRequiredLabels = ref<string[]>([])
 
@@ -669,7 +727,6 @@ async function handleMissedConfirm() {
 }
 
 function collectMissedRequired() {
-  // assumes: errors[field_key] is set by validateRequiredVisible()
   const missed = visibleFields.value
     .filter((f) => f.required && !!errors[f.field_key])
     .map((f) => f.label || f.field_key)
@@ -690,13 +747,9 @@ async function jumpToFirstError() {
 
   await nextTick()
 
-  const el = document.querySelector(
-    `[data-field-key="${firstBad.field_key}"]`
-  ) as HTMLElement | null
-
+  const el = document.querySelector(`[data-field-key="${firstBad.field_key}"]`) as HTMLElement | null
   el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
 }
-
 
 // Watch for final transcript arriving, then feed assistant
 watch(

@@ -24,6 +24,7 @@
     "@vuepic/vue-datepicker": "^11.0.2",
     "chart.js": "^4.5.0",
     "lucide-vue-next": "^0.546.0",
+    "pdfjs-dist": "^5.4.624",
     "pinia": "^3.0.3",
     "quasar": "^2.18.2",
     "vite-svg-loader": "^5.1.0",

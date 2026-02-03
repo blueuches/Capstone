@@ -28,7 +28,7 @@ export function useNativeTTS() {
     }
 
     const {
-      lang = 'id-ID', // try Bahasa Indonesia by default
+      lang = 'en-US', // try Bahasa Indonesia by default
       rate = 1.0,
       pitch = 1.2, // slightly higher pitch = “more feminine”
       volume = 1.0,
