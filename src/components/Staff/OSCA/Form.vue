@@ -20,10 +20,18 @@
         Loading form fields…
       </div>
 
-      <!-- Empty -->
-      <div v-else-if="filteredFields.length === 0" class="text-sm text-gray-600">
-        No fields found for section <span class="font-bold">{{ onlySection }}</span>.
-      </div>
+  <!-- Blocked: no submission id yet -->
+  <div
+    v-else-if="onlySection === 'B_OSCA' && !formSubmissionId"
+    class="text-sm text-yellow-800 border border-yellow-200 bg-yellow-50 rounded-xl p-3"
+  >
+    You can’t answer the OSCA section yet because there’s no form submission from the applicant.
+  </div>
+
+  <!-- Empty: no fields -->
+  <div v-else-if="filteredFields.length === 0" class="text-sm text-gray-600">
+    No fields found for section <span class="font-bold">{{ onlySection }}</span>.
+  </div>
 
       <!-- Content -->
       <div v-else class="space-y-4">

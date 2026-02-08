@@ -24,4 +24,5 @@ export type Profile = {
 
   // Supabase can return relation as an object OR array depending on query/relationship
   barangays?: BarangayRef | BarangayRef[] | null
+  created_at: string
 }

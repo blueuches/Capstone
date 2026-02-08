@@ -48,6 +48,7 @@
         <div class="min-w-0 text-right">
           <h1 class="text-xl sm:text-2xl font-extrabold text-gray-900 leading-tight">
             Review {{ seniorFullName ? `${seniorFullName}` : '' }}
+            <span v-if="issuanceTypeName" class="font-extrabold"> for {{ issuanceTypeName }}</span>
           </h1>
         </div>
       </div>
@@ -242,6 +243,8 @@ const applicationId = computed(() => String(route.params.applicationId || route.
 // ---------- HEADER / BACK CONTEXT ----------
 const issuanceTypeId = ref<string>('') // for back button (issuance-info)
 const seniorFullName = ref<string>('') // for "Review [Name]" title
+const issuanceTypeName = ref<string>('') // for "for [issuance type]"
+
 
 // DB status (from applications.status)
 const dbApplicationStatus = ref<string>('draft')
@@ -370,6 +373,7 @@ async function fetchApplicantHeaderAndIssuance() {
         id,
         status,
         issuance_type_id,
+        issuance_type:issuance_types!applications_issuance_type_id_fkey(name),
         senior:profiles!applications_senior_id_fkey(first_name, last_name)
       `
       )
@@ -380,6 +384,7 @@ async function fetchApplicantHeaderAndIssuance() {
 
     dbApplicationStatus.value = data?.status || 'draft'
     issuanceTypeId.value = data?.issuance_type_id || ''
+    issuanceTypeName.value = (data as any)?.issuance_type?.name ?? ''
 
     const fn = (data as any)?.senior?.first_name || ''
     const ln = (data as any)?.senior?.last_name || ''
@@ -389,6 +394,7 @@ async function fetchApplicantHeaderAndIssuance() {
     dbApplicationStatus.value = 'draft'
     issuanceTypeId.value = ''
     seniorFullName.value = ''
+    issuanceTypeName.value = ''
   }
 }
 

@@ -44,10 +44,10 @@
             {{ profile?.first_name }} {{ profile?.last_name }}
             </p>
             <p class="text-sm text-gray-600 mt-1">
-              OSCA ID: <span class="font-semibold text-gray-800">[XXXX-XXXX]</span>
+              OSCA ID: <span class="font-semibold text-gray-800">[Unavailable]</span>
             </p>
             <p class="text-xs text-gray-500 mt-1">
-              Status: <span class="font-semibold text-gray-700">[Verified]</span>
+              Account Created: <span class="font-semibold text-gray-700">{{ accountCreatedLabel }}</span>
             </p>
           </div>
         </div>
@@ -75,7 +75,7 @@
       <!-- PERSONAL INFORMATION -->
       <section class="mt-5">
         <div class="flex items-center justify-between mb-2">
-          <span class="text-xs text-gray-500">[Last updated: --]</span>
+          <span class="text-xs text-gray-500"></span>
         </div>
 
         <div class="bg-white rounded-2xl shadow-sm ring-1 ring-gray-200 overflow-hidden">
@@ -85,7 +85,7 @@
           </div>
           <div class="kv-row">
             <span>Age</span>
-            <span>[--] years old</span>
+            <span>{{ ageLabel }}</span>
           </div>
           <div class="kv-row">
             <span>Gender</span>
@@ -93,7 +93,7 @@
           </div>
                     <div class="kv-row">
             <span>Barangay</span>
-            <span class="text-right">[Barangay Name]</span>
+            <span class="text-right">{{ barangayLabel }}</span>
           </div>
 
         </div>
@@ -115,20 +115,94 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed, watchEffect } from 'vue'
 import Header from '@/components/Senior/Header.vue'
 import SideBurger from '@/components/Senior/SideBurger.vue'
 import BottomNav from '@/components/Senior/BottomNav.vue'
 import Left from '@/assets/icons/senior/left-arrow.svg'
 import { useAuth } from '@/composables/useAuth'
+import { supabase } from '@/supabase/client'
 
 const { profile, logout } = useAuth()
-
 const open = ref(false)
 
 const handleLogout = async () => {
   await logout()
 }
+
+function computeAge(birthdateISO: string): number {
+  const dob = new Date(birthdateISO) // accepts "YYYY-MM-DD"
+  if (Number.isNaN(dob.getTime())) return 0
+
+  const today = new Date()
+  let age = today.getFullYear() - dob.getFullYear()
+
+  const m = today.getMonth() - dob.getMonth()
+  if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--
+
+  return Math.max(age, 0)
+}
+
+const ageLabel = computed(() => {
+  const b = profile.value?.birthdate
+  if (!b) return '—'
+  const age = computeAge(b)
+  return `${age} years old`
+})
+
+const barangayName = ref<string>('—')
+
+  function extractBarangayName(): string | null {
+  const rel = profile.value?.barangays
+  if (!rel) return null
+  if (Array.isArray(rel)) return rel[0]?.name ?? null
+  return rel.name ?? null
+}
+
+watchEffect(async () => {
+  // 1) If profile already includes joined barangay, use it
+  const joinedName = extractBarangayName()
+  if (joinedName) {
+    barangayName.value = joinedName
+    return
+  }
+
+  // 2) Otherwise fetch by barangay_id
+  const id = profile.value?.barangay_id
+  if (!id) {
+    barangayName.value = '—'
+    return
+  }
+
+  const { data, error } = await supabase
+    .from('barangays')
+    .select('name')
+    .eq('id', id)
+    .maybeSingle()
+
+  if (error) {
+    barangayName.value = '—'
+    return
+  }
+
+  barangayName.value = data?.name ?? '—'
+})
+
+const barangayLabel = computed(() => barangayName.value)
+
+const accountCreatedLabel = computed(() => {
+  const v = (profile.value as any)?.created_at
+  if (!v) return '—'
+
+  const d = new Date(v)
+  if (Number.isNaN(d.getTime())) return '—'
+
+  return new Intl.DateTimeFormat('en-PH', {
+    year: 'numeric',
+    month: 'long',
+    day: '2-digit'
+  }).format(d)
+})
 
 // purely UI placeholder avatar
 const avatarPlaceholder =

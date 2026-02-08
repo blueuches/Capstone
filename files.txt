@@ -1,0 +1,239 @@
+Folder PATH listing
+Volume serial number is 84AC-BAA4
+C:\USERS\USER\CAPSTONE\SRC
+│   App.vue
+│   main.ts
+│   project_structure.txt
+│   shims-tts.d.ts
+│   shims-vue.d.ts
+│   shims.d.ts
+│   
+├───assets
+│   │   base.css
+│   │   logo.svg
+│   │   main.css
+│   │   
+│   └───icons
+│       ├───osca-brgy
+│       └───senior
+│               applications.svg
+│               apply.svg
+│               close-icon.svg
+│               close.svg
+│               help.svg
+│               home.svg
+│               left-arrow.svg
+│               location.svg
+│               mic.svg
+│               next-icon.svg
+│               notification.svg
+│               profile.svg
+│               requirements.svg
+│               right-arrow.svg
+│               status.svg
+│
+├───components
+│   │   ConfirmModal.vue
+│   │   FormField.vue
+│   │   MessageBodies.vue
+│   │   Search.vue
+│   │   SelectFile.vue
+│   │   SpellingModal.vue
+│   │   Toast.vue
+│   │   VoiceGuide.vue
+│   │
+│   ├───Admin
+│   │       BackupTable.vue
+│   │       Card.vue
+│   │       CardEdit.vue
+│   │       DashboardRectangle.vue
+│   │       EditFields.vue
+│   │       EditFieldsRequirements.vue
+│   │       Header.vue
+│   │       MovableTableRecord.vue
+│   │       Pagination.vue
+│   │       Rectangle.vue
+│   │       Search.vue
+│   │       Sidebar.vue
+│   │       SidebarItem.vue
+│   │       Table.vue
+│   │
+│   ├───Senior
+│   │       ApplicationItem.vue
+│   │       ApplyItem.vue
+│   │       ApplyList.vue
+│   │       Block.vue
+│   │       BottomNav.vue
+│   │       Header.vue
+│   │       IssuanceItem.vue
+│   │       PdfJsViewer.vue
+│   │       RequirementItem.vue
+│   │       RequirementList.vue
+│   │       SideBurger.vue
+│   │       StatusItem.vue
+│   │       Tiles.vue
+│   │       ViewPdfModal.vue
+│   │
+│   └───Staff
+│       │   AboutCards.vue
+│       │   Announcement.vue
+│       │   DashboardRectangle.vue
+│       │   Header.vue
+│       │   InputMessage.vue
+│       │   Pagination.vue
+│       │   Search.vue
+│       │   SettingRectangle.vue
+│       │   Sidebar.vue
+│       │   SidebarItem.vue
+│       │   TableList.vue
+│       │   ViewDocument.vue
+│       │   ViewForm.vue
+│       │   ViewFormPDF.vue
+│       │
+│       ├───BRGY
+│       │       Header.vue
+│       │
+│       └───OSCA
+│               ApplicationRectangle.vue
+│               BarangayInfoCard.vue
+│               BarangayRectangle.vue
+│               Form.vue
+│
+├───composables
+│       stt-tts.d.ts
+│       useAuth.ts
+│       useFormVoiceAssistant.ts
+│       useNativeSpeechStt.ts
+│       useNativeTTS.ts
+│       useNotifications.ts
+│       useRasa.ts
+│       useSeniorFontSize.ts
+│       useSessionRole.ts
+│       useTTS.ts
+│       useUnifiedSTT.ts
+│       useUnifiedTTS.ts
+│       useVoiceLoop.ts
+│       useWebSpeechStt.ts
+│       useWebTTS.ts
+│
+├───mapping
+│       oscaIdForm.ts
+│       oscaPdfCoords.ts
+│
+├───router
+│       index.ts
+│
+├───stores
+│       counter.ts
+│       loading.ts
+│
+├───supabase
+│       client.ts
+│
+├───types
+│       profile.ts
+│
+├───utils
+│       answers.ts
+│       auth.ts
+│
+└───views
+    │   Login.vue
+    │   LoginPhone.vue
+    │   NotAuthorized.vue
+    │   Signup.vue
+    │   SignupMembers.vue
+    │   SignupPhone.vue
+    │   Welcome.vue
+    │
+    ├───Admin
+    │       Backup.vue
+    │       Dashboard.vue
+    │       Edit.vue
+    │       EditIssuanceOption.vue
+    │       EditIssuanceOptionEdit.vue
+    │       EditIssuanceRequirements.vue
+    │       EditRequirementsOption.vue
+    │       EditRequirementsOptionsEdit.vue
+    │       FormBuilder.vue
+    │       FormBuilderWorkaround.vue
+    │       Logs.vue
+    │       UserManagement.vue
+    │
+    ├───Barangay
+    │       About.vue
+    │       Announcement.vue
+    │       Dashboard.vue
+    │       MessagePage.vue
+    │       Notifications.vue
+    │       ProfilePage.vue
+    │       ProfilePageEdit.vue
+    │       SeniorList.vue
+    │       SeniorManagement.vue
+    │       SeniorManagementBuilder.vue
+    │       SeniorView.vue
+    │       Settings.vue
+    │
+    ├───OSCA
+    │       About.vue
+    │       ActivityPage.vue
+    │       Announcement.vue
+    │       ApplicantReview.vue
+    │       BarangaysPage.vue
+    │       BarangaysPageInfo.vue
+    │       BRGYMessage.vue
+    │       Dashboard.vue
+    │       IssuancePage.vue
+    │       IssuancePageInfo.vue
+    │       MessagePage.vue
+    │       Notifications.vue
+    │       ProfilePage.vue
+    │       ProfilePageEdit.vue
+    │       Search.vue
+    │       Settings.vue
+    │       StaffProfile.vue
+    │       UserProfile.vue
+    │
+    └───Senior
+            About.vue
+            ApplyPage.vue
+            ApplyPageContinueList.vue
+            ApplyPageForm.vue
+            ApplyPageOption.vue
+            ApplyPageSubmit.vue
+            Dashboard.vue
+            Help.vue
+            IssuancePage.vue
+            IssuancePageInfo.vue
+            Location.vue
+            Notification.vue
+            ProfilePage.vue
+            RequirementsPage.vue
+            RequirementsPageList.vue
+            RequirementsPageView.vue
+            Settings.vue
+            StatusPage.vue
+            StatusPageUpdate.vue
+
+PS C:\Users\user\Capstone> tree supabase /f
+Folder PATH listing
+Volume serial number is 84AC-BAA4
+C:\USERS\USER\CAPSTONE\SUPABASE
+│   .gitignore
+│   config.toml
+│
+├───.temp
+│       cli-latest
+│
+└───functions
+    ├───fill-osca-pdf
+    │       .npmrc
+    │       config.toml
+    │       deno.json
+    │       index.ts
+    │
+    └───temp-phone-signup
+            .npmrc
+            deno.json
+            index.ts
+

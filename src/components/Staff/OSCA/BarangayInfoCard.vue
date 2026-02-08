@@ -170,8 +170,10 @@ async function fetchSeniorsApplying(from: number, to: number) {
       issuance_type_id,
       created_at,
       profiles:profiles!applications_senior_id_fkey (
-        first_name,
         last_name
+      ),
+      issuance_type:issuance_types!applications_issuance_type_id_fkey (
+        name
       )
     `,
       { count: 'exact' }
@@ -181,21 +183,65 @@ async function fetchSeniorsApplying(from: number, to: number) {
     .range(from, to)
 
   if (error) throw error
-
   total.value = count ?? 0
 
-  // number duplicates per (senior_id + issuance_type_id)
-  const seq = new Map<string, number>()
+  const pageApps = (data ?? []) as any[]
 
-  rows.value = (data ?? []).map((a: any) => {
-    const base = makeFullName(a?.profiles?.first_name, a?.profiles?.last_name)
-    const key = `${a?.senior_id ?? ''}:${a?.issuance_type_id ?? ''}`
-    const next = (seq.get(key) ?? 0) + 1
-    seq.set(key, next)
+  // --- compute numbering globally (not just within the page) per (senior_id + issuance_type_id)
+  // For the keys present on the current page, fetch ALL apps for those keys.
+  const keys = Array.from(
+    new Set(pageApps.map(a => `${a.senior_id}:${a.issuance_type_id}`))
+  )
+
+  let allForKeys: any[] = []
+  if (keys.length) {
+    const ors = keys
+      .map(k => {
+        const [sid, itid] = k.split(':')
+        return `and(senior_id.eq.${sid},issuance_type_id.eq.${itid})`
+      })
+      .join(',')
+
+    const { data: allData, error: allErr } = await supabase
+      .from('applications')
+      .select('id, senior_id, issuance_type_id, created_at')
+      .eq('barangay_id', props.barangayId)
+      .or(ors)
+      .order('created_at', { ascending: false })
+
+    if (allErr) throw allErr
+    allForKeys = allData ?? []
+  }
+
+  // Build index map: application_id -> position number within its (senior+issuance) group
+  const grouped = new Map<string, any[]>()
+  for (const a of allForKeys) {
+    const k = `${a.senior_id}:${a.issuance_type_id}`
+    if (!grouped.has(k)) grouped.set(k, [])
+    grouped.get(k)!.push(a)
+  }
+
+  const appIndex = new Map<string, number>()
+  const groupSize = new Map<string, number>()
+  for (const [k, arr] of grouped.entries()) {
+    groupSize.set(k, arr.length)
+    arr.forEach((a, idx) => appIndex.set(a.id, idx + 1)) // 1-based
+  }
+
+  rows.value = pageApps.map((a: any) => {
+    const surname = (a?.profiles?.last_name || 'Unnamed').trim()
+    const issuanceName = (a?.issuance_type?.name || 'Issuance').trim()
+
+    const k = `${a.senior_id}:${a.issuance_type_id}`
+    const n = appIndex.get(a.id) ?? 1
+    const size = groupSize.get(k) ?? 1
+
+    // If multiple apps under the same issuance for the same senior → append " 1", " 2", ...
+    const suffix = size > 1 ? ` ${n}` : ''
 
     return {
-      id: a.id, // application id
-      full_name: `${base} - ${next}`,
+      id: a.id,
+      full_name: `${surname} - ${issuanceName}${suffix}`,
       to: { name: 'ApplicantReview', params: { applicationId: a.id } }
     }
   })

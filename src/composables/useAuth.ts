@@ -59,6 +59,7 @@ export function useAuth() {
         gender,
         contact_no,
         barangay_id,
+        created_at,
         barangays (
           id,
           name
@@ -80,6 +81,7 @@ export function useAuth() {
       gender: data.gender ?? null,
       contact_no: data.contact_no ?? null,
       barangay_id: data.barangay_id ?? null,
+      created_at: data.created_at ?? null,
       barangays: Array.isArray(data.barangays)
         ? (data.barangays as BarangayRef[])
         : (data.barangays ?? null)

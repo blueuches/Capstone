@@ -190,8 +190,16 @@ async function loadApplications() {
       const appId = r.application_id
       const kind = (r?.issuance_type_requirement?.requirement?.requirement_kind ?? '').toLowerCase()
       const isForm = kind === 'form'
-      const hasForm = Array.isArray(r.form_submissions) && r.form_submissions.length > 0
-      const hasDocs = Array.isArray(r.document_submissions) && r.document_submissions.length > 0
+
+      const hasDocs =
+        Array.isArray(r.document_submissions) && r.document_submissions.length > 0
+
+      // ✅ form_submissions can be OBJECT (1:1) or ARRAY (depending on query)
+      const hasForm =
+        (!!r.form_submissions && !Array.isArray(r.form_submissions)) ||
+        (Array.isArray(r.form_submissions) && r.form_submissions.length > 0)
+
+      // ✅ count as "sent" even if the form is still draft (any record exists)
       const hasRecord = isForm ? hasForm : hasDocs
 
       const cur = totals.get(appId) ?? { total: 0, sent: 0 }
@@ -199,6 +207,7 @@ async function loadApplications() {
       if (hasRecord) cur.sent += 1
       totals.set(appId, cur)
     }
+
 
     // Numbering per issuance type
     const issuanceCounter = new Map<string, number>()

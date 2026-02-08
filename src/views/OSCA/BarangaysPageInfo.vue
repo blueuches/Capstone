@@ -65,7 +65,7 @@
           <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <!-- 1) Seniors Applying (REAL: from applications) -->
             <BarangayInfoCard
-              title="Seniors Applying"
+              title="Applications"
               :barangayId="barangayId"
               mode="seniors_applying"
               :pageSize="10"
