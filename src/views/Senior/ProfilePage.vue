@@ -126,6 +126,31 @@ import { supabase } from '@/supabase/client'
 const { profile, logout } = useAuth()
 const open = ref(false)
 
+const accountCreatedAt = ref<string | null>(null)
+
+const fetchAccountCreatedAt = async () => {
+  // prefer profile id if already loaded
+  const userId = profile.value?.id
+  if (!userId) {
+    accountCreatedAt.value = null
+    return
+  }
+
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('created_at')
+    .eq('id', userId)
+    .maybeSingle()
+
+  if (error) {
+    accountCreatedAt.value = null
+    return
+  }
+
+  accountCreatedAt.value = data?.created_at ?? null
+}
+
+
 const handleLogout = async () => {
   await logout()
 }
@@ -188,10 +213,15 @@ watchEffect(async () => {
   barangayName.value = data?.name ?? '—'
 })
 
+watchEffect(() => {
+  // when profile loads / changes, pull created_at from DB
+  if (profile.value?.id) fetchAccountCreatedAt()
+})
+
 const barangayLabel = computed(() => barangayName.value)
 
 const accountCreatedLabel = computed(() => {
-  const v = (profile.value as any)?.created_at
+  const v = accountCreatedAt.value
   if (!v) return '—'
 
   const d = new Date(v)
@@ -203,6 +233,7 @@ const accountCreatedLabel = computed(() => {
     day: '2-digit'
   }).format(d)
 })
+
 
 // purely UI placeholder avatar
 const avatarPlaceholder =
