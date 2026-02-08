@@ -71,6 +71,29 @@ const handleSignup = async () => {
     errorMsg.value = err.message
   }
 }
+
+// ✅ Birthdate picker (same behavior as Senior signup)
+const birthInput = ref<HTMLInputElement | null>(null)
+
+const openBirthPicker = () => {
+  const el = birthInput.value
+  if (!el) return
+
+  // Chrome/Edge support
+  ;(el as HTMLInputElement & { showPicker?: () => void }).showPicker?.()
+
+  // fallback
+  el.focus()
+  el.click()
+}
+
+const birthdateDisplay = computed(() => {
+  if (!form.value.birthdate) return ''
+  const [y, m, d] = form.value.birthdate.split('-')
+  if (!y || !m || !d) return form.value.birthdate
+  return `${m}/${d}/${y}`
+})
+
 </script>
 
 <template>
@@ -157,12 +180,38 @@ const handleSignup = async () => {
             <option value="Female">Female</option>
             <option value="Other">Other</option>
           </select>
-          <input
-            v-model.trim="form.birthdate"
-            placeholder="Birthdate"
-            type="date"
-            class="input"
-          />
+<!-- ✅ Birthdate (whole field clickable) -->
+<div class="relative cursor-pointer" @click="openBirthPicker">
+  <!-- display only -->
+  <input
+    :value="birthdateDisplay"
+    placeholder="Birthdate"
+    readonly
+    class="input pr-12 birthdate-display"
+  />
+
+  <!-- real date input (kept for anchoring) -->
+  <input
+    ref="birthInput"
+    v-model="form.birthdate"
+    type="date"
+    class="date-overlay-anchor"
+    aria-label="Birthdate"
+    tabindex="-1"
+  />
+
+  <!-- chevron icon (visual only) -->
+  <span class="birthdate-icon">
+    <svg class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+      <path
+        fill-rule="evenodd"
+        d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 10.94l3.71-3.71a.75.75 0 1 1 1.06 1.06l-4.24 4.25a.75.75 0 0 1-1.06 0L5.21 8.29a.75.75 0 0 1 .02-1.08z"
+        clip-rule="evenodd"
+      />
+    </svg>
+  </span>
+</div>
+
           <input
             v-model.trim="form.contact_no"
             placeholder="Contact No"
@@ -260,4 +309,21 @@ const handleSignup = async () => {
   @apply w-full px-4 py-3 text-lg border border-gray-300 rounded-xl
          focus:ring-2 focus:ring-emerald-400 focus:outline-none text-gray-700;
 }
+
+/* display input should not steal clicks */
+.birthdate-display {
+  @apply pointer-events-none;
+}
+
+/* keep the real date input in the same spot (for correct picker anchoring),
+   but wrapper click opens it */
+.date-overlay-anchor {
+  @apply absolute inset-0 w-full h-full opacity-0;
+  pointer-events: none;
+}
+
+.birthdate-icon {
+  @apply pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-gray-400;
+}
+
 </style>

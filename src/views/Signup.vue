@@ -50,19 +50,11 @@ const normalizePHPhone = (raw: string) => {
 
   if (!s) return ''
 
-  // already E.164
   if (s.startsWith('+')) return s
-
-  // 09xxxxxxxxx (11 digits)
   if (/^09\d{9}$/.test(s)) return '+63' + s.slice(1)
-
-  // 9xxxxxxxxx (10 digits) - missing leading 0
   if (/^9\d{9}$/.test(s)) return '+63' + s
-
-  // 63xxxxxxxxxx (no plus)
   if (/^63\d{10}$/.test(s)) return '+' + s
 
-  // fallback: return as-is (will fail validation)
   return s
 }
 
@@ -102,7 +94,6 @@ const handleSignup = async () => {
       return
     }
   } else {
-    // email mode validation
     if (!form.value.email.trim()) {
       errorMsg.value = 'Email is required.'
       return
@@ -111,7 +102,6 @@ const handleSignup = async () => {
 
   try {
     if (method.value === 'email') {
-      // ✅ existing email signup flow
       await signup({
         role: 'senior',
         email: form.value.email.trim(),
@@ -127,10 +117,8 @@ const handleSignup = async () => {
       return
     }
 
-    // ✅ Use normalized E.164 for auth + database
     const phoneE164 = normalizedPhone.value
 
-    // ✅ PHONE signup (temporary): create via Edge Function (Admin API)
     const { data, error } = await supabase.functions.invoke('temp-phone-signup', {
       body: {
         phone: phoneE164,
@@ -141,7 +129,7 @@ const handleSignup = async () => {
           last_name: form.value.last_name,
           birthdate: form.value.birthdate,
           gender: form.value.gender,
-          contact_no: phoneE164, // ✅ store normalized
+          contact_no: phoneE164,
           barangay_id: form.value.barangay_id
         },
         passcode: HARDCODED_PASSCODE
@@ -151,7 +139,6 @@ const handleSignup = async () => {
     if (error) throw error
     if (!data?.ok) throw new Error(data?.error || 'Phone signup failed.')
 
-    // ✅ Auto-login with phone+password (using normalized phone)
     const { error: loginErr } = await supabase.auth.signInWithPassword({
       phone: phoneE164,
       password: form.value.password
@@ -166,6 +153,29 @@ const handleSignup = async () => {
     errorMsg.value = err?.message || 'Something went wrong.'
   }
 }
+
+// ✅ Birthday UI helpers
+const birthdayDisplay = computed(() => {
+  // keep it simple: show MM/DD/YYYY if value exists, else empty
+  if (!form.value.birthdate) return ''
+  // birthdate from <input type="date"> is YYYY-MM-DD
+  const [y, m, d] = form.value.birthdate.split('-')
+  if (!y || !m || !d) return form.value.birthdate
+  return `${m}/${d}/${y}`
+})
+
+const birthInput = ref<HTMLInputElement | null>(null)
+
+const openBirthPicker = () => {
+  const el = birthInput.value
+  if (!el) return
+
+  // Try showPicker (Chrome/Edge), fallback to focus+click
+  ;(el as HTMLInputElement & { showPicker?: () => void }).showPicker?.()
+  el.focus()
+  el.click()
+}
+
 </script>
 
 <template>
@@ -206,35 +216,73 @@ const handleSignup = async () => {
           </button>
         </div>
 
-        <!-- Names -->
+        <!-- Names (3 across on md like screenshot) -->
         <input v-model.trim="form.first_name" placeholder="First name" required class="input" />
         <input v-model.trim="form.middle_name" placeholder="Middle name (optional)" class="input" />
         <input v-model.trim="form.last_name" placeholder="Last name" required class="input" />
 
-        <!-- Gender / Birthdate -->
-        <select v-model="form.gender" required class="input bg-white">
-          <option value="">Select gender</option>
-          <option value="Male">Male</option>
-          <option value="Female">Female</option>
-          <option value="Other">Other</option>
-        </select>
+        <!-- ✅ Gender + Birthday (side-by-side like screenshot) -->
+        <div class="md:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-5">
+          <select v-model="form.gender" required class="input bg-white">
+            <option value="">Select gender</option>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+            <option value="Other">Other</option>
+          </select>
 
-        <input v-model="form.birthdate" type="date" required class="input md:col-span-2" />
+          <!-- Birthday: fake display + real date input OVERLAYED (so picker anchors correctly) -->
+<div
+  class="relative cursor-pointer"
+  @click="openBirthPicker"
+>
+  <!-- display (purely visual) -->
+  <input
+    :value="birthdayDisplay"
+    placeholder="Birthdate"
+    readonly
+    class="input pr-12 birthday-display"
+  />
 
-        <!-- Contact / Barangay -->
-        <input
-          v-model.trim="form.contact_no"
-          placeholder="Contact number (09xxxxxxxxx)"
-          required
-          class="input"
-        />
+  <!-- real date input (kept in DOM for correct anchoring) -->
+  <input
+    ref="birthInput"
+    v-model="form.birthdate"
+    type="date"
+    class="date-overlay-anchor"
+    aria-label="Birthdate"
+    tabindex="-1"
+  />
 
-        <select v-model="form.barangay_id" required class="input bg-white md:col-span-2">
-          <option value="">Select Barangay</option>
-          <option v-for="b in barangays" :key="b.id" :value="b.id">
-            {{ b.name }}
-          </option>
-        </select>
+  <!-- icon (visual only) -->
+  <span class="birthday-icon">
+    <svg class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+      <path
+        fill-rule="evenodd"
+        d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 10.94l3.71-3.71a.75.75 0 1 1 1.06 1.06l-4.24 4.25a.75.75 0 0 1-1.06 0L5.21 8.29a.75.75 0 0 1 .02-1.08z"
+        clip-rule="evenodd"
+      />
+    </svg>
+  </span>
+</div>
+
+        </div>
+
+        <!-- ✅ Contact + Barangay (side-by-side like screenshot) -->
+        <div class="md:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-5">
+          <input
+            v-model.trim="form.contact_no"
+            placeholder="Contact number (09xxxxxxxxx)"
+            required
+            class="input"
+          />
+
+          <select v-model="form.barangay_id" required class="input bg-white">
+            <option value="">Select Barangay</option>
+            <option v-for="b in barangays" :key="b.id" :value="b.id">
+              {{ b.name }}
+            </option>
+          </select>
+        </div>
 
         <!-- ✅ Email (only if email mode) -->
         <input
@@ -245,23 +293,25 @@ const handleSignup = async () => {
           required
           class="input md:col-span-3"
         />
-        
-        <!-- Passwords -->
-        <input
-          v-model="form.password"
-          type="password"
-          placeholder="Password (min 8 chars)"
-          minlength="8"
-          required
-          class="input"
-        />
-        <input
-          v-model="form.confirmPassword"
-          type="password"
-          placeholder="Confirm password"
-          required
-          class="input md:col-span-2"
-        />
+
+        <!-- ✅ Password + Confirm (side-by-side like screenshot) -->
+        <div class="md:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-5">
+          <input
+            v-model="form.password"
+            type="password"
+            placeholder="Password (min 8 chars)"
+            minlength="8"
+            required
+            class="input"
+          />
+          <input
+            v-model="form.confirmPassword"
+            type="password"
+            placeholder="Confirm password"
+            required
+            class="input"
+          />
+        </div>
 
         <p v-if="passwordMismatch" class="text-red-600 text-sm md:col-span-3">Passwords do not match.</p>
 
@@ -272,7 +322,6 @@ const handleSignup = async () => {
           Enter a valid PH number like 09xxxxxxxxx.
         </p>
 
-        <!-- (Optional) helpful hint when valid -->
         <p
           v-if="method === 'phone' && phoneLooksValid"
           class="text-gray-500 text-xs md:col-span-3"
@@ -311,4 +360,26 @@ const handleSignup = async () => {
   @apply w-full px-4 py-3 text-lg border border-gray-300 rounded-xl
          focus:ring-2 focus:ring-emerald-400 focus:outline-none text-gray-700;
 }
+
+.date-overlay-top {
+  @apply absolute inset-0 w-full h-full opacity-0 cursor-pointer;
+  z-index: 20; /* ✅ ensure it's above everything */
+}
+
+.birthday-icon {
+  @apply pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-gray-400;
+  z-index: 10; /* below overlay */
+}
+
+.birthday-display {
+  @apply pointer-events-none;
+}
+
+/* real date input stays at the same position (for correct picker anchoring)
+   but doesn't steal clicks — wrapper click opens it */
+.date-overlay-anchor {
+  @apply absolute inset-0 w-full h-full opacity-0;
+  pointer-events: none;
+}
+
 </style>
